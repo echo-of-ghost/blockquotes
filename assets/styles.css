@@ -1,0 +1,648 @@
+/*
+ * Unix-Inspired CRT Terminal CSS
+ * Version: 1.0.20
+ * Created by @maplehodl
+ *
+ * Table of Contents:
+ * 1. Reset
+ * 2. Base Styles
+ * 3. Global Styles
+ * 4. Themes
+ * 5. Components
+ * 6. Animations
+ */
+
+/* === 1. Reset === */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* === 2. Base Styles === */
+:root {
+  /* Core Theme Variables */
+  --primary-color: #E0E0E0;
+  --primary-rgb: 224, 224, 224;
+  --font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  --font-size: clamp(1.4rem, 2.5vw, 2.5rem);
+  --author-font-size: clamp(1.1rem, 2vw, 2rem);
+  --prompt-font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  --letter-spacing: 0.015em; /* Increased for professional spacing */
+  --prompt-symbol: '>';
+  --author-rgb: 245, 245, 245;
+  --theme-background-rgb: 16, 19, 16;
+  /* Site-specific Colors */
+  --site-grey: 128, 128, 128; /* Neutral grey */
+  /* Visual Effects */
+  --scanline-opacity: 0.2;
+  --scanline-frequency: 0.6;
+  --scanline-svg: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="var(--scanline-frequency)" numOctaves="1" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="linear" slope="0.3"/><feFuncG type="linear" slope="0.3"/><feFuncB type="linear" slope="0.3"/><feFuncA type="linear" slope="0.1"/></feComponentTransfer></filter><rect width="100" height="100" filter="url(%23n)" fill="black"/></svg>');
+  --static-noise: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><filter id="s"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="0" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="linear" slope="0.15"/><feFuncG type="linear" slope="0.15"/><feFuncB type="linear" slope="0.15"/><feFuncA type="linear" slope="0.03"/></feComponentTransfer></filter><rect width="100" height="100" filter="url(%23s)" fill="black" opacity="0.08"/></svg>');
+  /* Glow Variables */
+  --glow-intensity: 0.5;
+  --glow-pulse-duration: 5s;
+  /* Responsive Variables */
+  --quote-padding-top: clamp(0.8rem, 0.8vw + 0.5vh, 1rem); /* Increased for balance */
+  --quote-padding-bottom: clamp(1.7rem, 1.5vw + 1vh, 2rem); /* Increased for separation */
+  --main-padding-top: clamp(3rem, 2vw + 1.5vh, 4rem); /* More space at top */
+  --quote-max-height: calc(100vh - 2 * clamp(2rem, 6vw + 3vh + 1rem, 12rem) - 3rem);
+  --base-transition: opacity 0.3s ease, text-shadow 0.3s ease;
+}
+
+/* Scanline Effect */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: var(--scanline-background, transparent), var(--static-noise);
+  background-repeat: repeat;
+  background-size: auto, 200px 200px;
+  opacity: var(--scanline-opacity);
+  transform: translateZ(0);
+}
+
+/* === 3. Global Styles === */
+body[class^="theme-"] {
+  background-color: var(--theme-background, #121212);
+  color: var(--primary-color);
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  font-family: var(--font-family);
+  font-feature-settings: 'liga' 1, 'clig' 1, 'calt' 1;
+  line-height: 1.6;
+  margin: 0;
+  min-height: 100vh;
+  overflow-y: hidden;
+  padding: clamp(2rem, 6vw + 3vh + 1rem, 12rem) clamp(1rem, 1vw + 0.5vh + 0.5rem, 2rem);
+  text-rendering: optimizeLegibility;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  letter-spacing: var(--letter-spacing);
+  -webkit-transition: var(--base-transition);
+  -o-transition: var(--base-transition);
+  transition: var(--base-transition);
+  scrollbar-color: var(--primary-color) var(--theme-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* === 4. Themes === */
+/* IBM 3279 Theme (Green Phosphor Terminal) */
+.theme-ibm3279-green {
+  --theme-background: #0E1210;
+  --primary-color: #66FFAA;
+  --author-hover-decoration: underline;
+  --primary-rgb: 102, 255, 170;
+  --prompt-symbol: '===>';
+  --glow-bleed: rgba(100, 255, 150, 0.2); /* Greenish bleed for phosphor effect */
+  --scanline-background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.02) 0px,
+    rgba(0, 0, 0, 0.07) 1px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
+/* IBM 3279 Bitcoin Orange Theme */
+.theme-ibm3279-bitcoin-orange {
+  --theme-background: #0A0A0A;
+  --primary-color: #FFAB4D;
+  --author-hover-decoration: underline;
+  --primary-rgb: 255, 171, 77;
+  --prompt-symbol: '===>';
+  --glow-bleed: rgba(255, 200, 100, 0.2); /* Orangish bleed for warmth */
+  --scanline-background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.02) 0px,
+    rgba(0, 0, 0, 0.07) 1px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
+/* DEC VT05 Theme (Blue-Green Teletype Terminal) */
+.theme-teletype-blue-green {
+  --theme-background: #111213;
+  --primary-color: #B0D0B0;
+  --primary-rgb: 176, 208, 176;
+  --prompt-symbol: '@PDP>';
+  --author-hover-decoration: underline;
+  --scanline-frequency: 0.7;
+  --glow-bleed: rgba(180, 220, 180, 0.2); /* Pale blue-green bleed */
+  --scanline-background: var(--base-scanline-svg),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.03) 0px,
+      rgba(0, 0, 0, 0.06) 1px,
+      transparent 2px,
+      transparent 5px
+    );
+}
+
+/* Zenith Z-19 Theme */
+.theme-zenith-green {
+  --theme-background: #101310;
+  --primary-color: #A0FFA0;
+  --primary-rgb: 144, 255, 144;
+  --prompt-symbol: '$';
+  --author-hover-decoration: underline;
+  --scanline-frequency: 0.65;
+  --glow-bleed: rgba(150, 255, 150, 0.2); /* Bright green bleed */
+  --scanline-background: var(--base-scanline-svg),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.025) 0px,
+      rgba(0, 0, 0, 0.05) 1px,
+      transparent 2px,
+      transparent 4.5px
+    );
+}
+
+/* Reuters Dealing 2000 Theme */
+.theme-white {
+  --theme-background: #121212;
+  --primary-color: #F0F0F0;
+  --primary-rgb: 240, 240, 240;
+  --author-hover-decoration: underline;
+  --prompt-symbol: 'RD>';
+  --scanline-frequency: 0.6;
+  --glow-bleed: rgba(255, 255, 255, 0.2); /* Neutral white bleed */
+  --scanline-background: var(--base-scanline-svg),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.015) 0px,
+      rgba(0, 0, 0, 0.03) 1px,
+      transparent 2px,
+      transparent 4px
+    );
+}
+
+/* Hazeltine 2000 Theme */
+.theme-hazeltine-teal {
+  --theme-background: #111314;
+  --primary-color: #77DDDD;
+  --primary-rgb: 136, 238, 238;
+  --author-hover-decoration: underline;
+  --prompt-symbol: 'H2000>';
+  --glow-bleed: rgba(140, 240, 240, 0.2); /* Tealish bleed */
+  --scanline-background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.03) 0px,
+    rgba(0, 0, 0, 0.06) 1px,
+    transparent 2px,
+    transparent 5px
+  );
+}
+
+/* Commodore PET 2001 Theme */
+.theme-pet2001-green {
+  --theme-background: #090909;
+  --primary-color: #00FF33;
+  --primary-rgb: 51, 204, 102;
+  --prompt-symbol: 'READY.';
+  --author-hover-decoration: underline;
+  --scanline-frequency: 0.6;
+  --glow-bleed: rgba(100, 255, 120, 0.2); /* Vibrant green bleed */
+  --scanline-background: var(--base-scanline-svg),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.025) 0px,
+      rgba(0, 0, 0, 0.05) 1px,
+      transparent 2px,
+      transparent 4.5px
+    );
+}
+
+/* === 5. Components === */
+/* Header */
+#header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: row;
+  flex-direction: row; /* Stack icons horizontally */
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center; /* Center vertically */
+  padding: 0.75rem clamp(0.5rem, 2vw, 0.75rem);
+  z-index: 10000;
+  min-height: 2rem;
+  -webkit-transition: opacity 0.3s ease;
+  -o-transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease;
+  gap: 0.25rem; /* Reduced spacing between icons */
+  will-change: opacity;
+  contain: layout style paint;
+}
+
+#header a {
+  display: block; 
+  margin-bottom: 0; /* Remove extra margin since we're using gap */
+}
+
+.header-icon {
+  color: rgba(var(--primary-rgb), 0.7); /* Theme color */
+  text-decoration: none;
+  font-size: clamp(0.75rem, 0.8vw + 0.4vh, 0.875rem);
+  -webkit-transition: color 0.3s ease, text-shadow 0.3s ease, -webkit-transform 0.2s ease;
+  -o-transition: color 0.3s ease, text-shadow 0.3s ease, transform 0.2s ease;
+  transition: color 0.3s ease, text-shadow 0.3s ease, transform 0.2s ease;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  padding: 0.5rem; /* Better touch targets for mobile */
+  min-width: 44px; /* Minimum touch target size */
+  min-height: 44px;
+  border-radius: 4px;
+  position: relative;
+  will-change: color, text-shadow, transform;
+  contain: layout style paint;
+}
+
+.header-icon:hover,
+.header-icon:focus {
+  color: rgba(var(--primary-rgb), 1); /* Brighter theme color */
+  text-shadow: 0 0 4px rgba(var(--primary-rgb), 0.7); /* Theme glow */
+}
+
+
+/* Main Content */
+main {
+  padding-top: var(--main-padding-top);
+  box-sizing: border-box;
+  padding-left: clamp(0.5rem, 1vw, 1rem);
+  padding-right: clamp(0.5rem, 1vw, 1rem);
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  main {
+    padding-top: clamp(2rem, 4vw + 2vh, 3rem);
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  #header {
+    padding: 0.5rem;
+    gap: 0.15rem;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
+    -ms-flex-direction: row;
+    flex-direction: row;
+  }
+  
+  .header-icon {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0.4rem;
+    font-size: 0.8rem;
+  }
+  
+  #key-commands {
+    font-size: clamp(0.5rem, 0.7vw + 0.3vh, 0.6rem);
+    padding: 0.025rem 0.5rem;
+    gap: 0.3rem;
+  }
+  
+  #quote-container {
+    font-size: clamp(1.2rem, 2vw, 2rem);
+    padding: var(--quote-padding-top) 0 var(--quote-padding-bottom);
+  }
+  
+  .author {
+    font-size: clamp(1rem, 1.8vw, 1.8rem);
+    margin-top: clamp(0.8rem, 1vw + 0.6vh, 1.5rem);
+  }
+}
+
+/* Quote Container */
+#quote-container {
+  color: rgba(var(--primary-rgb), 0.9);
+  margin: 0;
+  min-height: 6em;
+  font-size: var(--font-size);
+  font-weight: 500;
+  padding: var(--quote-padding-top) 0 var(--quote-padding-bottom);
+  max-height: var(--quote-max-height);
+  overflow-y: hidden;
+  text-align: left;
+  width: 100%;
+  -webkit-transition: var(--base-transition);
+  -o-transition: var(--base-transition);
+  transition: var(--base-transition);
+  will-change: opacity, text-shadow, transform;
+  line-height: 1.6;
+  text-shadow: 0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7)); /* Subtle glow */
+  contain: layout style paint;
+  transform: translateZ(0); /* Force hardware acceleration */
+}
+
+
+/* Author */
+.author {
+  display: block;
+  color: rgba(var(--primary-rgb), 0.9);
+  font-weight: 400;
+  margin-top: clamp(1rem, 1.2vw + 0.8vh, 2rem); 
+  font-size: var(--author-font-size);
+  text-align: left;
+  -webkit-transition: var(--base-transition);
+  -o-transition: var(--base-transition);
+  transition: var(--base-transition);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  font-style: italic;
+  will-change: opacity, text-shadow;
+  transform: translateZ(0); /* Force hardware acceleration */
+}
+
+.author a {
+  text-decoration: none;
+  color: rgba(var(--primary-rgb), 0.9);
+  -webkit-transition: var(--base-transition);
+  -o-transition: var(--base-transition);
+  transition: var(--base-transition);
+  will-change: color, text-shadow;
+}
+
+.author a:hover,
+.author a:focus {
+  text-decoration: var(--author-hover-decoration, none);
+  animation: none;
+}
+
+/* Error Message */
+#error-message {
+  display: block;
+  margin-top: clamp(0.8rem, 1vw + 0.5vh, 1.2rem);
+  padding: clamp(0.4rem, 0.5vw + 0.3vh, 0.6rem);
+  color: var(--theme-background);
+  background: rgba(var(--primary-rgb), 0.8);
+  border: 1px solid var(--primary-color);
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.3);
+  font-family: var(--font-family);
+  opacity: 0;
+  transition: var(--base-transition);
+  aria-hidden: true;
+}
+
+#error-message.error-active {
+  opacity: 1;
+  aria-hidden: false;
+}
+
+/* Key Commands */
+#key-commands {
+  color: rgba(var(--site-grey), 0.65); /* Theme color */
+  font-family: var(--font-family);
+  font-size: clamp(0.55rem, 0.8vw + 0.4vh, 0.675rem); 
+  letter-spacing: var(--letter-spacing);
+  line-height: 1.6;
+  padding: 0.025rem 1rem;
+  white-space: nowrap;
+  font-weight: 400;
+  text-align: center;
+  -webkit-transition: opacity 0.3s ease, -webkit-transform 0.3s ease;
+  -o-transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex; 
+  text-transform: uppercase;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 1vw, 1rem);
+}
+
+#key-commands span {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex; /* Flex to keep key/command close */
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center; /* Align key and command */
+  margin: 0.1rem;
+}
+
+#key-commands .key {
+  font-weight: 600;
+  margin-right: 0.025rem; /* Minimal space between key and command */
+  color: rgba(var(--primary-rgb), 0.5); /* Theme color */
+  text-shadow: 0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7)); /* Subtle glow */
+
+}
+
+/* Footer */
+#footer {
+  position: fixed; /* Fixed to bottom */
+  bottom: 0rem; /* Space from bottom */
+  left: 50%;
+  -webkit-transform: translateX(-50%); /* Center horizontally */
+  -ms-transform: translateX(-50%);
+  transform: translateX(-50%); /* Center horizontally */
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex; /* Stack vertically */
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column; /* Key commands above subtext */
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center; /* Center content */
+  gap: 0.25rem; /* Space between elements */
+  font-family: var(--font-family); /* IBM Plex Mono */
+  z-index: 9997; /* Below header */
+  will-change: opacity;
+  contain: layout style paint;
+}
+
+.footer-subtext {
+  font-size: clamp(0.5rem, 0.7vw + 0.35vh, 0.5rem); /* Small for subtlety */
+  letter-spacing: var(--letter-spacing);
+  line-height: 1.6;
+  padding: 0.025rem 0.8rem 0.55rem 0.8rem; /* Compact */
+  text-align: center;
+  text-transform: uppercase; /* All caps */
+  -webkit-transition: opacity 0.3s ease;
+  -o-transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease;
+  opacity: 0.8; /* Subtle */
+  max-width: 90vw; /* Prevent overflow */
+  color: rgba(var(--site-grey), 0.65); /* Theme color */
+}
+
+#footer a {
+  color: rgba(var(--site-grey), 0.65); /* Theme color */
+  text-decoration: none; /* Remove default underline */
+  font-family: var(--font-family); 
+  -webkit-transition: color 0.2s ease, text-decoration 0.2s ease;
+  -o-transition: color 0.2s ease, text-decoration 0.2s ease;
+  transition: color 0.2s ease, text-decoration 0.2s ease; 
+}
+
+#footer a:hover {
+  color: rgba(var(--primary-rgb), 0.65); /* Theme color */
+  text-decoration: underline; 
+  text-shadow:
+    0 0 1px rgba(var(--primary-rgb), 0.3),
+    0 0 2px rgba(var(--primary-rgb), 0.15);
+}
+
+/* Selection Highlight */
+::selection {
+  background: var(--primary-color);
+  box-shadow:
+    0 0 3px rgba(var(--primary-rgb), 0.5),
+    0 0 6px rgba(var(--primary-rgb), 0.25),
+    0 0 12px rgba(var(--primary-rgb), 0.15);
+  color: var(--theme-background);
+}
+
+/* === 6. Animations === */
+@-webkit-keyframes quote-glow-pulse {
+  0%, 100% {
+    text-shadow:
+      0 0 2px rgba(var(--primary-rgb), var(--glow-intensity)),
+      0 0 5px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.6)),
+      0 0 8px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.3));
+    -webkit-filter: brightness(1);
+    filter: brightness(1);
+  }
+  50% {
+    text-shadow:
+      0 0 3px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 1.2)),
+      0 0 6px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.8)),
+      0 0 10px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.4));
+    -webkit-filter: brightness(1.05);
+    filter: brightness(1.05);
+  }
+  75% {
+    text-shadow:
+      0 0 2.5px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 1.1)),
+      0 0 5.5px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7)),
+      0 0 9px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.35));
+    -webkit-filter: brightness(1.02); /* Subtle flicker */
+    filter: brightness(1.02); /* Subtle flicker */
+  }
+}
+
+@keyframes quote-glow-pulse {
+  0%, 100% {
+    text-shadow:
+      0 0 2px rgba(var(--primary-rgb), var(--glow-intensity)),
+      0 0 5px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.6)),
+      0 0 8px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.3));
+    -webkit-filter: brightness(1);
+    filter: brightness(1);
+  }
+  50% {
+    text-shadow:
+      0 0 3px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 1.2)),
+      0 0 6px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.8)),
+      0 0 10px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.4));
+    -webkit-filter: brightness(1.05);
+    filter: brightness(1.05);
+  }
+  75% {
+    text-shadow:
+      0 0 2.5px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 1.1)),
+      0 0 5.5px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7)),
+      0 0 9px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.35));
+    -webkit-filter: brightness(1.02); /* Subtle flicker */
+    filter: brightness(1.02); /* Subtle flicker */
+  }
+}
+
+
+
+
+/* Favicon styles */
+.outer-circle {
+  fill: #1a1a1a !important; /* Reinforces inline fill="#1a1a1a" */
+}
+
+.bitcoin-b {
+  fill: var(--primary-color) !important; /* Overrides inline fill="#66FFAA" */
+  -webkit-filter: drop-shadow(0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7))) !important; /* Overrides inline filter */
+  filter: drop-shadow(0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7))) !important; /* Overrides inline filter */
+}
+
+/* Theme-specific overrides */
+.theme-ibm3279-green .bitcoin-b {
+  fill: #66FFAA !important; /* Matches inline fill */
+  -webkit-filter: drop-shadow(0 0 4px rgba(102, 255, 170, 0.35)) !important; /* Matches inline glow */
+  filter: drop-shadow(0 0 4px rgba(102, 255, 170, 0.35)) !important; /* Matches inline glow */
+}
+
+.theme-teletype-blue-green .bitcoin-b {
+  fill: #B0D0B0 !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(176, 208, 176, calc(var(--glow-intensity) * 0.7))) !important;
+  filter: drop-shadow(0 0 4px rgba(176, 208, 176, calc(var(--glow-intensity) * 0.7))) !important;
+}
+
+.theme-pet2001-green .bitcoin-b {
+  fill: #00FF33 !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(51, 204, 102, calc(var(--glow-intensity) * 0.7))) !important;
+  filter: drop-shadow(0 0 4px rgba(51, 204, 102, calc(var(--glow-intensity) * 0.7))) !important;
+}
+
+.theme-ibm3279-bitcoin-orange .bitcoin-b {
+  fill: #FFAB4D !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(255, 171, 77, calc(var(--glow-intensity) * 0.7))) !important;
+  filter: drop-shadow(0 0 4px rgba(255, 171, 77, calc(var(--glow-intensity) * 0.7))) !important;
+}
+
+.theme-hazeltine-teal .bitcoin-b {
+  fill: #77DDDD !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(136, 238, 238, calc(var(--glow-intensity) * 0.7))) !important;
+  filter: drop-shadow(0 0 4px rgba(136, 238, 238, calc(var(--glow-intensity) * 0.7))) !important;
+}
+
+.theme-zenith-green .bitcoin-b {
+  fill: #A0FFA0 !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(144, 255, 144, calc(var(--glow-intensity) * 0.7))) !important;
+  filter: drop-shadow(0 0 4px rgba(144, 255, 144, calc(var(--glow-intensity) * 0.7))) !important;
+}
+
+.theme-white .bitcoin-b {
+  fill: #F0F0F0 !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(240, 240, 240, calc(var(--glow-intensity) * 0.7))) !important;
+  filter: drop-shadow(0 0 4px rgba(240, 240, 240, calc(var(--glow-intensity) * 0.7))) !important;
+}
+
+@media (max-width: 768px) {
+  #footer {
+    display: none;
+  }
+}

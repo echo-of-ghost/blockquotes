@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+  <meta name="description" content="Discover inspiring Bitcoin quotes and wisdom from thought leaders, developers, and the Bitcoin community. A curated collection of insights about the world's first cryptocurrency.">
+  <meta name="keywords" content="bitcoin, quotes, cryptocurrency, blockchain, wisdom, inspiration, satoshi, lightning network">
+  <meta name="author" content="blockquotes.sh">
+  <meta name="theme-color" content="#1A1A1A"> 
+  <meta property="og:title" content="Bitcoin Quotes and Wisdom | blockquotes.sh">
+  <meta property="og:description" content="Discover inspiring Bitcoin quotes and wisdom from thought leaders, developers, and the Bitcoin community. A curated collection of insights about the world's first cryptocurrency.">
+  <meta property="og:image" content="assets/og.png">
+  <meta property="og:url" content="https://blockquotes.sh">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="blockquotes.sh">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Bitcoin Quotes and Wisdom | blockquotes.sh">
+  <meta name="twitter:description" content="Discover inspiring Bitcoin quotes and wisdom from thought leaders, developers, and the Bitcoin community.">
+  <meta name="twitter:image" content="assets/og.png">
+  <link rel="canonical" href="https://blockquotes.sh">
+  <title>blockquotes.sh | Bitcoin Quotes</title>
+  
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "blockquotes.sh",
+    "description": "Discover inspiring Bitcoin quotes and wisdom from thought leaders, developers, and the Bitcoin community.",
+    "url": "https://blockquotes.sh",
+    "author": {
+      "@type": "Organization",
+      "name": "blockquotes.sh"
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://blockquotes.sh",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+  
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  
+  <!-- Preload critical resources -->
+  <link rel="preload" href="assets/styles.css" as="style">
+  <link rel="preload" href="data/bitcoin_quotes.json" as="fetch" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&display=swap" as="style">
+  
+  <!-- DNS prefetch for external resources -->
+  <link rel="dns-prefetch" href="//fonts.googleapis.com">
+  <link rel="dns-prefetch" href="//fonts.gstatic.com">
+  <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+  
+  <!-- Preconnect to external domains -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  
+  <!-- Load stylesheets -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&display=swap">
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+<body class="theme-ibm3279-green">
+  <header id="header" role="banner" aria-label="Header containing links and information"><a href="lightning:lnurl1dp68gurn8ghj7cnjv4jh5tnxw4hz7mrww4excup0xqerscfc8pjkgvnr8y6nqepnx4skvefhv3nryvejxpskvwrpxsengdfjv5urwvr9vgcrqvmz8p3rgcejx9jn2cmrvejxgcecx9jr2dfkxgstgsm6" class="header-icon bolt-link" aria-label="Lightning link" title="Open in compatible Lightning wallet"><i class="fas fa-bolt" aria-hidden="true"></i></a><a href="nostr:npub1hqrqk49gdkdgl2cyx2xwzd8s7teq6t3vvlqj3yedp0anwv4t78mqxtds60" class="header-icon" aria-label="Feather link" target="_blank" title="Open in Nostr client"><i class="fas fa-feather" aria-hidden="true"></i></a><a href="https://github.com/echo-of-ghost/blockquotes" class="header-icon" aria-label="GitHub link" target="_blank"><i class="fab fa-github" aria-hidden="true"></i></a><a href="https://bitcoin.org" class="header-icon" aria-label="Bitcoin link" target="_blank"><i class="fab fa-bitcoin" aria-hidden="true"></i></a>
+  </header><main><section id="quote-container" aria-live="polite" aria-label="Bitcoin quotes display area"></section><div id="error-message" aria-live  aria-live="polite">Houston, we have a problem.</div></main>
+  <!-- Load non-critical scripts with defer -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js" integrity="sha512-CSBhVREyzHAjAFfBlIBakjoRUKp5h7VSweP0InR/pAJyptH7peuhCsqAI/snV+TwZmXZqoUklpXp6R6wMnYf5Q==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+  <script src="scripts/colours.js" defer></script>
+  <script src="scripts/script.js" defer></script>
+  
+  <!-- Performance monitoring -->
+  <script>
+    // Monitor Core Web Vitals
+    if ('web-vital' in window) {
+      import('https://unpkg.com/web-vitals@3/dist/web-vitals.js').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+        getCLS(console.log);
+        getFID(console.log);
+        getFCP(console.log);
+        getLCP(console.log);
+        getTTFB(console.log);
+      });
+    }
+  </script>
+</body>
+</html>
