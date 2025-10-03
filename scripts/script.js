@@ -937,11 +937,8 @@ function handleSwipeStart(event) {
       }
     }, 800); // 800ms for long press
     
-  } else if (event.touches && event.touches.length === 2) {
-    // Two finger touch for bookmark navigation
-    twoFingerStartX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
-    twoFingerStartY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
   }
+  // Two-finger touch detection removed for mobile simplicity
 }
 
 function handleSwipeEnd(event) {
@@ -953,12 +950,8 @@ function handleSwipeEnd(event) {
   
   const touchDuration = Date.now() - touchStartTime;
   
-  // Handle single finger swipes
+  // Handle single finger swipes only
   if (!event.changedTouches || event.changedTouches.length !== 1) {
-    // Handle two-finger swipes
-    if (event.changedTouches && event.changedTouches.length === 2) {
-      handleTwoFingerSwipe(event);
-    }
     return;
   }
   
@@ -997,40 +990,12 @@ function handleSwipeEnd(event) {
     if (diffY > 0) {
       // Swipe up - toggle uppercase
       toggleTextCase();
-    } else {
-      // Swipe down - toggle bookmark
-      if (state.currentQuote) {
-        toggleBookmark();
-      }
     }
+    // Swipe down - removed bookmark functionality for mobile
   }
 }
 
-// Handle two-finger swipes for bookmark navigation
-function handleTwoFingerSwipe(event) {
-  const endX = (event.changedTouches[0].clientX + event.changedTouches[1].clientX) / 2;
-  const endY = (event.changedTouches[0].clientY + event.changedTouches[1].clientY) / 2;
-  const diffX = twoFingerStartX - endX;
-  const diffY = twoFingerStartY - endY;
-  
-  const minSwipeDistance = 50;
-  
-  // Only handle horizontal two-finger swipes
-  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > minSwipeDistance) {
-    if (state.bookmarkedQuotes.length === 0) {
-      QuoteUtils.announceAction('No bookmarked quotes yet. Swipe down to bookmark quotes.');
-      return;
-    }
-    
-    if (diffX > 0) {
-      // Two-finger swipe left - next bookmark
-      viewNextBookmarkedQuote();
-    } else {
-      // Two-finger swipe right - previous bookmark
-      viewPreviousBookmarkedQuote();
-    }
-  }
-}
+// Two-finger swipe functionality removed for mobile simplicity
 
 // Mouse wheel navigation with momentum
 let wheelDelta = 0;
