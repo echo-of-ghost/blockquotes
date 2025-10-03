@@ -28,8 +28,6 @@ function changeTheme() {
   themes.forEach(theme => body.classList.remove(`theme-${theme}`));
   body.classList.add(`theme-${themes[nextIndex]}`);
   localStorage.setItem('theme', themes[nextIndex]);
-  body.classList.add('theme-toggle-flash');
-  setTimeout(() => body.classList.remove('theme-toggle-flash'), 300);
   
   console.log(`Theme changed to: ${themes[nextIndex]}`);
 }
