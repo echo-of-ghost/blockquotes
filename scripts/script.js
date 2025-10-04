@@ -8,20 +8,6 @@ const config = {
   performanceMode: window.matchMedia('(prefers-reduced-motion: reduce)').matches
 };
 
-// Available fonts (all from Google Fonts)
-const fonts = [
-  'IBM Plex Mono',
-  'JetBrains Mono',
-  'VT323',
-  'Fira Mono',
-  'Space Mono',
-  'Anonymous Pro',
-  'Inconsolata',
-  'Ubuntu Mono',
-  'Cutive Mono',
-  'Rubik Mono One'
-];
-
 // =========================================
 // STATE MANAGEMENT
 // =========================================
@@ -38,8 +24,7 @@ const state = {
   preloadedAuthorHTML: null, // Preformatted author HTML
   animationFrameId: null, // For requestAnimationFrame
   bookmarkedQuotes: JSON.parse(localStorage.getItem('bookmarked-quotes') || '[]'),
-  currentBookmarkIndex: 0, // Position in bookmark list
-  currentFontIndex: parseInt(localStorage.getItem('current-font-index') || '0') // Current font
+  currentBookmarkIndex: 0 // Position in bookmark list
 };
 
 // =========================================
@@ -321,21 +306,6 @@ function toggleTextCase() {
     authorElement.style.textTransform = textTransform;
   }
   QuoteUtils.announceAction(`Text case set to ${state.isUppercase ? 'uppercase' : 'lowercase'}`);
-}
-
-// Cycle to next font
-function cycleFont() {
-  state.currentFontIndex = (state.currentFontIndex + 1) % fonts.length;
-  const currentFont = fonts[state.currentFontIndex];
-  
-  // Update font only for quote container
-  const fontStack = `"${currentFont}", "Courier New", monospace`;
-  elements.quoteContainer.style.fontFamily = fontStack;
-  
-  // Save preference
-  localStorage.setItem('current-font-index', state.currentFontIndex.toString());
-  
-  QuoteUtils.announceAction(`Font changed to ${currentFont}`);
 }
 
 // =========================================
@@ -676,13 +646,6 @@ function handleKeyPress(event) {
     viewNextBookmarkedQuote();
     setTimeout(() => (state.isProcessing = false), 100);
   }
-
-  // F: Cycle font
-  if (event.key.toLowerCase() === 'f') {
-    state.isProcessing = true;
-    cycleFont();
-    setTimeout(() => (state.isProcessing = false), 100);
-  }
 }
 
 // =========================================
@@ -754,14 +717,10 @@ function handleSwipeEnd(event) {
     }
   }
   
-  // Vertical swipe: Swipe up = toggle uppercase, Swipe down = cycle font
+  // Vertical swipe: Swipe up = toggle uppercase
   if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > minSwipeDistance) {
     if (diffY > 0) {
-      // Swipe up
       toggleTextCase();
-    } else {
-      // Swipe down
-      cycleFont();
     }
   }
 }
@@ -828,11 +787,6 @@ function handleWheelNavigation(event) {
 // =========================================
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize saved font for quote container only
-  const currentFont = fonts[state.currentFontIndex];
-  const fontStack = `"${currentFont}", "Courier New", monospace`;
-  elements.quoteContainer.style.fontFamily = fontStack;
-  
   // Attach event listeners
   document.body.addEventListener('click', handleClick, { passive: false });
   document.body.addEventListener('keydown', handleKeyPress, { passive: false });
