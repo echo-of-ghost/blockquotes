@@ -58,3 +58,4 @@ Example format:
 Frontend: HTML, CSS, JavaScript
 Quote Database: JSON
 Deployment: GitHub Pages
+
