@@ -1,13 +1,14 @@
 const themes = [
-  'ibm3279-green',      // IBM 3279, 1979, green phosphor CRT, 80x24, mainframe terminal for TSO and CMS
-  'teletype-blue-green', // DEC VT220, 1983, white phosphor CRT, 80x24, used in Unix environments with ANSI support
-  'pet2001-green',
-  'ibm3279-bitcoin-orange',
-  'hazeltine-teal',
-  'zenith-green',       // Zenith Z-19, 1979, green phosphor CRT, 80x24, compatible with Heathkit H-19, used in CP/M and Unix
-  'white',              // DEC VT05, 1972, greenish-white phosphor CRT, 72x20, early teletype-style terminal for DEC systems
-  'vt100-amber',        // DEC VT100, 1978, amber P3 phosphor CRT, 80x24, the most influential terminal ever made
-  'apple2-green',       // Apple II, 1977, bright green P1 phosphor CRT, 40x24, iconic home computer terminal
+  'ibm3279-green',           // IBM 3279, 1979, green phosphor CRT, 80x24, mainframe terminal for TSO and CMS
+  'teletype-blue-green',     // DEC VT220, 1983, white phosphor CRT, 80x24, used in Unix environments with ANSI support
+  'pet2001-green',           // Commodore PET 2001, 1977, green phosphor CRT, early personal computer with built-in keyboard
+  'ibm3279-bitcoin-orange',  // IBM 3279, 1979, modified orange Bitcoin theme, color display for mainframe interaction
+  'hazeltine-teal',          // Hazeltine 1500, 1977, teal phosphor CRT, 80x24, popular for ergonomics
+  'zenith-green',            // Zenith Z-19, 1979, green phosphor CRT, 80x24, compatible with Heathkit H-19, used in CP/M and Unix
+  'white',                   // DEC VT05, 1972, greenish-white phosphor CRT, 72x20, early teletype-style terminal for DEC systems
+  'vt100-amber',             // DEC VT100, 1978, amber P3 phosphor CRT, 80x24, the most influential terminal ever made
+  'apple2-green',            // Apple II, 1977, bright green P1 phosphor CRT, 40x24, iconic home computer terminal
+  'commodore64-blue',        // Commodore 64, 1982, iconic blue screen, 40x25, best-selling home computer of all time
 ];
 
 // Shake detection variables
