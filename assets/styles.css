@@ -30,7 +30,6 @@
     --glow-intensity: 0.5;
     --scanline-opacity: 0.2;
     --scanline-frequency: 0.6;
-    --phosphor-decay: 0.6s; /* Phosphor persistence duration */
     
     /* Spacing */
     --quote-padding-top: clamp(0.8rem, 0.8vw + 0.5vh, 1rem);
@@ -115,7 +114,6 @@ body[class^="theme-"]::before {
     --author-hover-decoration: underline;
     --primary-rgb: 102, 255, 170;
     --scanline-background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0, rgba(0, 0, 0, 0.07) 1px, transparent 3px, transparent 6px);
-    --phosphor-decay: 0.5s; /* Medium persistence green phosphor */
 }
 
 .theme-ibm3279-bitcoin-orange {
@@ -124,7 +122,6 @@ body[class^="theme-"]::before {
     --author-hover-decoration: underline;
     --primary-rgb: 255, 171, 77;
     --scanline-background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0, rgba(0, 0, 0, 0.07) 1px, transparent 3px, transparent 6px);
-    --phosphor-decay: 0.5s; /* Medium persistence */
 }
 
 .theme-teletype-blue-green {
@@ -134,7 +131,6 @@ body[class^="theme-"]::before {
     --author-hover-decoration: underline;
     --scanline-frequency: 0.7;
     --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 0, rgba(0, 0, 0, 0.06) 1px, transparent 2px, transparent 5px);
-    --phosphor-decay: 0.7s; /* White phosphor - medium-long persistence */
 }
 
 .theme-zenith-green {
@@ -144,7 +140,6 @@ body[class^="theme-"]::before {
     --author-hover-decoration: underline;
     --scanline-frequency: 0.65;
     --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 0, rgba(0, 0, 0, 0.05) 1px, transparent 2px, transparent 4.5px);
-    --phosphor-decay: 0.55s; /* Green phosphor - medium persistence */
 }
 
 .theme-white {
@@ -154,7 +149,6 @@ body[class^="theme-"]::before {
     --author-hover-decoration: underline;
     --scanline-frequency: 0.6;
     --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 0, rgba(0, 0, 0, 0.03) 1px, transparent 2px, transparent 4px);
-    --phosphor-decay: 0.65s; /* White phosphor - medium-long */
 }
 
 .theme-hazeltine-teal {
@@ -163,7 +157,6 @@ body[class^="theme-"]::before {
     --primary-rgb: 136, 238, 238;
     --author-hover-decoration: underline;
     --scanline-background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 0, rgba(0, 0, 0, 0.06) 1px, transparent 2px, transparent 5px);
-    --phosphor-decay: 0.6s; /* Teal phosphor - medium persistence */
 }
 
 .theme-pet2001-green {
@@ -173,7 +166,6 @@ body[class^="theme-"]::before {
     --author-hover-decoration: underline;
     --scanline-frequency: 0.6;
     --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 0, rgba(0, 0, 0, 0.05) 1px, transparent 2px, transparent 4.5px);
-    --phosphor-decay: 0.4s; /* P1 green - fast decay */
 }
 
 .theme-vt100-amber {
@@ -183,7 +175,6 @@ body[class^="theme-"]::before {
     --author-hover-decoration: underline;
     --scanline-frequency: 0.55;
     --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0, rgba(0, 0, 0, 0.04) 1px, transparent 2px, transparent 5px);
-    --phosphor-decay: 0.9s; /* P3 amber - long persistence (most persistent!) */
 }
 
 .theme-apple2-green {
@@ -193,27 +184,6 @@ body[class^="theme-"]::before {
     --author-hover-decoration: underline;
     --scanline-frequency: 0.65;
     --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 0, rgba(0, 0, 0, 0.06) 1px, transparent 2px, transparent 4px);
-    --phosphor-decay: 0.35s; /* P1 green - very fast decay */
-}
-
-.theme-commodore64-blue {
-    --theme-background: #352879;
-    --primary-color: #7D7DFE;
-    --primary-rgb: 125, 125, 254;
-    --author-hover-decoration: underline;
-    --scanline-frequency: 0.6;
-    --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0, rgba(0, 0, 0, 0.05) 1px, transparent 2px, transparent 4px);
-    --phosphor-decay: 0.45s; /* Medium-fast decay */
-}
-
-.theme-atari800-cyan {
-    --theme-background: #000000;
-    --primary-color: #00FFFF;
-    --primary-rgb: 0, 255, 255;
-    --author-hover-decoration: underline;
-    --scanline-frequency: 0.65;
-    --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 0, rgba(0, 0, 0, 0.06) 1px, transparent 2px, transparent 4px);
-    --phosphor-decay: 0.5s; /* Medium persistence cyan */
 }
 
 /* =========================================
@@ -299,7 +269,7 @@ main {
     backface-visibility: hidden;
     scroll-behavior: smooth;
     scrollbar-width: thin;
-    scrollbar-color: rgba(var(--primary-rgb), 0.3) transparent;
+    scrollbar-color: rgba(var(--primary-rgb), 0.3) rgba(var(--primary-rgb), 0.1);
     text-rendering: geometricPrecision;
     font-variant-ligatures: none;
     letter-spacing: 0.02em;
@@ -312,7 +282,8 @@ main {
 }
 
 #quote-container::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(var(--primary-rgb), 0.1);
+    border-radius: 4px;
 }
 
 #quote-container::-webkit-scrollbar-thumb {
@@ -362,10 +333,6 @@ main {
     text-shadow: 0 0 6px rgba(0, 255, 65, 0.35);
 }
 
-.theme-commodore64-blue #quote-container {
-    text-shadow: 0 0 5px rgba(125, 125, 254, 0.4);
-}
-
 /* =========================================
    AUTHOR
    ========================================= */
@@ -373,20 +340,16 @@ main {
 .author {
     display: block;
     color: rgba(var(--primary-rgb), 0.9);
-    font-weight: 500;
+    font-weight: 400;
     margin-top: clamp(1rem, 1.2vw + 0.8vh, 2rem);
     font-size: var(--author-font-size);
     text-align: left;
     transition: var(--base-transition);
     line-height: 1.6;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
     font-style: italic;
     contain: layout style paint;
     transform: translateZ(0);
-    /* Match quote container glow - not inverted */
-    text-shadow: 0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7)),
-                 0 0 8px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.4)),
-                 0 0 12px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.2));
 }
 
 .author a {
@@ -598,28 +561,17 @@ main {
 }
 
 /* =========================================
-   QUOTE TRANSITION ANIMATIONS WITH PHOSPHOR PERSISTENCE
+   QUOTE TRANSITION ANIMATIONS
    ========================================= */
 
 .quote-transition-out {
     opacity: 0;
     transform: translateZ(0) translateY(-20px) scale(0.98);
-    /* Phosphor decay trail - text fades with authentic phosphor timing */
-    transition: opacity var(--phosphor-decay) cubic-bezier(0.33, 0, 0.67, 1),
-                transform var(--phosphor-decay) cubic-bezier(0.33, 0, 0.67, 1),
-                text-shadow var(--phosphor-decay) ease-out;
-    /* Glow fades slower than opacity for authentic phosphor trail */
-    text-shadow: 0 0 20px rgba(var(--primary-rgb), 0.6),
-                 0 0 40px rgba(var(--primary-rgb), 0.3),
-                 0 0 60px rgba(var(--primary-rgb), 0.1);
 }
 
 .quote-transition-in {
     opacity: 1;
     transform: translateZ(0) translateY(0) scale(1);
-    /* Phosphor illumination - quick ramp up like electron beam */
-    transition: opacity 0.15s ease-out,
-                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* =========================================
@@ -689,12 +641,6 @@ main {
     fill: #00FF41 !important;
     filter: drop-shadow(0 0 4px rgba(0, 255, 65, calc(var(--glow-intensity) * 0.7))) !important;
     -webkit-filter: drop-shadow(0 0 4px rgba(0, 255, 65, calc(var(--glow-intensity) * 0.7))) !important;
-}
-
-.theme-commodore64-blue .bitcoin-b {
-    fill: #7D7DFE !important;
-    filter: drop-shadow(0 0 4px rgba(125, 125, 254, calc(var(--glow-intensity) * 0.7))) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(125, 125, 254, calc(var(--glow-intensity) * 0.7))) !important;
 }
 
 /* =========================================

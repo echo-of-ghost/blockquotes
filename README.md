@@ -8,7 +8,6 @@ Welcome to blockquotes.sh, a webpage showcasing a growing collection of Bitcoin,
 - **`C`** - Copy current quote to clipboard
 - **`X`** - Share quote to X/Twitter
 - **`T`** - Change terminal theme
-- **`F`** - Cycle through fonts
 - **`U`** - Toggle uppercase/lowercase
 - **`SPACE`** - Pause/resume quote display
 - **`N`** - Next quote (when paused)
@@ -20,7 +19,6 @@ Welcome to blockquotes.sh, a webpage showcasing a growing collection of Bitcoin,
 - **Device Shake** - Change terminal theme
 - **Tap** - Pause/resume quote display
 - **Swipe Up** - Toggle uppercase/lowercase
-- **Swipe Down** - Cycle through fonts
 - **Swipe Left** - Next quote (when paused)
 - **Long Press** - Share current quote to X/Twitter
 
@@ -29,15 +27,13 @@ Welcome to blockquotes.sh, a webpage showcasing a growing collection of Bitcoin,
 ### Quote Display
 - **Typewriter Effect** - Quotes appear character by character with adaptive speed
 - **Text Highlighting** - Typed text is highlighted with inverted colors
-- **10 Retro Terminal Themes** - IBM 3279 Green, Teletype Blue-Green, PET 2001 Green, IBM Bitcoin Orange, Hazeltine Teal, Zenith Green, White (DEC VT05), VT100 Amber, Apple II Green, and Commodore 64 Blue
-- **10 Monospace Fonts** - IBM Plex Mono, JetBrains Mono, VT323, Fira Mono, Space Mono, Anonymous Pro, Inconsolata, Ubuntu Mono, Cutive Mono, and Rubik Mono One
-- **Authentic CRT Effects** - Phosphor persistence trails with historically accurate decay rates for each terminal type
-- **Smooth Transitions** - Elegant fade and slide animations with phosphor glow effects
+- **9 Retro Terminal Themes** - IBM 3279, Teletype, PET 2001, Zenith, Hazeltine, White, Bitcoin Orange, VT100 Amber, and Apple II Green
+- **Smooth Transitions** - Elegant fade and slide animations between quotes
 
 ### Bookmarking System
 - **Save Favorites** - Bookmark quotes you love with the `B` key
 - **Quick Access** - View all bookmarked quotes with the `V` key
-- **Visual Indicators** - Bookmarked quotes show a heart indicator next to the counter
+- **Visual Indicators** - Bookmarked quotes show a subtle left border accent
 - **Bookmark Counter** - See how many quotes you've saved in the top-left corner
 
 ### Navigation
@@ -50,7 +46,7 @@ Welcome to blockquotes.sh, a webpage showcasing a growing collection of Bitcoin,
 Clone the Repo: `git clone https://github.com/ghostofmapl/blockquotes.git`
 
 ### Submit a Quote:
-Open an issue with your quote and (optional) attribution.
+Open an issue or submit a pull request with your quote and (optional) attribution.
 Example format: 
 
 - text: "Quote"
