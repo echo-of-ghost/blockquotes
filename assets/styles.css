@@ -186,6 +186,15 @@ body[class^="theme-"]::before {
     --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 0, rgba(0, 0, 0, 0.06) 1px, transparent 2px, transparent 4px);
 }
 
+.theme-commodore64 {
+    --theme-background: #3E31A2;
+    --primary-color: #7C70DA;
+    --primary-rgb: 124, 112, 218;
+    --author-hover-decoration: underline;
+    --scanline-frequency: 0.6;
+    --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0, rgba(0, 0, 0, 0.05) 1px, transparent 2px, transparent 4.5px);
+}
+
 /* =========================================
    HEADER
    ========================================= */
@@ -331,6 +340,10 @@ main {
 
 .theme-apple2-green #quote-container {
     text-shadow: 0 0 6px rgba(0, 255, 65, 0.35);
+}
+
+.theme-commodore64 #quote-container {
+    text-shadow: 0 0 5px rgba(124, 112, 218, 0.4);
 }
 
 /* =========================================
@@ -641,6 +654,12 @@ main {
     fill: #00FF41 !important;
     filter: drop-shadow(0 0 4px rgba(0, 255, 65, calc(var(--glow-intensity) * 0.7))) !important;
     -webkit-filter: drop-shadow(0 0 4px rgba(0, 255, 65, calc(var(--glow-intensity) * 0.7))) !important;
+}
+
+.theme-commodore64 .bitcoin-b {
+    fill: #7C70DA !important;
+    filter: drop-shadow(0 0 4px rgba(124, 112, 218, calc(var(--glow-intensity) * 0.7))) !important;
+    -webkit-filter: drop-shadow(0 0 4px rgba(124, 112, 218, calc(var(--glow-intensity) * 0.7))) !important;
 }
 
 /* =========================================
