@@ -11,6 +11,8 @@ const config = {
 // =========================================
 // STATE MANAGEMENT
 // =========================================
+const HISTORY_SIZE = 20; // How many recent quotes to avoid repeating
+
 const state = {
   quotes: null, // All loaded quotes
   isPaused: false, // Typing pause state
@@ -24,7 +26,9 @@ const state = {
   preloadedAuthorHTML: null, // Preformatted author HTML
   animationFrameId: null, // For requestAnimationFrame
   bookmarkedQuotes: JSON.parse(localStorage.getItem('bookmarked-quotes') || '[]'),
-  currentBookmarkIndex: 0 // Position in bookmark list
+  currentBookmarkIndex: 0, // Position in bookmark list
+  quoteHistory: [], // Recently shown quotes for back-navigation (#5)
+  historyPosition: -1 // Current position when navigating back
 };
 
 // =========================================
@@ -121,11 +125,9 @@ const PerformanceUtils = {
     const validQuotes = quotes.filter(isValidQuote);
     if (validQuotes.length === 0) return;
     
-    // Get random quote different from current
-    let randomQuote;
-    do {
-      randomQuote = validQuotes[Math.floor(Math.random() * validQuotes.length)];
-    } while (state.currentQuote && randomQuote.text === state.currentQuote.text && validQuotes.length > 1);
+    // Get random quote avoiding recent history
+    const randomQuote = getRandomQuote(validQuotes);
+    if (!randomQuote) return;
     
     // Pre-format author HTML
     const preformattedAuthor = PerformanceUtils.formatAuthor(randomQuote.author);
@@ -154,9 +156,10 @@ const PerformanceUtils = {
     const validQuotes = quotes.filter(isValidQuote);
     if (validQuotes.length === 0) return null;
     
-    const randomQuote = validQuotes[Math.floor(Math.random() * validQuotes.length)];
-    const authorHTML = PerformanceUtils.formatAuthor(randomQuote.author);
+    const randomQuote = getRandomQuote(validQuotes);
+    if (!randomQuote) return null;
     
+    const authorHTML = PerformanceUtils.formatAuthor(randomQuote.author);
     setTimeout(() => PerformanceUtils.preloadNextQuote(), 100);
     
     return { quote: randomQuote, authorHTML };
@@ -240,8 +243,51 @@ const PerformanceUtils = {
 };
 
 // =========================================
-// QUOTE LOADING & VALIDATION
+// QUOTE HISTORY & DEDUPLICATION
 // =========================================
+
+// Push a quote onto the navigation history stack
+function pushToHistory(quote) {
+  if (!Array.isArray(state.quoteHistory)) state.quoteHistory = [];
+  if (typeof state.historyPosition !== 'number') state.historyPosition = -1;
+
+  // If we navigated back and now go forward, truncate forward history
+  if (state.historyPosition >= 0 && state.historyPosition < state.quoteHistory.length - 1) {
+    state.quoteHistory = state.quoteHistory.slice(0, state.historyPosition + 1);
+  }
+  state.quoteHistory.push(quote);
+  // Keep stack bounded
+  if (state.quoteHistory.length > HISTORY_SIZE * 2) {
+    state.quoteHistory = state.quoteHistory.slice(-HISTORY_SIZE * 2);
+  }
+  state.historyPosition = state.quoteHistory.length - 1;
+}
+
+// Go back one quote in history; returns the quote or null if at start
+function goBackInHistory() {
+  if (!Array.isArray(state.quoteHistory) || state.historyPosition <= 0) return null;
+  state.historyPosition--;
+  return state.quoteHistory[state.historyPosition];
+}
+
+// Pick a random quote avoiding recently seen ones (#7)
+function getRandomQuote(quotes) {
+  const valid = quotes.filter(isValidQuote);
+  if (valid.length === 0) return null;
+
+  // Build a set of recent text keys to avoid
+  const history = Array.isArray(state.quoteHistory) ? state.quoteHistory : [];
+  const recentKeys = new Set(
+    history.slice(-HISTORY_SIZE).map(q => q.text)
+  );
+
+  // Filter out recent quotes; fall back to full list if everything was seen
+  const pool = valid.filter(q => !recentKeys.has(q.text));
+  const source = pool.length > 0 ? pool : valid;
+  return source[Math.floor(Math.random() * source.length)];
+}
+
+
 
 // Load quotes from JSON with 24hr caching
 async function loadQuotes() {
@@ -290,10 +336,144 @@ function copyCurrentQuote() {
   const text = QuoteUtils.getTweetText(state.currentQuote);
   navigator.clipboard.writeText(text).then(() => {
     QuoteUtils.announceAction('Quote copied to clipboard');
+    showToast('quote copied');
   }).catch(err => {
     console.error('Failed to copy:', err);
     QuoteUtils.announceAction('Failed to copy quote');
   });
+}
+
+// =========================================
+// URL SHARING
+// =========================================
+
+// Find the index of the current quote in the loaded quotes array
+function getCurrentQuoteIndex() {
+  if (!state.currentQuote || !state.quotes) return -1;
+  return state.quotes.findIndex(
+    q => q.text === state.currentQuote.text && q.author === state.currentQuote.author
+  );
+}
+
+// Copy a shareable URL for the current quote to clipboard (?q=INDEX)
+function copyShareableURL() {
+  if (!state.currentQuote) return;
+  const index = getCurrentQuoteIndex();
+  if (index === -1) {
+    QuoteUtils.announceAction('Failed to generate share link');
+    return;
+  }
+  const url = `${location.origin}${location.pathname}?q=${index}`;
+  navigator.clipboard.writeText(url).then(() => {
+    QuoteUtils.announceAction('Share link copied to clipboard');
+    showToast('link copied');
+  }).catch(() => {
+    QuoteUtils.announceAction('Failed to copy share link');
+  });
+}
+
+// Check on load if a ?q= param is present and display that quote
+function checkURLQuote() {
+  const params = new URLSearchParams(location.search);
+  const param = params.get('q');
+  if (param === null) return false;
+
+  const index = parseInt(param, 10);
+  if (isNaN(index) || !state.quotes || index < 0 || index >= state.quotes.length) return false;
+
+  const quote = state.quotes[index];
+  if (!isValidQuote(quote)) return false;
+
+  // Display immediately, fully rendered, paused
+  state.isPaused = true;
+  displayQuoteWithTransition(quote, 0, true);
+
+  // Clean URL without reloading
+  history.replaceState(null, '', location.pathname);
+  return true;
+}
+
+// =========================================
+// BOOKMARK EXPORT
+// =========================================
+
+// Export bookmarks as a downloaded JSON file
+function exportBookmarksAsJSON() {
+  if (state.bookmarkedQuotes.length === 0) {
+    QuoteUtils.announceAction('No bookmarks to export');
+    showToast('no bookmarks saved');
+    return;
+  }
+
+  const data = {
+    exported: new Date().toISOString(),
+    source: 'blockquotes.sh',
+    count: state.bookmarkedQuotes.length,
+    quotes: state.bookmarkedQuotes.map(q => ({
+      text: q.text,
+      author: q.author,
+      bookmarkedAt: q.bookmarkedAt ? new Date(q.bookmarkedAt).toISOString() : null
+    }))
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `blockquotes-bookmarks-${new Date().toISOString().slice(0, 10)}.json`;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+
+  QuoteUtils.announceAction(`Exported ${state.bookmarkedQuotes.length} bookmarks`);
+  showToast(`exported ${state.bookmarkedQuotes.length} bookmarks`);
+}
+
+// Export bookmarks as plain text copied to clipboard
+function copyBookmarksAsText() {
+  if (state.bookmarkedQuotes.length === 0) {
+    QuoteUtils.announceAction('No bookmarks to copy');
+    showToast('no bookmarks saved');
+    return;
+  }
+
+  const lines = state.bookmarkedQuotes.map(q => `"${q.text}"\n— ${q.author}`);
+  const text = lines.join('\n\n---\n\n');
+
+  navigator.clipboard.writeText(text).then(() => {
+    QuoteUtils.announceAction(`Copied ${state.bookmarkedQuotes.length} bookmarks to clipboard`);
+    showToast(`${state.bookmarkedQuotes.length} bookmarks copied`);
+  }).catch(() => {
+    QuoteUtils.announceAction('Failed to copy bookmarks');
+  });
+}
+
+// =========================================
+// TOAST NOTIFICATION
+// =========================================
+
+function showToast(message) {
+  const existing = document.querySelector('.bq-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'bq-toast';
+  toast.textContent = `> ${message}`;
+  document.body.appendChild(toast);
+
+  // Trigger animation
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => toast.classList.add('bq-toast--visible'));
+  });
+
+  setTimeout(() => {
+    toast.classList.remove('bq-toast--visible');
+    setTimeout(() => toast.remove(), 400);
+  }, 2200);
 }
 
 // Toggle between uppercase and lowercase text
@@ -323,6 +503,7 @@ function toggleBookmark() {
       !(bookmarked.text === state.currentQuote.text && bookmarked.author === state.currentQuote.author)
     );
     QuoteUtils.announceAction('Quote unbookmarked');
+    showToast('bookmark removed');
     elements.quoteContainer.classList.remove('bookmarked');
     
     // Reset bookmark index to prevent pointing to invalid position
@@ -336,6 +517,7 @@ function toggleBookmark() {
       bookmarkedAt: Date.now()
     });
     QuoteUtils.announceAction('Quote bookmarked');
+    showToast('bookmarked ♥');
     elements.quoteContainer.classList.add('bookmarked');
   }
   
@@ -365,24 +547,6 @@ function viewNextBookmarkedQuote() {
   
   const totalBookmarks = state.bookmarkedQuotes.length;
   const currentPosition = state.currentBookmarkIndex === 0 ? totalBookmarks : state.currentBookmarkIndex;
-  QuoteUtils.announceAction(`Viewing bookmark ${currentPosition} of ${totalBookmarks}`);
-}
-
-// Navigate to previous bookmarked quote
-function viewPreviousBookmarkedQuote() {
-  if (state.bookmarkedQuotes.length === 0) {
-    QuoteUtils.announceAction('No bookmarked quotes yet. Swipe down to bookmark quotes.');
-    return;
-  }
-  
-  state.currentBookmarkIndex = (state.currentBookmarkIndex - 1 + state.bookmarkedQuotes.length) % state.bookmarkedQuotes.length;
-  
-  const bookmarkedQuote = state.bookmarkedQuotes[state.currentBookmarkIndex];
-  
-  displayQuoteWithTransition(bookmarkedQuote, 0, true);
-  
-  const totalBookmarks = state.bookmarkedQuotes.length;
-  const currentPosition = state.currentBookmarkIndex + 1;
   QuoteUtils.announceAction(`Viewing bookmark ${currentPosition} of ${totalBookmarks}`);
 }
 
@@ -422,6 +586,7 @@ function displayQuote(quote, startIndex = 0, finishImmediately = false, preforma
   }
 
   state.currentQuote = quote;
+  pushToHistory(quote); // #5 track history for back-navigation
   const quoteText = QuoteUtils.getQuoteText(quote);
   state.currentIndex = startIndex;
   state.isTyping = true;
@@ -608,8 +773,8 @@ function handleKeyPress(event) {
       state.isProcessing = false;
       return;
     }
-    const random = quotes[Math.floor(Math.random() * quotes.length)];
-    displayQuoteWithTransition(random, 0, true);
+    const next = getRandomQuote(quotes);
+    if (next) displayQuoteWithTransition(next, 0, true);
     QuoteUtils.announceAction('Next quote displayed');
     setTimeout(() => (state.isProcessing = false), 100);
   }
@@ -644,6 +809,20 @@ function handleKeyPress(event) {
   if (event.key.toLowerCase() === 'v' && state.isPaused && !state.isTyping) {
     state.isProcessing = true;
     viewNextBookmarkedQuote();
+    setTimeout(() => (state.isProcessing = false), 100);
+  }
+
+  // L: Copy shareable link for current quote
+  if (event.key.toLowerCase() === 'l' && state.currentQuote) {
+    state.isProcessing = true;
+    copyShareableURL();
+    setTimeout(() => (state.isProcessing = false), 100);
+  }
+
+  // E: Export bookmarks as JSON download
+  if (event.key.toLowerCase() === 'e') {
+    state.isProcessing = true;
+    exportBookmarksAsJSON();
     setTimeout(() => (state.isProcessing = false), 100);
   }
 }
@@ -699,9 +878,10 @@ function handleSwipeEnd(event) {
   
   const minSwipeDistance = 50;
   
-  // Horizontal swipe: Swipe left = next quote
+  // Horizontal swipe: Swipe left = next quote, Swipe right = previous quote
   if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > minSwipeDistance) {
     if (diffX > 0) {
+      // Swipe left = next
       if (state.isPaused && !state.isTyping) {
         const quotes = state.quotes;
         if (!quotes?.length) {
@@ -710,9 +890,18 @@ function handleSwipeEnd(event) {
           elements.errorMessage.classList.add('error-active');
           return;
         }
-        const random = quotes[Math.floor(Math.random() * quotes.length)];
-        displayQuoteWithTransition(random, 0, true);
+        const next = getRandomQuote(quotes);
+        if (next) displayQuoteWithTransition(next, 0, true);
         QuoteUtils.announceAction('Next quote displayed');
+      }
+    } else {
+      // Swipe right = back in history
+      if (state.isPaused && !state.isTyping) {
+        const prev = goBackInHistory();
+        if (prev) {
+          displayQuoteWithTransition(prev, 0, true);
+          QuoteUtils.announceAction('Previous quote');
+        }
       }
     }
   }
@@ -763,7 +952,7 @@ function handleWheelNavigation(event) {
   wheelTimeout = setTimeout(() => {
     if (Math.abs(wheelDelta) >= WHEEL_THRESHOLD) {
       lastWheelTime = currentTime;
-      
+
       if (state.isPaused && !state.isTyping) {
         const quotes = state.quotes;
         if (!quotes?.length) {
@@ -772,12 +961,24 @@ function handleWheelNavigation(event) {
           elements.errorMessage.classList.add('error-active');
           return;
         }
-        const random = quotes[Math.floor(Math.random() * quotes.length)];
-        displayQuoteWithTransition(random, 0, true);
-        QuoteUtils.announceAction(wheelDelta > 0 ? 'Next quote displayed' : 'Previous quote displayed');
+
+        if (wheelDelta < 0) {
+          // Scroll up = go back in history
+          const prev = goBackInHistory();
+          if (prev) {
+            // Temporarily step back past the current entry we just added
+            displayQuoteWithTransition(prev, 0, true);
+            QuoteUtils.announceAction('Previous quote');
+          }
+        } else {
+          // Scroll down = next random quote
+          const next = getRandomQuote(quotes);
+          if (next) displayQuoteWithTransition(next, 0, true);
+          QuoteUtils.announceAction('Next quote');
+        }
       }
     }
-    
+
     wheelDelta = 0;
   }, 100);
 }
@@ -794,9 +995,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.addEventListener('touchend', handleSwipeEnd, { passive: true });
   document.addEventListener('wheel', handleWheelNavigation, { passive: false });
   
-  // Load quotes and start app
+  // Load quotes and start app (URL quote takes priority)
   loadQuotes().then(() => {
-    setRandomQuote();
+    const loadedFromURL = checkURLQuote();
+    if (!loadedFromURL) {
+      setRandomQuote();
+    }
     setTimeout(() => PerformanceUtils.preloadNextQuote(), 1000);
     QuoteUtils.updateBookmarkCounter();
   });

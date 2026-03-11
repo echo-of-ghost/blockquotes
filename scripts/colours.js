@@ -20,6 +20,20 @@ const SHAKE_COOLDOWN = 1000; // Minimum time between shake detections (ms)
 const SHAKES_REQUIRED = 2; // Number of shakes required to change theme
 const SHAKE_WINDOW = 2000; // Time window to complete required shakes (ms)
 
+// Theme display names for toast (#9)
+const themeNames = {
+  'ibm3279-green':           'IBM 3279 — green phosphor',
+  'teletype-blue-green':     'DEC VT220 — blue-green phosphor',
+  'pet2001-green':           'Commodore PET 2001 — green phosphor',
+  'ibm3279-bitcoin-orange':  'IBM 3279 — bitcoin orange',
+  'hazeltine-teal':          'Hazeltine 1500 — teal phosphor',
+  'zenith-green':            'Zenith Z-19 — green phosphor',
+  'white':                   'DEC VT05 — white phosphor',
+  'vt100-amber':             'DEC VT100 — amber phosphor',
+  'apple2-green':            'Apple II — green phosphor',
+  'commodore64':             'Commodore 64 — blue screen',
+};
+
 /**
  * Changes to the next theme in the array
  */
@@ -27,12 +41,18 @@ function changeTheme() {
   const body = document.body;
   const currentTheme = themes.find(theme => body.classList.contains(`theme-${theme}`)) || 'ibm3279-green';
   const nextIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
-  
+  const nextTheme = themes[nextIndex];
+
   themes.forEach(theme => body.classList.remove(`theme-${theme}`));
-  body.classList.add(`theme-${themes[nextIndex]}`);
-  localStorage.setItem('theme', themes[nextIndex]);
-  
-  console.log(`Theme changed to: ${themes[nextIndex]}`);
+  body.classList.add(`theme-${nextTheme}`);
+  localStorage.setItem('theme', nextTheme);
+
+  // Show theme name as toast if the function is available (#6 + #9)
+  if (typeof showToast === 'function') {
+    showToast(themeNames[nextTheme] || nextTheme);
+  }
+
+  console.log(`Theme changed to: ${nextTheme}`);
 }
 
 /**
