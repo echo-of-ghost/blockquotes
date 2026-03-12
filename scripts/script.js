@@ -554,27 +554,13 @@ function viewNextBookmarkedQuote() {
 // QUOTE DISPLAY WITH TRANSITIONS
 // =========================================
 
-// Display quote with smooth fade/slide animation
-function displayQuoteWithTransition(quote, startIndex = 0, finishImmediately = false, preformattedAuthor = null, useTransition = true) {
-  if (!useTransition) {
-    displayQuote(quote, startIndex, finishImmediately, preformattedAuthor);
-    return;
-  }
-  
-  // Fade out current quote
-  elements.quoteContainer.classList.add('quote-transition-out');
-  
-  setTimeout(() => {
-    displayQuote(quote, startIndex, finishImmediately, preformattedAuthor);
-    
-    // Fade in new quote
-    elements.quoteContainer.classList.remove('quote-transition-out');
-    elements.quoteContainer.classList.add('quote-transition-in');
-    
-    setTimeout(() => {
-      elements.quoteContainer.classList.remove('quote-transition-in');
-    }, 400);
-  }, 200);
+// Display a quote — clear immediately and let the typing engine serve as the transition.
+// Real terminals don't fade or slide; the beam simply stops writing old content
+// and starts writing new content. The character-by-character typing IS the transition.
+function displayQuoteWithTransition(quote, startIndex = 0, finishImmediately = false, preformattedAuthor = null) {
+  PerformanceUtils.cancelAnimation();
+  elements.quoteContainer.innerHTML = '';
+  displayQuote(quote, startIndex, finishImmediately, preformattedAuthor);
 }
 
 // Core typing effect display with character-by-character animation
@@ -631,17 +617,24 @@ function displayQuote(quote, startIndex = 0, finishImmediately = false, preforma
 
     // Type character by character with highlighting effect
     if (state.currentIndex < quoteText.length) {
-      if (state.currentIndex === 0) elements.quoteContainer.innerHTML = '';
+      if (state.currentIndex === 0) {
+        elements.quoteContainer.innerHTML = '';
+      }
       
       const typedText = quoteText.slice(0, state.currentIndex + 1);
-      elements.quoteContainer.innerHTML = `<span class="text-selected">${typedText}</span>`;
+      // Append blinking block cursor while typing is in progress
+      elements.quoteContainer.innerHTML = `<span class="text-selected">${typedText}</span><span class="cursor-block" aria-hidden="true"></span>`;
       
       PerformanceUtils.handleAutoScroll();
       
       state.currentIndex++;
-      state.timeoutId = PerformanceUtils.optimizedDelay(typeQuote, typingSpeed);
+      // Punctuation pause: terminals and teletypes had mechanical/processing delays
+      // after sentence-ending characters. Mimics the rhythm of a human reading aloud.
+      const justTyped = quoteText[state.currentIndex - 1];
+      const punctuationDelay = /[.!?]/.test(justTyped) ? 180 : /[,;:]/.test(justTyped) ? 60 : 0;
+      state.timeoutId = PerformanceUtils.optimizedDelay(typeQuote, typingSpeed + punctuationDelay);
     } else {
-      // Typing complete, add author
+      // Typing complete — remove cursor, add author
       try {
         elements.quoteContainer.innerHTML = `<span class="text-selected">${quoteText}</span><span class="author">> ${authorHTML}</span>`;
         elements.quoteContainer.style.textTransform = state.isUppercase ? 'uppercase' : 'none';
@@ -987,21 +980,106 @@ function handleWheelNavigation(event) {
 // INITIALIZATION
 // =========================================
 
+// =========================================
+// BOOT SEQUENCE
+// =========================================
+
+// Type a single boot line into the container, then call done() when finished.
+// Uses the same timing engine as quotes for visual consistency.
+function typeBootLine(text, speed, done) {
+  let i = 0;
+  function tick() {
+    elements.quoteContainer.innerHTML =
+      `<span class="text-selected">${text.slice(0, i + 1)}</span>` +
+      `<span class="cursor-block" aria-hidden="true"></span>`;
+    i++;
+    if (i < text.length) {
+      const justTyped = text[i - 1];
+      const pd = /[.!?]/.test(justTyped) ? 120 : /[,;:]/.test(justTyped) ? 40 : 0;
+      state.timeoutId = setTimeout(tick, speed + pd);
+    } else {
+      done();
+    }
+  }
+  tick();
+}
+
+// Run the POST boot sequence, then resolve when complete.
+// Three lines: system ident, db load confirmation, ready prompt.
+// Each line holds briefly so the user can read it before the next fires.
+function runBootSequence(onComplete) {
+  if (config.performanceMode) {
+    onComplete();
+    return;
+  }
+
+  const lines = [
+    { text: 'BLOCKQUOTES.SH  v1.0 — PHOSPHOR TERMINAL READY', speed: 28 },
+    { text: 'LOADING QUOTE DATABASE.................. OK',      speed: 32 },
+    { text: '>',                                                speed: 0  },
+  ];
+
+  let lineIndex = 0;
+
+  function nextLine() {
+    if (lineIndex >= lines.length) {
+      // Hold the > cursor for one beat, then hand off
+      state.timeoutId = setTimeout(() => {
+        elements.quoteContainer.innerHTML = '';
+        onComplete();
+      }, 380);
+      return;
+    }
+
+    const { text, speed } = lines[lineIndex];
+    lineIndex++;
+
+    typeBootLine(text, speed, () => {
+      // Remove cursor, leave text visible, pause between lines
+      elements.quoteContainer.innerHTML =
+        `<span class="text-selected">${text}</span>`;
+      state.timeoutId = setTimeout(nextLine, lineIndex === lines.length ? 260 : 520);
+    });
+  }
+
+  nextLine();
+}
+
+// =========================================
+// INITIALIZATION
+// =========================================
+
 document.addEventListener('DOMContentLoaded', () => {
+  // Pause all CSS animations when tab is hidden — saves CPU when user is elsewhere
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      document.body.classList.add('tab-hidden');
+    } else {
+      document.body.classList.remove('tab-hidden');
+    }
+  });
+
   // Attach event listeners
   document.body.addEventListener('click', handleClick, { passive: false });
   document.body.addEventListener('keydown', handleKeyPress, { passive: false });
   document.body.addEventListener('touchstart', handleSwipeStart, { passive: true });
   document.body.addEventListener('touchend', handleSwipeEnd, { passive: true });
   document.addEventListener('wheel', handleWheelNavigation, { passive: false });
-  
-  // Load quotes and start app (URL quote takes priority)
+
+  // Load quotes, run boot sequence, then start app
   loadQuotes().then(() => {
     const loadedFromURL = checkURLQuote();
-    if (!loadedFromURL) {
-      setRandomQuote();
+    if (loadedFromURL) {
+      // URL quote takes priority — skip boot sequence entirely
+      setTimeout(() => PerformanceUtils.preloadNextQuote(), 1000);
+      QuoteUtils.updateBookmarkCounter();
+      return;
     }
-    setTimeout(() => PerformanceUtils.preloadNextQuote(), 1000);
-    QuoteUtils.updateBookmarkCounter();
+
+    runBootSequence(() => {
+      setRandomQuote();
+      setTimeout(() => PerformanceUtils.preloadNextQuote(), 1000);
+      QuoteUtils.updateBookmarkCounter();
+    });
   });
 });

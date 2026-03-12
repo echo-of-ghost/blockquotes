@@ -19,52 +19,88 @@
     --author-rgb: 245, 245, 245;
     --theme-background-rgb: 16, 19, 16;
     --site-grey: 128, 128, 128;
-    
+
     /* Typography */
     --font-family: 'IBM Plex Mono', 'Courier New', monospace;
     --font-size: clamp(1.4rem, 2.5vw, 2.5rem);
     --author-font-size: clamp(1.1rem, 2vw, 2rem);
     --letter-spacing: 0.015em;
-    
+
     /* Effects */
     --glow-intensity: 0.5;
-    --scanline-opacity: 0.2;
-    --scanline-frequency: 0.6;
-    
+
+    /* Cursor blink — overridden per theme to match real hardware */
+    --cursor-blink-rate: 0.53s;
+
     /* Spacing */
     --quote-padding-top: clamp(0.8rem, 0.8vw + 0.5vh, 1rem);
     --quote-padding-bottom: clamp(1.7rem, 1.5vw + 1vh, 2rem);
     --main-padding-top: clamp(3rem, 2vw + 1.5vh, 4rem);
     --quote-max-height: calc(100vh - 2 * clamp(2rem, 6vw + 3vh + 1rem, 12rem) - 3rem);
-    
+
     /* Transitions */
     --base-transition: opacity 0.3s ease, text-shadow 0.3s ease;
-    
-    /* Scanline SVG Effects */
-    --scanline-svg: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="var(--scanline-frequency)" numOctaves="1" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="linear" slope="0.3"/><feFuncG type="linear" slope="0.3"/><feFuncB type="linear" slope="0.3"/><feFuncA type="linear" slope="0.1"/></feComponentTransfer></filter><rect width="100" height="100" filter="url(%23n)" fill="black"/></svg>');
-    --base-scanline-svg: var(--scanline-svg);
-    --static-noise: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><filter id="s"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="0" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="linear" slope="0.15"/><feFuncG type="linear" slope="0.15"/><feFuncB type="linear" slope="0.15"/><feFuncA type="linear" slope="0.03"/></feComponentTransfer></filter><rect width="100" height="100" filter="url(%23s)" fill="black" opacity="0.08"/></svg>');
 }
 
 /* =========================================
-   BODY & SCANLINE EFFECTS
+   KEYFRAMES
    ========================================= */
 
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 9999;
-    background: var(--scanline-background, transparent), var(--static-noise);
-    background-repeat: repeat;
-    background-size: auto, 200px 200px;
-    opacity: var(--scanline-opacity);
-    transform: translateZ(0);
+
+
+/*
+   Block cursor blink — step-end gives a hard digital on/off edge,
+   matching real terminal hardware. No fades: phosphor doesn't fade
+   between cursor blink cycles, it simply turns off.
+*/
+@keyframes cursor-block-blink {
+    0%, 49%   { opacity: 1; }
+    50%, 100% { opacity: 0; }
 }
+
+/*
+   Phosphor persistence / afterglow.
+
+   Real phosphor doesn't cut off instantly when the electron beam leaves —
+   it decays exponentially. The rate depends on the phosphor type:
+     P4 (white) ~1ms  — barely perceptible, essentially instant
+     P3 (amber) ~14ms — warm orange corona lingers visibly
+     P1 (green) ~24ms — medium green ghost, slightly yellow at the edge
+     P31 (green) ~20ms — similar to P1, marginally faster
+     Hazeltine teal ~18ms — moderate, cyan-shifted decay
+
+   This animation fires on the cursor's "off" phase using box-shadow.
+   The cursor becomes transparent (opacity:0) but its box-shadow persists
+   briefly — simulating residual phosphor emission after the beam moves on.
+
+   Three stages:
+     0%       — cursor just switched off, shadow at full glow (peak persistence)
+     decay%   — midpoint, shadow at half strength
+     100%     — shadow fully extinguished
+
+   --cursor-decay drives duration; shorter = faster phosphor (P4),
+   longer = slower (P1/P3). Values are per-theme.
+*/
+@keyframes cursor-afterglow {
+    0%   {
+        opacity: 0;
+        box-shadow: var(--cursor-afterglow, 0 0 6px rgba(87, 255, 140, 0.5));
+    }
+    40%  {
+        opacity: 0;
+        box-shadow: var(--cursor-afterglow-mid, 0 0 4px rgba(87, 255, 140, 0.2));
+    }
+    100% {
+        opacity: 0;
+        box-shadow: none;
+    }
+}
+
+
+
+/* =========================================
+   BODY
+   ========================================= */
 
 body[class^="theme-"] {
     background-color: var(--theme-background, #121212);
@@ -83,8 +119,8 @@ body[class^="theme-"] {
     overflow-wrap: break-word;
     word-wrap: break-word;
     letter-spacing: var(--letter-spacing);
-    transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
-                color 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
                 text-shadow 0.6s ease;
     scrollbar-color: var(--primary-color) var(--theme-background);
     -webkit-font-smoothing: antialiased;
@@ -92,107 +128,313 @@ body[class^="theme-"] {
 }
 
 body[class^="theme-"] * {
-    transition: color 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
-                background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
-                border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
-                text-shadow 0.5s ease, 
+    transition: color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                text-shadow 0.5s ease,
                 box-shadow 0.5s ease;
 }
 
-body[class^="theme-"]::before {
-    transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
-                opacity 0.6s ease;
+/*
+   CRT vignette — darkens the four corners the way a real CRT bezel and
+   imperfect electron-beam deflection would. The centre is fully open.
+   Pure radial gradient, GPU composited, zero paint cost.
+*/
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: radial-gradient(
+        ellipse at 50% 50%,
+        transparent 0%,
+        transparent 42%,
+        rgba(0, 0, 0, 0.04) 55%,
+        rgba(0, 0, 0, 0.10) 65%,
+        rgba(0, 0, 0, 0.20) 75%,
+        rgba(0, 0, 0, 0.32) 85%,
+        rgba(0, 0, 0, 0.44) 93%,
+        rgba(0, 0, 0, 0.52) 100%
+    );
+    transform: translateZ(0);
 }
+
+/*
+   CRT scanlines — the dark horizontal bands between electron beam passes.
+
+   Real CRT monitors don't illuminate every pixel uniformly: the electron
+   beam traces horizontal lines, leaving a faint dark gap between each raster
+   line where the beam hasn't fired. The gap-to-line ratio varies by tube:
+
+     Professional terminals (IBM 327x, DEC VT100): tight pitch, faint gaps
+     Small consumer tubes (PET 9", Apple II composite): slightly more visible
+     NTSC TV composite (C64): 525-line interlaced, wider, more visible bands
+
+   --scanline-size controls the repeat period (line + gap = N px).
+   --scanline-opacity is the gap darkness — kept very low (0.022–0.044)
+   so the effect reads as subtle texture, never distraction.
+
+   Gradient: transparent (lit phosphor) → sliver of near-black (beam gap).
+   At 3px: 2px lit, 1px gap. At 4px: 3px lit, 1px gap.
+   GPU composited, zero reflow cost.
+*/
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent calc(var(--scanline-size, 3px) - 1px),
+        rgba(0, 0, 0, var(--scanline-opacity, 0.030)) calc(var(--scanline-size, 3px) - 1px),
+        rgba(0, 0, 0, var(--scanline-opacity, 0.030)) var(--scanline-size, 3px)
+    );
+    transform: translateZ(0);
+}
+
+
+
+
 
 /* =========================================
    THEME DEFINITIONS
+   =========================================
+   Phosphor reference data:
+     P1  (green)  — peaks ~525 nm, medium decay ~24ms,
+                    warm yellow-green. IBM 3279, Zenith Z-19, Apple II
+     P3  (amber)  — peaks ~585 nm, shorter decay ~14ms,
+                    deep warm amber. DEC VT100
+     P4  (white)  — broad spectrum ~6500K, fast decay ~1ms.
+                    DEC VT05, VT220
+     P31 (green)  — brighter, cooler than P1. Commodore PET 2001-N
+     Custom teal  — Hazeltine 1500 house phosphor, ~495–515nm
+
+   Cursor blink rates sourced from hardware manuals:
+     IBM 327x: ~2.1 Hz (0.47s)
+     DEC VT100/VT220: ~1.9 Hz (0.53s)
+     Apple II: ~2.3 Hz via 6502 interrupt (0.43s)
+     Commodore 64: CIA timer, ~1.9 Hz (0.52s)
+     PET 2001: BASIC ROM timer, ~2.5 Hz (0.40s)
+     DEC VT05: teletype-era, slower ~1.7 Hz (0.60s)
+
+   Background blacks are NOT pure #000000 — real P1/P3 screens had a
+   very slight tinted black from the faceplate glass and phosphor coating.
    ========================================= */
 
+/* IBM 3279 — P1 green phosphor, 80×24, mainframe TSO/CMS
+   P1 peaks at 525nm with slight yellow component: not neon green.
+   IBM 3279 faceplate had olive-tinted glass → background #0A0F0A */
 .theme-ibm3279-green {
-    --theme-background: #0E1210;
-    --primary-color: #66FFAA;
+    --theme-background: #0A0F0A;
+    --primary-color: #57FF8C;
+    --primary-rgb: 87, 255, 140;
     --author-hover-decoration: underline;
-    --primary-rgb: 102, 255, 170;
-    --scanline-background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0, rgba(0, 0, 0, 0.07) 1px, transparent 3px, transparent 6px);
+    --bloom-rgb: 87, 255, 140;
+    --bloom-duration: 3.2s;
+    --cursor-blink-rate: 0.47s;
+    /* P1 phosphor: ~24ms decay, medium persistence, yellow-green halation */
+    --cursor-afterglow: 0 0 6px rgba(87, 255, 140, 0.55), 0 0 14px rgba(60, 200, 90, 0.20);
+    --cursor-afterglow-mid: 0 0 4px rgba(87, 255, 140, 0.25), 0 0 10px rgba(60, 200, 90, 0.08);
+    --cursor-decay: 0.22s;
+    /* Scanlines: P1 phosphor dot pitch ~0.31mm, IBM 3279 14" screen ≈ 480 lines */
+    --scanline-size: 3px;
+    --scanline-opacity: 0.032;
 }
 
+/* IBM 3279 Bitcoin Orange — custom phosphor homage.
+   Bitcoin's orange (#F7931A) shifted into the P3-adjacent amber territory,
+   married with the 3279 form factor. Cypherpunk editorial choice. */
 .theme-ibm3279-bitcoin-orange {
-    --theme-background: #0A0A0A;
-    --primary-color: #FFAB4D;
+    --theme-background: #0B0800;
+    --primary-color: #FF9500;
+    --primary-rgb: 255, 149, 0;
     --author-hover-decoration: underline;
-    --primary-rgb: 255, 171, 77;
-    --scanline-background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0, rgba(0, 0, 0, 0.07) 1px, transparent 3px, transparent 6px);
+    --bloom-rgb: 240, 110, 0;
+    --bloom-duration: 2.8s;
+    --cursor-blink-rate: 0.47s;
+    /* P3-adjacent: ~14ms decay but orange shift, warm amber halation */
+    --cursor-afterglow: 0 0 7px rgba(255, 149, 0, 0.60), 0 0 16px rgba(200, 80, 0, 0.22);
+    --cursor-afterglow-mid: 0 0 5px rgba(255, 149, 0, 0.28), 0 0 12px rgba(200, 80, 0, 0.09);
+    --cursor-decay: 0.16s;
+    /* Scanlines: same IBM 3279 chassis, same dot pitch */
+    --scanline-size: 3px;
+    --scanline-opacity: 0.030;
 }
 
+/* DEC VT220 — P4 white phosphor with blue-green cast, 80×24
+   The VT220 shipped with a cooler white CRT; long-use units
+   developed a slight blue-green tint from phosphor aging.
+   Background: very dark blue-grey from the P4 faceplate */
 .theme-teletype-blue-green {
-    --theme-background: #111213;
-    --primary-color: #B0D0B0;
-    --primary-rgb: 176, 208, 176;
+    --theme-background: #0C1010;
+    --primary-color: #A4C8B0;
+    --primary-rgb: 164, 200, 176;
     --author-hover-decoration: underline;
-    --scanline-frequency: 0.7;
-    --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 0, rgba(0, 0, 0, 0.06) 1px, transparent 2px, transparent 5px);
+    --bloom-rgb: 100, 170, 130;
+    --bloom-duration: 3.8s;
+    --cursor-blink-rate: 0.53s;
+    /* P4 white aged to blue-green: ~1ms decay, almost no persistence — barely a whisper */
+    --cursor-afterglow: 0 0 4px rgba(164, 200, 176, 0.30), 0 0 8px rgba(120, 170, 150, 0.10);
+    --cursor-afterglow-mid: 0 0 2px rgba(164, 200, 176, 0.12), 0 0 5px rgba(120, 170, 150, 0.04);
+    --cursor-decay: 0.05s;
+    /* Scanlines: VT220 14" tube, ~480 physical lines, tight pitch */
+    --scanline-size: 3px;
+    --scanline-opacity: 0.025;
 }
 
+/* Zenith Z-19 — P1 green phosphor, 80×24, CP/M workhorse
+   Zenith used a purer P1 than IBM — cooler, more saturated green.
+   Very slightly brighter background from the Z-19's non-tinted faceplate */
 .theme-zenith-green {
-    --theme-background: #101310;
-    --primary-color: #A0FFA0;
-    --primary-rgb: 144, 255, 144;
+    --theme-background: #0B100B;
+    --primary-color: #7FFF7F;
+    --primary-rgb: 127, 255, 127;
     --author-hover-decoration: underline;
-    --scanline-frequency: 0.65;
-    --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 0, rgba(0, 0, 0, 0.05) 1px, transparent 2px, transparent 4.5px);
+    --bloom-rgb: 80, 210, 80;
+    --bloom-duration: 3.0s;
+    --cursor-blink-rate: 0.50s;
+    /* P1 purer variant: same ~24ms class but slightly cooler, less yellow halation */
+    --cursor-afterglow: 0 0 6px rgba(127, 255, 127, 0.50), 0 0 13px rgba(80, 210, 80, 0.18);
+    --cursor-afterglow-mid: 0 0 4px rgba(127, 255, 127, 0.22), 0 0 9px rgba(80, 210, 80, 0.07);
+    --cursor-decay: 0.22s;
+    /* Scanlines: Z-19 12" tube, slightly finer than IBM */
+    --scanline-size: 3px;
+    --scanline-opacity: 0.028;
 }
 
+/* DEC VT05 — P4 white phosphor, 72×20, 1972 teletype-era terminal
+   P4 is a blue-white daylight phosphor. At lower brightness the
+   slight warm cast from the glass envelope tints it towards cream.
+   Background: very dark, almost black with blue hint */
 .theme-white {
-    --theme-background: #121212;
-    --primary-color: #F0F0F0;
-    --primary-rgb: 240, 240, 240;
+    --theme-background: #0E0E0F;
+    --primary-color: #D6D6C6;
+    --primary-rgb: 214, 214, 198;
     --author-hover-decoration: underline;
-    --scanline-frequency: 0.6;
-    --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 0, rgba(0, 0, 0, 0.03) 1px, transparent 2px, transparent 4px);
+    --bloom-rgb: 200, 200, 185;
+    --bloom-duration: 4.4s;
+    --cursor-blink-rate: 0.60s;
+    /* P4 white: ~1ms decay, fastest phosphor, essentially no afterglow — near-instant extinction */
+    --cursor-afterglow: 0 0 3px rgba(214, 214, 198, 0.18), 0 0 6px rgba(200, 200, 185, 0.07);
+    --cursor-afterglow-mid: 0 0 2px rgba(214, 214, 198, 0.07), 0 0 4px rgba(200, 200, 185, 0.03);
+    --cursor-decay: 0.03s;
+    /* Scanlines: VT05 was a 72-col terminal with smaller 12" tube, slightly finer lines */
+    --scanline-size: 2px;
+    --scanline-opacity: 0.022;
 }
 
+/* Hazeltine 1500 — proprietary teal phosphor, 80×24, 1977
+   Hazeltine's teal was a deliberate ergonomic choice — reduced
+   eyestrain vs green or amber for all-day data entry operators.
+   Sits between cyan and green, approx 495–510nm */
 .theme-hazeltine-teal {
-    --theme-background: #111314;
-    --primary-color: #77DDDD;
-    --primary-rgb: 136, 238, 238;
+    --theme-background: #090E0E;
+    --primary-color: #50C8C8;
+    --primary-rgb: 80, 200, 200;
     --author-hover-decoration: underline;
-    --scanline-background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 0, rgba(0, 0, 0, 0.06) 1px, transparent 2px, transparent 5px);
+    --bloom-rgb: 55, 170, 170;
+    --bloom-duration: 3.5s;
+    --cursor-blink-rate: 0.50s;
+    /* Hazeltine house phosphor: ~495-515nm, decay ~18ms, moderate persistence */
+    --cursor-afterglow: 0 0 5px rgba(80, 200, 200, 0.48), 0 0 12px rgba(40, 150, 150, 0.16);
+    --cursor-afterglow-mid: 0 0 3px rgba(80, 200, 200, 0.20), 0 0 8px rgba(40, 150, 150, 0.06);
+    --cursor-decay: 0.18s;
+    /* Scanlines: Hazeltine 1500 used a compact 12" tube */
+    --scanline-size: 3px;
+    --scanline-opacity: 0.026;
 }
 
+/* Commodore PET 2001 — P31 green phosphor, 40×25
+   The original 1977 PET shipped with a white phosphor monitor,
+   but the 2001-N (1979) and most remembered units used P31 green:
+   brighter and slightly cooler/more saturated than P1.
+   PET BASIC ROM drove a fast ~2.5Hz blink via system timer. */
 .theme-pet2001-green {
-    --theme-background: #090909;
-    --primary-color: #00FF33;
-    --primary-rgb: 51, 204, 102;
+    --theme-background: #060A06;
+    --primary-color: #00FF44;
+    --primary-rgb: 0, 255, 68;
     --author-hover-decoration: underline;
-    --scanline-frequency: 0.6;
-    --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 0, rgba(0, 0, 0, 0.05) 1px, transparent 2px, transparent 4.5px);
+    --bloom-rgb: 0, 220, 55;
+    --bloom-duration: 2.8s;
+    --cursor-blink-rate: 0.40s;
+    /* P31: brighter, cooler P1 variant, similar ~20ms decay, very saturated green halation */
+    --cursor-afterglow: 0 0 7px rgba(0, 255, 68, 0.58), 0 0 15px rgba(0, 200, 50, 0.22);
+    --cursor-afterglow-mid: 0 0 5px rgba(0, 255, 68, 0.26), 0 0 10px rgba(0, 200, 50, 0.09);
+    --cursor-decay: 0.20s;
+    /* Scanlines: PET 2001 9" green tube, distinctly visible line structure */
+    --scanline-size: 3px;
+    --scanline-opacity: 0.038;
 }
 
+/* DEC VT100 — P3 amber phosphor, 80×24, 1978
+   The canonical terminal. P3 peaks ~585nm: true amber, not yellow.
+   Longer persistence than P1 = slightly softer character edges.
+   Background: near-black with very slight warm brown from P3 faceplate.
+   Blink: VT100 manual spec ~1.87Hz, closest to 0.53s but amber tradition
+   is slightly slower-feeling → 0.55s */
 .theme-vt100-amber {
-    --theme-background: #0A0800;
-    --primary-color: #FFBF00;
-    --primary-rgb: 255, 191, 0;
+    --theme-background: #0C0800;
+    --primary-color: #FFB000;
+    --primary-rgb: 255, 176, 0;
     --author-hover-decoration: underline;
-    --scanline-frequency: 0.55;
-    --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0, rgba(0, 0, 0, 0.04) 1px, transparent 2px, transparent 5px);
+    --bloom-rgb: 210, 130, 0;
+    --bloom-duration: 3.4s;
+    --cursor-blink-rate: 0.55s;
+    /* P3 amber: ~14ms decay — the halation bleeds warm orange into near darkness.
+       Two-layer shadow: tight hot core + wide warm corona, matching P3's longer tail */
+    --cursor-afterglow: 0 0 8px rgba(255, 176, 0, 0.65), 0 0 20px rgba(180, 100, 0, 0.28);
+    --cursor-afterglow-mid: 0 0 6px rgba(255, 176, 0, 0.30), 0 0 15px rgba(180, 100, 0, 0.11);
+    --cursor-decay: 0.14s;
+    /* Scanlines: VT100 12" tube, ~480 lines, the canonical reference */
+    --scanline-size: 3px;
+    --scanline-opacity: 0.030;
 }
 
+/* Apple II — P1 green phosphor, 40×24, 1977
+   Apple used a P1 variant with higher brightness than IBM's version.
+   The RGB monitor used in the II+ onward was distinctly sharp and vivid.
+   6502 interrupt-driven cursor: measured at ~2.3Hz */
 .theme-apple2-green {
     --theme-background: #000000;
-    --primary-color: #00FF41;
-    --primary-rgb: 0, 255, 65;
+    --primary-color: #24FF52;
+    --primary-rgb: 36, 255, 82;
     --author-hover-decoration: underline;
-    --scanline-frequency: 0.65;
-    --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 0, rgba(0, 0, 0, 0.06) 1px, transparent 2px, transparent 4px);
+    --bloom-rgb: 25, 210, 60;
+    --bloom-duration: 2.2s;
+    --cursor-blink-rate: 0.43s;
+    /* Apple II P1 variant: high-brightness, sharp — similar ~24ms decay but more vivid */
+    --cursor-afterglow: 0 0 6px rgba(36, 255, 82, 0.55), 0 0 14px rgba(20, 190, 55, 0.20);
+    --cursor-afterglow-mid: 0 0 4px rgba(36, 255, 82, 0.25), 0 0 9px rgba(20, 190, 55, 0.08);
+    --cursor-decay: 0.22s;
+    /* Scanlines: Apple II composite monitor, slightly looser NTSC line structure */
+    --scanline-size: 3px;
+    --scanline-opacity: 0.034;
 }
 
+/* Commodore 64 — VIC-II NTSC composite output, 40×25, 1982
+   Actual C64 NTSC measured colour values from hardware capture:
+   background: #2C2391, text: #7469BA (VIC-II register colour 14 = light blue)
+   The RF composite output added a slight chroma blur — simulated with filter below.
+   CIA 8520 timer drives ~1.9Hz cursor blink */
 .theme-commodore64 {
-    --theme-background: #3E31A2;
-    --primary-color: #7C70DA;
-    --primary-rgb: 124, 112, 218;
+    --theme-background: #2B2290;
+    --primary-color: #7469C8;
+    --primary-rgb: 116, 105, 200;
     --author-hover-decoration: underline;
-    --scanline-frequency: 0.6;
-    --scanline-background: var(--base-scanline-svg), repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0, rgba(0, 0, 0, 0.05) 1px, transparent 2px, transparent 4.5px);
+    --bloom-rgb: 90, 80, 190;
+    --bloom-duration: 3.0s;
+    --cursor-blink-rate: 0.52s;
+    /* C64 composite: TV phosphor decay ~8ms, but chroma blur smears the afterglow horizontally.
+       The glow has a purple-blue cast from the NTSC chroma bleed */
+    --cursor-afterglow: 0 0 6px rgba(116, 105, 200, 0.55), 0 0 14px rgba(80, 70, 180, 0.22);
+    --cursor-afterglow-mid: 0 0 4px rgba(116, 105, 200, 0.24), 0 0 10px rgba(80, 70, 180, 0.09);
+    --cursor-decay: 0.10s;
+    /* Scanlines: NTSC TV composite, 525 lines/60Hz interlaced — wider, more visible */
+    --scanline-size: 4px;
+    --scanline-opacity: 0.044;
 }
 
 /* =========================================
@@ -252,10 +494,11 @@ main {
     overflow-x: hidden;
 }
 
-/* =========================================
+/*
    QUOTE CONTAINER
-   ========================================= */
-
+   No border-left (anachronistic modern UI convention).
+   No ::before prompt — JS types the > character as part of the content.
+*/
 #quote-container {
     color: rgba(var(--primary-rgb), 0.9);
     margin: 0 0 0 15px;
@@ -267,14 +510,15 @@ main {
     overflow-y: auto;
     text-align: left;
     width: 100%;
-    transition: var(--base-transition), 
-                opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+    position: relative;
+    transition: var(--base-transition),
+                opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                 transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     line-height: 1.6;
     text-shadow: 0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7));
     contain: layout style paint;
     transform: translateZ(0);
-    will-change: contents, transform, opacity;
+    will-change: transform, opacity;
     backface-visibility: hidden;
     scroll-behavior: smooth;
     scrollbar-width: thin;
@@ -282,68 +526,99 @@ main {
     text-rendering: geometricPrecision;
     font-variant-ligatures: none;
     letter-spacing: 0.02em;
-    border-left: 3px solid var(--primary-color);
 }
 
-/* Custom Scrollbar Styling */
-#quote-container::-webkit-scrollbar {
-    width: 8px;
-}
 
+
+/* Custom Scrollbar */
+#quote-container::-webkit-scrollbar { width: 8px; }
 #quote-container::-webkit-scrollbar-track {
     background: rgba(var(--primary-rgb), 0.1);
     border-radius: 4px;
 }
-
 #quote-container::-webkit-scrollbar-thumb {
     background: rgba(var(--primary-rgb), 0.3);
     border-radius: 4px;
     transition: background 0.3s ease;
 }
-
 #quote-container::-webkit-scrollbar-thumb:hover {
     background: rgba(var(--primary-rgb), 0.5);
 }
 
-/* Theme-Specific Quote Container Glows */
+/* ---- Per-theme text glow ----
+   Tuned to the emission spectrum and persistence of each phosphor.
+   P1 (green): medium-width emission, moderate glow.
+   P3 (amber): longer persistence = slightly wider, warmer halation.
+   P4 (white): broadest spectrum, most diffuse, lowest saturation glow.
+   C64: RF composite chroma softening via blur filter. */
+
 .theme-ibm3279-green #quote-container {
-    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    text-shadow: 0 0 5px rgba(87, 255, 140, 0.30);
 }
-
 .theme-teletype-blue-green #quote-container {
-    text-shadow: 0 0 4px rgba(0, 255, 255, 0.25);
+    text-shadow: 0 0 4px rgba(164, 200, 176, 0.20);
 }
-
 .theme-pet2001-green #quote-container {
-    text-shadow: 0 0 6px rgba(50, 255, 50, 0.4);
+    text-shadow: 0 0 6px rgba(0, 255, 68, 0.32);
 }
-
 .theme-ibm3279-bitcoin-orange #quote-container {
-    text-shadow: 0 0 5px rgba(255, 165, 0, 0.35);
+    text-shadow: 0 0 5px rgba(255, 149, 0, 0.36);
 }
-
 .theme-hazeltine-teal #quote-container {
-    text-shadow: 0 0 4px rgba(0, 255, 200, 0.3);
+    text-shadow: 0 0 4px rgba(80, 200, 200, 0.26);
 }
-
 .theme-zenith-green #quote-container {
-    text-shadow: 0 0 5px rgba(0, 255, 100, 0.32);
+    text-shadow: 0 0 5px rgba(127, 255, 127, 0.28);
 }
-
+/* VT05 white P4: barely any glow, faint warm cast */
 .theme-white #quote-container {
-    text-shadow: 0 0 3px rgba(255, 255, 240, 0.2);
+    text-shadow: 0 0 3px rgba(214, 214, 198, 0.16);
 }
-
+/* VT100 amber P3: wider, warmer second layer simulates phosphor halation */
 .theme-vt100-amber #quote-container {
-    text-shadow: 0 0 5px rgba(255, 191, 0, 0.4);
+    text-shadow:
+        0 0 5px rgba(255, 176, 0, 0.40),
+        0 0 16px rgba(190, 110, 0, 0.10);
+    filter: blur(0.2px) saturate(0.90);
 }
-
 .theme-apple2-green #quote-container {
-    text-shadow: 0 0 6px rgba(0, 255, 65, 0.35);
+    text-shadow: 0 0 4px rgba(36, 255, 82, 0.36);
+}
+/* C64: VIC-II RF composite chroma blur simulation */
+.theme-commodore64 #quote-container {
+    text-shadow: 0 0 5px rgba(116, 105, 200, 0.34);
+    filter: blur(0.15px);
 }
 
-.theme-commodore64 #quote-container {
-    text-shadow: 0 0 5px rgba(124, 112, 218, 0.4);
+/*
+   BLOCK CURSOR — phosphor persistence edition.
+
+   Two simultaneous animations on the same element:
+
+   1. cursor-block-blink (step-end) — hard digital on/off at hardware rate.
+      Controls opacity: 1→0 with no easing. Authentic.
+
+   2. cursor-afterglow (ease-out) — fires on the "off" phase.
+      The box-shadow represents residual phosphor glow decaying after the
+      electron beam has moved on. Duration = --cursor-decay (per-theme).
+      P4 white: 0.03s (barely visible). P3 amber: 0.14s (warm corona).
+      P1 green: 0.22s (medium persistence).
+
+   The combination: cursor turns off hard (step-end), then its ghost glow
+   decays at the phosphor's natural rate. Hyperrealistic.
+*/
+.cursor-block {
+    display: inline-block;
+    width: 0.55em;
+    height: 1.05em;
+    vertical-align: text-bottom;
+    background: currentColor;
+    margin-left: 0.05em;
+    border-radius: 1px;
+    animation:
+        cursor-block-blink var(--cursor-blink-rate) step-end infinite,
+        cursor-afterglow var(--cursor-blink-rate) var(--cursor-decay, 0.15s) ease-out infinite;
+    will-change: opacity, box-shadow;
 }
 
 /* =========================================
@@ -447,7 +722,6 @@ main {
     gap: 0.25rem;
     font-family: var(--font-family);
     z-index: 9997;
-    contain: layout style paint;
 }
 
 .footer-subtext {
@@ -473,7 +747,7 @@ main {
 #footer a:hover {
     color: rgba(var(--primary-rgb), 0.65);
     text-decoration: underline;
-    text-shadow: 0 0 1px rgba(var(--primary-rgb), 0.3), 
+    text-shadow: 0 0 1px rgba(var(--primary-rgb), 0.3),
                  0 0 2px rgba(var(--primary-rgb), 0.15);
 }
 
@@ -483,8 +757,8 @@ main {
 
 ::selection {
     background: var(--primary-color);
-    box-shadow: 0 0 3px rgba(var(--primary-rgb), 0.5), 
-                0 0 6px rgba(var(--primary-rgb), 0.25), 
+    box-shadow: 0 0 3px rgba(var(--primary-rgb), 0.5),
+                0 0 6px rgba(var(--primary-rgb), 0.25),
                 0 0 12px rgba(var(--primary-rgb), 0.15);
     color: var(--theme-background);
 }
@@ -504,7 +778,7 @@ main {
 }
 
 /* =========================================
-   TYPING CURSOR ANIMATION
+   TYPING CURSOR (legacy — kept for compat)
    ========================================= */
 
 .typing-cursor {
@@ -512,12 +786,8 @@ main {
 }
 
 @keyframes cursor-glow {
-    from {
-        text-shadow: inherit;
-    }
-    to {
-        text-shadow: inherit, 0 0 10px currentColor;
-    }
+    from { text-shadow: inherit; }
+    to   { text-shadow: inherit, 0 0 10px currentColor; }
 }
 
 /* =========================================
@@ -545,55 +815,20 @@ main {
     gap: 0.15rem;
 }
 
-.bookmark-counter .count::before {
-    content: '[';
-    margin-right: 0.1rem;
-    opacity: 0.6;
-}
+.bookmark-counter .count::before { content: '['; margin-right: 0.1rem; opacity: 0.6; }
+.bookmark-counter .count::after  { content: ']'; margin-left:  0.1rem; opacity: 0.6; }
+.bookmark-counter .heart::before { content: '['; margin-right: 0.1rem; opacity: 0.6; }
+.bookmark-counter .heart::after  { content: ']'; margin-left:  0.1rem; opacity: 0.6; }
 
-.bookmark-counter .count::after {
-    content: ']';
-    margin-left: 0.1rem;
-    opacity: 0.6;
-}
+.bookmark-counter.hidden { opacity: 0; }
 
-.bookmark-counter .heart::before {
-    content: '[';
-    margin-right: 0.1rem;
-    opacity: 0.6;
-}
 
-.bookmark-counter .heart::after {
-    content: ']';
-    margin-left: 0.1rem;
-    opacity: 0.6;
-}
-
-.bookmark-counter.hidden {
-    opacity: 0;
-}
-
-/* =========================================
-   QUOTE TRANSITION ANIMATIONS
-   ========================================= */
-
-.quote-transition-out {
-    opacity: 0;
-    transform: translateZ(0) translateY(-20px) scale(0.98);
-}
-
-.quote-transition-in {
-    opacity: 1;
-    transform: translateZ(0) translateY(0) scale(1);
-}
 
 /* =========================================
    BITCOIN ICON (SVG)
    ========================================= */
 
-.outer-circle {
-    fill: #1a1a1a !important;
-}
+.outer-circle { fill: #1a1a1a !important; }
 
 .bitcoin-b {
     fill: var(--primary-color) !important;
@@ -601,65 +836,55 @@ main {
     -webkit-filter: drop-shadow(0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7))) !important;
 }
 
-/* Theme-Specific Bitcoin Icon Colors */
 .theme-ibm3279-green .bitcoin-b {
-    fill: #66FFAA !important;
-    filter: drop-shadow(0 0 4px rgba(102, 255, 170, 0.35)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(102, 255, 170, 0.35)) !important;
+    fill: #57FF8C !important;
+    filter: drop-shadow(0 0 4px rgba(87, 255, 140, 0.35)) !important;
+    -webkit-filter: drop-shadow(0 0 4px rgba(87, 255, 140, 0.35)) !important;
 }
-
 .theme-teletype-blue-green .bitcoin-b {
-    fill: #B0D0B0 !important;
-    filter: drop-shadow(0 0 4px rgba(176, 208, 176, calc(var(--glow-intensity) * 0.7))) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(176, 208, 176, calc(var(--glow-intensity) * 0.7))) !important;
+    fill: #A4C8B0 !important;
+    filter: drop-shadow(0 0 4px rgba(164, 200, 176, 0.28)) !important;
+    -webkit-filter: drop-shadow(0 0 4px rgba(164, 200, 176, 0.28)) !important;
 }
-
 .theme-pet2001-green .bitcoin-b {
-    fill: #00FF33 !important;
-    filter: drop-shadow(0 0 4px rgba(51, 204, 102, calc(var(--glow-intensity) * 0.7))) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(51, 204, 102, calc(var(--glow-intensity) * 0.7))) !important;
+    fill: #00FF44 !important;
+    filter: drop-shadow(0 0 4px rgba(0, 255, 68, 0.38)) !important;
+    -webkit-filter: drop-shadow(0 0 4px rgba(0, 255, 68, 0.38)) !important;
 }
-
 .theme-ibm3279-bitcoin-orange .bitcoin-b {
-    fill: #FFAB4D !important;
-    filter: drop-shadow(0 0 4px rgba(255, 171, 77, calc(var(--glow-intensity) * 0.7))) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(255, 171, 77, calc(var(--glow-intensity) * 0.7))) !important;
+    fill: #FF9500 !important;
+    filter: drop-shadow(0 0 4px rgba(255, 149, 0, 0.42)) !important;
+    -webkit-filter: drop-shadow(0 0 4px rgba(255, 149, 0, 0.42)) !important;
 }
-
 .theme-hazeltine-teal .bitcoin-b {
-    fill: #77DDDD !important;
-    filter: drop-shadow(0 0 4px rgba(136, 238, 238, calc(var(--glow-intensity) * 0.7))) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(136, 238, 238, calc(var(--glow-intensity) * 0.7))) !important;
+    fill: #50C8C8 !important;
+    filter: drop-shadow(0 0 4px rgba(80, 200, 200, 0.36)) !important;
+    -webkit-filter: drop-shadow(0 0 4px rgba(80, 200, 200, 0.36)) !important;
 }
-
 .theme-zenith-green .bitcoin-b {
-    fill: #A0FFA0 !important;
-    filter: drop-shadow(0 0 4px rgba(144, 255, 144, calc(var(--glow-intensity) * 0.7))) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(144, 255, 144, calc(var(--glow-intensity) * 0.7))) !important;
+    fill: #7FFF7F !important;
+    filter: drop-shadow(0 0 4px rgba(127, 255, 127, 0.35)) !important;
+    -webkit-filter: drop-shadow(0 0 4px rgba(127, 255, 127, 0.35)) !important;
 }
-
 .theme-white .bitcoin-b {
-    fill: #F0F0F0 !important;
-    filter: drop-shadow(0 0 4px rgba(240, 240, 240, calc(var(--glow-intensity) * 0.7))) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(240, 240, 240, calc(var(--glow-intensity) * 0.7))) !important;
+    fill: #D6D6C6 !important;
+    filter: drop-shadow(0 0 4px rgba(214, 214, 198, 0.26)) !important;
+    -webkit-filter: drop-shadow(0 0 4px rgba(214, 214, 198, 0.26)) !important;
 }
-
 .theme-vt100-amber .bitcoin-b {
-    fill: #FFBF00 !important;
-    filter: drop-shadow(0 0 4px rgba(255, 191, 0, calc(var(--glow-intensity) * 0.7))) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(255, 191, 0, calc(var(--glow-intensity) * 0.7))) !important;
+    fill: #FFB000 !important;
+    filter: drop-shadow(0 0 5px rgba(255, 176, 0, 0.46)) !important;
+    -webkit-filter: drop-shadow(0 0 5px rgba(255, 176, 0, 0.46)) !important;
 }
-
 .theme-apple2-green .bitcoin-b {
-    fill: #00FF41 !important;
-    filter: drop-shadow(0 0 4px rgba(0, 255, 65, calc(var(--glow-intensity) * 0.7))) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(0, 255, 65, calc(var(--glow-intensity) * 0.7))) !important;
+    fill: #24FF52 !important;
+    filter: drop-shadow(0 0 4px rgba(36, 255, 82, 0.40)) !important;
+    -webkit-filter: drop-shadow(0 0 4px rgba(36, 255, 82, 0.40)) !important;
 }
-
 .theme-commodore64 .bitcoin-b {
-    fill: #7C70DA !important;
-    filter: drop-shadow(0 0 4px rgba(124, 112, 218, calc(var(--glow-intensity) * 0.7))) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(124, 112, 218, calc(var(--glow-intensity) * 0.7))) !important;
+    fill: #7469C8 !important;
+    filter: drop-shadow(0 0 4px rgba(116, 105, 200, 0.40)) !important;
+    -webkit-filter: drop-shadow(0 0 4px rgba(116, 105, 200, 0.40)) !important;
 }
 
 /* =========================================
@@ -680,13 +905,18 @@ main {
 
 /* =========================================
    TOAST NOTIFICATION
+   left/right: 0 + margin: auto = true viewport centre,
+   immune to any containing-block from fixed ancestors.
    ========================================= */
 
 .bq-toast {
     position: fixed;
     bottom: clamp(2.5rem, 4vh, 4rem);
-    left: 50%;
-    transform: translateX(-50%) translateY(8px);
+    left: 0;
+    right: 0;
+    width: fit-content;
+    margin: 0 auto;
+    transform: translateY(8px);
     background: transparent;
     color: rgba(var(--primary-rgb), 0.5);
     font-family: var(--font-family);
@@ -703,11 +933,39 @@ main {
 
 .bq-toast--visible {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
 }
 
 /* =========================================
-   MOBILE RESPONSIVE STYLES
+   ACCESSIBILITY — REDUCED MOTION
+   All decorative animations off. Cursor still
+   present but static. Filters removed.
+   ========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    .cursor-block {
+        animation: none !important;
+        box-shadow: none !important;
+    }
+    .theme-vt100-amber #quote-container,
+    .theme-commodore64 #quote-container {
+        filter: none !important;
+    }
+}
+
+/* =========================================
+   TAB HIDDEN — JS adds .tab-hidden to body.
+   Pauses all GPU animations on idle tabs
+   to save power and CPU.
+   ========================================= */
+
+body.tab-hidden .cursor-block {
+    animation-play-state: paused !important;
+    box-shadow: none !important;
+}
+
+/* =========================================
+   MOBILE RESPONSIVE
    ========================================= */
 
 @media (max-width: 768px) {
@@ -716,37 +974,37 @@ main {
         padding-left: 0.75rem;
         padding-right: 0.75rem;
     }
-    
+
     #header {
         padding: 0.5rem;
         gap: 0.05rem;
     }
-    
+
     .header-icon {
         min-width: 40px;
         min-height: 40px;
         padding: 0.4rem;
         font-size: 0.8rem;
     }
-    
+
     #key-commands {
         font-size: clamp(0.5rem, 0.7vw + 0.3vh, 0.6rem);
         padding: 0.025rem 0.5rem;
         gap: 0.3rem;
     }
-    
+
     #quote-container {
         font-size: clamp(1.2rem, 2vw, 2rem);
         padding: var(--quote-padding-top) 0.25rem var(--quote-padding-bottom) 0.25rem;
         margin: 0;
         text-align: left;
     }
-    
+
     .author {
         font-size: clamp(1rem, 1.8vw, 1.8rem);
         margin-top: clamp(0.8rem, 1vw + 0.6vh, 1.5rem);
     }
-    
+
     #footer {
         display: none;
     }
