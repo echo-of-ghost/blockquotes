@@ -102,7 +102,7 @@
    BODY
    ========================================= */
 
-body[class^="theme-"] {
+body[class*="theme-"] {
     background-color: var(--theme-background, #121212);
     color: var(--primary-color);
     display: flex;
@@ -127,7 +127,7 @@ body[class^="theme-"] {
     -moz-osx-font-smoothing: grayscale;
 }
 
-body[class^="theme-"] * {
+body[class*="theme-"] * {
     transition: color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
                 background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
                 border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
@@ -651,6 +651,12 @@ main {
     text-decoration: var(--author-hover-decoration, none);
 }
 
+/* Isolates author text from the prompt text node so updateLivePrompt
+   can swap the prompt character without touching the author content. */
+.author-name {
+    display: inline;
+}
+
 /* =========================================
    ERROR MESSAGE
    ========================================= */
@@ -994,14 +1000,16 @@ body.tab-hidden .cursor-block {
     }
 
     #quote-container {
-        font-size: clamp(1.2rem, 2vw, 2rem);
+        --font-size: clamp(1.2rem, 2vw, 2rem);
+        font-size: var(--font-size);
         padding: var(--quote-padding-top) 0.25rem var(--quote-padding-bottom) 0.25rem;
         margin: 0;
         text-align: left;
     }
 
     .author {
-        font-size: clamp(1rem, 1.8vw, 1.8rem);
+        --author-font-size: clamp(1rem, 1.8vw, 1.8rem);
+        font-size: var(--author-font-size);
         margin-top: clamp(0.8rem, 1vw + 0.6vh, 1.5rem);
     }
 

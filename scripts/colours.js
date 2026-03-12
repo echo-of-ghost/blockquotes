@@ -68,6 +68,10 @@ function changeTheme() {
     showToast(themeNames[nextTheme] || nextTheme);
   }
 
+  if (typeof updateLivePrompt === 'function') {
+    updateLivePrompt();
+  }
+
   console.log(`Theme changed to: ${nextTheme}`);
 }
 
@@ -150,13 +154,24 @@ if (typeof DeviceMotionEvent !== 'undefined') {
   console.log('Device motion not supported');
 }
 
-// Apply saved theme on load
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme && themes.includes(savedTheme)) {
-  themes.forEach(theme => document.body.classList.remove(`theme-${theme}`));
-  document.body.classList.add(`theme-${savedTheme}`);
+// Apply saved theme on load.
+// Wrapped in a readyState guard so document.body is guaranteed to exist
+// regardless of where this script is placed in the document.
+function applyInitialTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme && themes.includes(savedTheme)) {
+    themes.forEach(theme => document.body.classList.remove(`theme-${theme}`));
+    document.body.classList.add(`theme-${savedTheme}`);
+  } else {
+    console.log('[colours.js] No valid saved theme, defaulting to ibm3279-green');
+    themes.forEach(theme => document.body.classList.remove(`theme-${theme}`));
+    document.body.classList.add('theme-ibm3279-green');
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', applyInitialTheme);
 } else {
-  console.log('[colours.js] No valid saved theme, defaulting to ibm3279-green');
-  themes.forEach(theme => document.body.classList.remove(`theme-${theme}`));
-  document.body.classList.add('theme-ibm3279-green');
+  // Already parsed (e.g. script is defer-loaded and DOM is ready)
+  applyInitialTheme();
 }
