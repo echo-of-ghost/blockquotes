@@ -28,7 +28,8 @@ const state = {
   bookmarkedQuotes: JSON.parse(localStorage.getItem('bookmarked-quotes') || '[]'),
   currentBookmarkIndex: 0, // Position in bookmark list
   quoteHistory: [], // Recently shown quotes for back-navigation (#5)
-  historyPosition: -1 // Current position when navigating back
+  historyPosition: -1, // Current position when navigating back
+  booting: true, // Block input during boot sequence
 };
 
 // =========================================
@@ -589,67 +590,98 @@ function displayQuote(quote, startIndex = 0, finishImmediately = false, preforma
   
   const authorHTML = preformattedAuthor || PerformanceUtils.formatAuthor(quote.author);
 
+  // Plain text for character-by-character author typing.
+  // Strip markdown links [text](url) → text and surrounding quotes.
+  const authorPlain = String(quote.author)
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+    .replace(/^"|"$/g, '')
+    .trim();
+  // NOTE: prompt is intentionally NOT frozen at displayQuote call time.
+  // getAuthorTypingText() re-reads getThemePrompt() on every tick so a
+  // mid-type theme change is reflected immediately — the new prompt character
+  // appears on the very next typed character rather than waiting until
+  // renderParked() fires at the end of Phase 2.
+  function getAuthorTypingText() {
+    const livePrompt = getThemePrompt();
+    return livePrompt ? `${livePrompt} ${authorPlain}` : authorPlain;
+  }
+
+  // Render the final parked state: quote body + fully-linked author + blinking cursor.
+  function renderParked() {
+    try {
+      elements.quoteContainer.innerHTML =
+        `<span class="text-selected">${quoteText}</span>` +
+        `<span class="author">${getThemePrompt() ? getThemePrompt() + ' ' : ''}<span class="author-name">${authorHTML}</span>` +
+        `<span class="cursor-block" aria-hidden="true"></span></span>`;
+      elements.quoteContainer.style.textTransform = state.isUppercase ? 'uppercase' : 'none';
+      const authorElement = elements.quoteContainer.querySelector('.author');
+      if (authorElement) authorElement.style.textTransform = state.isUppercase ? 'uppercase' : 'none';
+    } catch (e) {
+      console.error('Error rendering quote:', e, { quoteText, quote });
+      elements.quoteContainer.textContent = 'Error displaying quote';
+      elements.errorMessage.classList.add('error-active');
+    }
+  }
+
   function typeQuote() {
     const adaptiveSpeed = QuoteUtils.calculateTypingSpeed(quoteText, config.typingSpeed);
     const typingSpeed = config.performanceMode ? 0 : adaptiveSpeed;
     finishImmediately = finishImmediately || typingSpeed === 0;
 
-    // Show complete quote immediately if requested or paused
+    // Show everything immediately if skip requested or already paused
     if (finishImmediately || state.isPaused) {
-      try {
-        elements.quoteContainer.innerHTML = `<span class="text-selected">${quoteText}</span><span class="author">> ${authorHTML}</span>`;
-        elements.quoteContainer.style.textTransform = state.isUppercase ? 'uppercase' : 'none';
-        const authorElement = elements.quoteContainer.querySelector('.author');
-        if (authorElement) {
-          authorElement.style.textTransform = state.isUppercase ? 'uppercase' : 'none';
-        }
-      } catch (e) {
-        console.error('Error rendering quote:', e, { quoteText, quote });
-        elements.quoteContainer.textContent = 'Error displaying quote';
-        elements.errorMessage.classList.add('error-active');
-      }
+      renderParked();
       state.currentIndex = quoteText.length;
       state.isTyping = false;
       state.isPaused = true;
-      
       return;
     }
 
-    // Type character by character with highlighting effect
+    // Phase 1 — type the quote body character by character
     if (state.currentIndex < quoteText.length) {
       if (state.currentIndex === 0) {
-        elements.quoteContainer.innerHTML = '';
+        elements.quoteContainer.innerHTML = '<span class="cursor-block" aria-hidden="true"></span>';
       }
-      
+
       const typedText = quoteText.slice(0, state.currentIndex + 1);
-      // Append blinking block cursor while typing is in progress
-      elements.quoteContainer.innerHTML = `<span class="text-selected">${typedText}</span><span class="cursor-block" aria-hidden="true"></span>`;
-      
+      elements.quoteContainer.innerHTML =
+        `<span class="text-selected">${typedText}</span>` +
+        `<span class="cursor-block" aria-hidden="true"></span>`;
+
       PerformanceUtils.handleAutoScroll();
-      
+
       state.currentIndex++;
-      // Punctuation pause: terminals and teletypes had mechanical/processing delays
-      // after sentence-ending characters. Mimics the rhythm of a human reading aloud.
+      // Punctuation pause — mirrors mechanical/processing delays on real hardware
       const justTyped = quoteText[state.currentIndex - 1];
       const punctuationDelay = /[.!?]/.test(justTyped) ? 180 : /[,;:]/.test(justTyped) ? 60 : 0;
       state.timeoutId = PerformanceUtils.optimizedDelay(typeQuote, typingSpeed + punctuationDelay);
+
+    // Phase 2 — type the author line character by character (plain text)
+    } else if (state.currentIndex < quoteText.length + getAuthorTypingText().length) {
+      const authorIndex = state.currentIndex - quoteText.length;
+      const authorTypingText = getAuthorTypingText();
+      const typedAuthor = authorTypingText.slice(0, authorIndex + 1);
+
+      // Author types slightly faster — feels like a new output line firing
+      const authorSpeed = Math.max(18, typingSpeed * 0.75);
+
+      elements.quoteContainer.innerHTML =
+        `<span class="text-selected">${quoteText}</span>` +
+        `<span class="author">${typedAuthor}<span class="cursor-block" aria-hidden="true"></span></span>`;
+
+      elements.quoteContainer.style.textTransform = state.isUppercase ? 'uppercase' : 'none';
+      PerformanceUtils.handleAutoScroll();
+
+      state.currentIndex++;
+      const justTyped = authorTypingText[authorIndex];
+      const punctuationDelay = /[.!?]/.test(justTyped) ? 120 : /[,;:]/.test(justTyped) ? 40 : 0;
+      state.timeoutId = PerformanceUtils.optimizedDelay(typeQuote, authorSpeed + punctuationDelay);
+
+    // Phase 3 — author done: swap plain text for linked HTML, park cursor
     } else {
-      // Typing complete — remove cursor, add author
-      try {
-        elements.quoteContainer.innerHTML = `<span class="text-selected">${quoteText}</span><span class="author">> ${authorHTML}</span>`;
-        elements.quoteContainer.style.textTransform = state.isUppercase ? 'uppercase' : 'none';
-        const authorElement = elements.quoteContainer.querySelector('.author');
-        if (authorElement) {
-          authorElement.style.textTransform = state.isUppercase ? 'uppercase' : 'none';
-        }
-      } catch (e) {
-        console.error('Error rendering quote:', e, { quoteText, quote });
-        elements.quoteContainer.textContent = 'Error displaying quote';
-        elements.errorMessage.classList.add('error-active');
-      }
+      renderParked();
       state.isTyping = false;
-      
-      // Wait before showing next quote
+
       state.timeoutId = PerformanceUtils.optimizedDelay(() => {
         elements.quoteContainer.textContent = '';
         state.isPaused = false;
@@ -690,6 +722,7 @@ async function setRandomQuote() {
 
 // Handle click to pause/resume or finish typing
 function handleClick(event) {
+  if (state.booting) return;
   if (state.isProcessing) return;
 
   state.isProcessing = true;
@@ -747,6 +780,7 @@ function shareQuoteOnTwitter() {
 // Keyboard shortcuts handler
 // Space = pause/resume, N = next quote, C = copy, X = share, U = uppercase, B = bookmark, V = view bookmarks
 function handleKeyPress(event) {
+  if (state.booting) return;
   if (state.isProcessing) return;
 
   // Space: Pause/resume or finish typing
@@ -983,6 +1017,76 @@ function handleWheelNavigation(event) {
 // BOOT SEQUENCE
 // =========================================
 
+// =========================================
+// THEME PROMPT
+// =========================================
+
+/*
+  Each terminal had its own prompt character, sourced from hardware/OS:
+    IBM 3279       — TSO/ISPF: '===>' (the ISPF command line prefix)
+    DEC VT220      — Unix sh/bash: '$'
+    Commodore PET  — BASIC ROM: '' (blank — cursor appeared after READY.)
+    Bitcoin Orange — IBM 3279 chassis: '===>'
+    Hazeltine 1500 — proprietary OS: '*'
+    Zenith Z-19    — CP/M: 'A>' (default drive prompt)
+    DEC VT05       — early Unix: '$'
+    DEC VT100      — VAX/VMS csh: '%'
+    Apple II       — Applesoft BASIC: ']' (the iconic right-bracket)
+    Commodore 64   — BASIC V2: '' (blank — cursor after READY.)
+*/
+const themePrompts = {
+  'ibm3279-green':          '===>',
+  'teletype-blue-green':    '$',
+  'pet2001-green':          '',
+  'ibm3279-bitcoin-orange': '===>',
+  'hazeltine-teal':         '*',
+  'zenith-green':           'A>',
+  'white':                  '$',
+  'vt100-amber':            '%',
+  'apple2-green':           ']',
+  'commodore64':            '',
+};
+
+function getThemePrompt() {
+  const body = document.body;
+  for (const theme of Object.keys(themePrompts)) {
+    if (body.classList.contains(`theme-${theme}`)) {
+      return themePrompts[theme];
+    }
+  }
+  return '>';
+}
+
+/*
+  Called by colours.js after every theme swap.
+  If a quote is currently parked (cursor sitting in .author),
+  patch the prompt text node in place without re-rendering the whole quote.
+  The cursor keeps blinking — only the prompt character changes.
+*/
+function updateLivePrompt() {
+  const author = elements.quoteContainer.querySelector('.author');
+  if (!author) return;
+
+  // Structure is always: [textNode: "{prompt} "] [span.author-name] [span.cursor-block]
+  // OR when no prompt:   [span.author-name] [span.cursor-block]
+  // Replace or insert/remove just the leading text node — never touch author-name or cursor.
+  const newPrompt = getThemePrompt();
+  const firstNode = author.firstChild;
+  const isLeadingTextNode = firstNode && firstNode.nodeType === Node.TEXT_NODE;
+
+  if (isLeadingTextNode) {
+    // Update existing prompt text node (covers prompt→prompt and prompt→blank)
+    firstNode.textContent = newPrompt ? `${newPrompt} ` : '';
+    // If now blank, remove the empty text node to keep DOM clean
+    if (!newPrompt) author.removeChild(firstNode);
+  } else if (newPrompt) {
+    // No leading text node yet (previous theme had blank prompt) — insert one
+    const authorName = author.querySelector('.author-name');
+    author.insertBefore(document.createTextNode(`${newPrompt} `), authorName);
+  }
+  // If no prompt before and no prompt now — nothing to do
+}
+
 // Type a single boot line into the container, then call done() when finished.
 // Uses the same timing engine as quotes for visual consistency.
 function typeBootLine(text, speed, done) {
@@ -1012,17 +1116,19 @@ function runBootSequence(onComplete) {
     return;
   }
 
+  const prompt = getThemePrompt();
   const lines = [
     { text: 'BLOCKQUOTES.SH  v1.0 — PHOSPHOR TERMINAL READY', speed: 28 },
     { text: 'LOADING QUOTE DATABASE.................. OK',      speed: 32 },
-    { text: '>',                                                speed: 0  },
+    // Only show a prompt line if this theme has one — PET/C64 had no prompt symbol
+    ...(prompt ? [{ text: prompt, speed: 0 }] : []),
   ];
 
   let lineIndex = 0;
 
   function nextLine() {
     if (lineIndex >= lines.length) {
-      // Hold the > cursor for one beat, then hand off
+      // Hold the prompt cursor for one beat, then hand off
       state.timeoutId = setTimeout(() => {
         elements.quoteContainer.innerHTML = '';
         onComplete();
@@ -1070,12 +1176,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadedFromURL = checkURLQuote();
     if (loadedFromURL) {
       // URL quote takes priority — skip boot sequence entirely
+      state.booting = false;
       setTimeout(() => PerformanceUtils.preloadNextQuote(), 1000);
       QuoteUtils.updateBookmarkCounter();
       return;
     }
 
     runBootSequence(() => {
+      state.booting = false;
       setRandomQuote();
       setTimeout(() => PerformanceUtils.preloadNextQuote(), 1000);
       QuoteUtils.updateBookmarkCounter();
