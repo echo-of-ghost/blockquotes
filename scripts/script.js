@@ -651,10 +651,9 @@ function displayQuote(quote, startIndex = 0, finishImmediately = false, preforma
       
       // Wait before showing next quote
       state.timeoutId = PerformanceUtils.optimizedDelay(() => {
-        if (!state.isPaused) {
-          elements.quoteContainer.textContent = '';
-          setRandomQuote();
-        }
+        elements.quoteContainer.textContent = '';
+        state.isPaused = false;
+        setRandomQuote();
       }, config.pauseDuration);
     }
   }
