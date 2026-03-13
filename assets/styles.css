@@ -131,9 +131,7 @@ body[class*="theme-"] {
                 color 0.35s ease,
                 text-shadow 0.35s ease;
     scrollbar-color: var(--primary-color) var(--theme-background);
-    /* Screen phosphor ambient spill — the lit screen tints the surrounding
-       bezel area. Very faint inset glow, static, compositor-composited. */
-    box-shadow: inset 0 0 120px 0px rgba(var(--primary-rgb), 0.03);
+
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     animation: crt-warmup 0.9s ease-out 1 forwards;
