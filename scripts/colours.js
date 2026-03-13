@@ -5,6 +5,7 @@ const themes = [
   'ibm3279-bitcoin-orange',  // IBM 3279, 1979 — custom bitcoin orange, cypherpunk homage
   'hazeltine-teal',          // Hazeltine 1500, 1977 — proprietary teal phosphor, 80×24
   'zenith-green',            // Zenith Z-19, 1979 — P1 green phosphor, 80×24, CP/M and Unix
+  'adm3a-green',             // Lear Siegler ADM-3A, 1976 — P1 green phosphor (warm variant), 80×24, the terminal vi was written on
   'white',                   // DEC VT05, 1972 — P4 white phosphor, 72×20, teletype-era DEC
   'vt100-amber',             // DEC VT100, 1978 — P3 amber phosphor, 80×24, the canonical terminal
   'apple2-green',            // Apple II, 1977 — P1 green phosphor, 40×24, 6502 interrupt blink
@@ -28,6 +29,7 @@ const themeNames = {
   'ibm3279-bitcoin-orange':  'IBM 3279 — bitcoin orange',
   'hazeltine-teal':          'Hazeltine 1500 — teal phosphor',
   'zenith-green':            'Zenith Z-19 — P1 green phosphor',
+  'adm3a-green':             'ADM-3A — P1 green phosphor (the vi terminal)',
   'white':                   'DEC VT05 — P4 white phosphor',
   'vt100-amber':             'DEC VT100 — P3 amber phosphor',
   'apple2-green':            'Apple II — P1 green phosphor',
@@ -43,17 +45,9 @@ function changeTheme() {
   const nextIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
   const nextTheme = themes[nextIndex];
 
-  // Fire the phosphor resync animation before the class swap.
-  // The CSS reads --primary-color from the NEW theme after the swap,
-  // so the flash colour is already correct on the next frame.
-  body.classList.add('theme-switching');
-
   themes.forEach(theme => body.classList.remove(`theme-${theme}`));
   body.classList.add(`theme-${nextTheme}`);
   localStorage.setItem('theme', nextTheme);
-
-  // Remove the trigger class after the animation completes (420ms)
-  setTimeout(() => body.classList.remove('theme-switching'), 420);
 
   // Keep the browser chrome in sync on mobile — read the new background
   // from computed styles so we never hardcode a colour here
@@ -72,7 +66,6 @@ function changeTheme() {
     updateLivePrompt();
   }
 
-  console.log(`Theme changed to: ${nextTheme}`);
 }
 
 /**
@@ -97,8 +90,6 @@ function handleDeviceMotion(event) {
     lastShakeTime = currentTime;
     shakeCount++;
 
-    console.log(`Shake detected: ${shakeCount}/${SHAKES_REQUIRED}`);
-
     if (shakeCount >= SHAKES_REQUIRED) {
       changeTheme();
       shakeCount = 0;
@@ -106,7 +97,6 @@ function handleDeviceMotion(event) {
       setTimeout(() => {
         if (shakeCount < SHAKES_REQUIRED) {
           shakeCount = 0;
-          console.log('Shake count reset - not enough shakes in time window');
         }
       }, SHAKE_WINDOW);
     }
@@ -130,9 +120,6 @@ if (typeof DeviceMotionEvent !== 'undefined') {
         .then(response => {
           if (response === 'granted') {
             window.addEventListener('devicemotion', handleDeviceMotion, { passive: true });
-            console.log('Device motion permission granted');
-          } else {
-            console.log('Device motion permission denied');
           }
         })
         .catch(console.error);
@@ -148,10 +135,7 @@ if (typeof DeviceMotionEvent !== 'undefined') {
     document.addEventListener('touchstart', enableShakeDetection, { once: true });
   } else {
     window.addEventListener('devicemotion', handleDeviceMotion, { passive: true });
-    console.log('Shake to change theme enabled');
   }
-} else {
-  console.log('Device motion not supported');
 }
 
 // Apply saved theme on load.
@@ -163,7 +147,6 @@ function applyInitialTheme() {
     themes.forEach(theme => document.body.classList.remove(`theme-${theme}`));
     document.body.classList.add(`theme-${savedTheme}`);
   } else {
-    console.log('[colours.js] No valid saved theme, defaulting to ibm3279-green');
     themes.forEach(theme => document.body.classList.remove(`theme-${theme}`));
     document.body.classList.add('theme-ibm3279-green');
   }

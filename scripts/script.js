@@ -16,7 +16,8 @@ const HISTORY_SIZE = 20; // How many recent quotes to avoid repeating
 const state = {
   quotes: null, // All loaded quotes
   isPaused: false, // Typing pause state
-  timeoutId: null, // Current timeout ID
+  timeoutId: null, // Current timeout ID for typing ticks
+  parkTimeoutId: null, // Pause-between-quotes timer — isolated from cancelAnimation
   currentQuote: null, // Currently displayed quote
   currentIndex: 0, // Current typing position
   isTyping: false, // Typing in progress
@@ -223,6 +224,10 @@ const PerformanceUtils = {
     if (state.timeoutId) {
       clearTimeout(state.timeoutId);
       state.timeoutId = null;
+    }
+    if (state.parkTimeoutId) {
+      clearTimeout(state.parkTimeoutId);
+      state.parkTimeoutId = null;
     }
   },
   
@@ -434,25 +439,6 @@ function exportBookmarksAsJSON() {
   showToast(`exported ${state.bookmarkedQuotes.length} bookmarks`);
 }
 
-// Export bookmarks as plain text copied to clipboard
-function copyBookmarksAsText() {
-  if (state.bookmarkedQuotes.length === 0) {
-    QuoteUtils.announceAction('No bookmarks to copy');
-    showToast('no bookmarks saved');
-    return;
-  }
-
-  const lines = state.bookmarkedQuotes.map(q => `"${q.text}"\n— ${q.author}`);
-  const text = lines.join('\n\n---\n\n');
-
-  navigator.clipboard.writeText(text).then(() => {
-    QuoteUtils.announceAction(`Copied ${state.bookmarkedQuotes.length} bookmarks to clipboard`);
-    showToast(`${state.bookmarkedQuotes.length} bookmarks copied`);
-  }).catch(() => {
-    QuoteUtils.announceAction('Failed to copy bookmarks');
-  });
-}
-
 // =========================================
 // TOAST NOTIFICATION
 // =========================================
@@ -611,7 +597,7 @@ function displayQuote(quote, startIndex = 0, finishImmediately = false, preforma
     try {
       elements.quoteContainer.innerHTML =
         `<span class="text-selected">${quoteText}</span>` +
-        `<span class="author">${getThemePrompt() ? getThemePrompt() + ' ' : ''}<span class="author-name">${authorHTML}</span>` +
+        `<span class="author">${getThemePrompt() ? getThemePrompt() + ' ' : ''}<span class="author-name">${authorHTML}</span> ` +
         `<span class="cursor-block" aria-hidden="true"></span></span>`;
       elements.quoteContainer.style.textTransform = state.isUppercase ? 'uppercase' : 'none';
       const authorElement = elements.quoteContainer.querySelector('.author');
@@ -681,10 +667,12 @@ function displayQuote(quote, startIndex = 0, finishImmediately = false, preforma
     } else {
       renderParked();
       state.isTyping = false;
+      state.isPaused = true;
 
-      state.timeoutId = PerformanceUtils.optimizedDelay(() => {
-        elements.quoteContainer.textContent = '';
+      state.parkTimeoutId = setTimeout(() => {
+        state.parkTimeoutId = null;
         state.isPaused = false;
+        elements.quoteContainer.textContent = '';
         setRandomQuote();
       }, config.pauseDuration);
     }
@@ -717,6 +705,64 @@ async function setRandomQuote() {
 }
 
 // =========================================
+// LIGHTNING TIP
+// =========================================
+
+/*
+  Three-tier Lightning experience — no UI chrome, no modal.
+
+  Tier 1 — WebLN (Alby, Zeus, etc.): silent payment via browser extension.
+  Tier 2 — Mobile, no WebLN: native wallet handoff via lightning: URI.
+  Tier 3 — Desktop, no WebLN: copy LNURL to clipboard, confirm via toast.
+
+  The toast is the entire UI. People who know Lightning know what to do
+  with an LNURL. People who don't aren't the audience for this button.
+*/
+const LightningTip = (() => {
+  function getLNURL() {
+    const bolt = document.querySelector('.bolt-link');
+    if (!bolt) return null;
+    // href is "lightning:LNURL1..." — strip the scheme, uppercase per convention
+    return (bolt.getAttribute('href') || '').replace(/^lightning:/i, '').toUpperCase();
+  }
+
+  async function handleBoltClick(event) {
+    const lnurl = getLNURL();
+    if (!lnurl) return; // no LNURL found — let href fire
+
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      || 'ontouchstart' in window
+      || navigator.maxTouchPoints > 0;
+
+    // Tier 1 — WebLN
+    if (window.webln) {
+      event.preventDefault();
+      try {
+        await window.webln.enable();
+        await window.webln.lnurl(lnurl);
+        showToast('⚡ payment sent');
+      } catch (e) {
+        const cancelled = /reject|cancel/i.test(e?.message || '');
+        showToast(cancelled ? '⚡ cancelled' : '⚡ webln error');
+      }
+      return;
+    }
+
+    // Tier 2 — Mobile: let the lightning: href fire natively
+    if (isMobile) return;
+
+    // Tier 3 — Desktop: copy LNURL, confirm via toast
+    event.preventDefault();
+    const short = lnurl.slice(0, 18) + '…';
+    navigator.clipboard.writeText(lnurl)
+      .then(() => showToast(`⚡ ${short} [copied]`))
+      .catch(() => showToast('⚡ copy failed'));
+  }
+
+  return { handleBoltClick };
+})();
+
+// =========================================
 // EVENT HANDLERS
 // =========================================
 
@@ -725,14 +771,28 @@ function handleClick(event) {
   if (state.booting) return;
   if (state.isProcessing) return;
 
+  // Intercept bolt clicks before the generic pause handler
+  if (event.target.closest('.bolt-link')) {
+    LightningTip.handleBoltClick(event);
+    return;
+  }
+
   state.isProcessing = true;
   if (state.isTyping && !state.isPaused) {
     // Finish typing immediately
     clearTimeout(state.timeoutId);
     displayQuote(state.currentQuote, state.currentIndex, true);
-    QuoteUtils.announceAction('Typing paused');
+    QuoteUtils.announceAction('Typing finished');
+  } else if (state.parkTimeoutId) {
+    // Cursor is parked between quotes — click advances immediately
+    clearTimeout(state.parkTimeoutId);
+    state.parkTimeoutId = null;
+    state.isPaused = false;
+    elements.quoteContainer.textContent = '';
+    setRandomQuote();
+    QuoteUtils.announceAction('Next quote');
   } else {
-    // Toggle pause state
+    // Toggle user-initiated pause
     state.isPaused = !state.isPaused;
     QuoteUtils.announceAction(state.isPaused ? 'Paused' : 'Resumed');
     if (!state.isPaused) {
@@ -851,6 +911,11 @@ function handleKeyPress(event) {
     exportBookmarksAsJSON();
     setTimeout(() => (state.isProcessing = false), 100);
   }
+
+  // H: Show keyboard shortcuts in terminal boot-sequence style
+  if (event.key.toLowerCase() === 'h') {
+    showHelp();
+  }
 }
 
 // =========================================
@@ -932,10 +997,12 @@ function handleSwipeEnd(event) {
     }
   }
   
-  // Vertical swipe: Swipe up = toggle uppercase
+  // Vertical swipe: Swipe up = toggle uppercase, Swipe down = bookmark
   if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > minSwipeDistance) {
     if (diffY > 0) {
       toggleTextCase();
+    } else {
+      if (state.currentQuote) toggleBookmark();
     }
   }
 }
@@ -1029,6 +1096,7 @@ function handleWheelNavigation(event) {
     Bitcoin Orange — IBM 3279 chassis: '===>'
     Hazeltine 1500 — proprietary OS: '*'
     Zenith Z-19    — CP/M: 'A>' (default drive prompt)
+    ADM-3A         — Unix csh (BSD): '%' (Bill Joy's shell at UC Berkeley)
     DEC VT05       — early Unix: '$'
     DEC VT100      — VAX/VMS csh: '%'
     Apple II       — Applesoft BASIC: ']' (the iconic right-bracket)
@@ -1041,6 +1109,7 @@ const themePrompts = {
   'ibm3279-bitcoin-orange': '===>',
   'hazeltine-teal':         '*',
   'zenith-green':           'A>',
+  'adm3a-green':            '%',
   'white':                  '$',
   'vt100-amber':            '%',
   'apple2-green':           ']',
@@ -1107,6 +1176,74 @@ function typeBootLine(text, speed, done) {
   tick();
 }
 
+// Display keyboard shortcuts typed into the terminal, then resume.
+// Reuses typeBootLine for visual consistency with the boot sequence.
+function showHelp() {
+  if (state.booting) return;
+
+  // Cancel any in-progress typing or park timer
+  PerformanceUtils.cancelAnimation();
+  state.isTyping = false;
+  state.isPaused = true;
+
+  const lines = [
+    'KEYBOARD SHORTCUTS',
+    'SPACE / CLICK  finish typing / next quote',
+    'N              next quote',
+    'C              copy quote',
+    'X              share on x/twitter',
+    'L              copy share link',
+    'B              bookmark quote',
+    'V              view bookmarks',
+    'E              export bookmarks',
+    'U              toggle uppercase',
+    'T              cycle theme',
+    'H              show this help',
+  ];
+
+  let lineIndex = 0;
+  // Build up displayed lines as we go
+  const typed = [];
+
+  function nextLine() {
+    if (lineIndex >= lines.length) {
+      // All lines typed — hold, then resume quote cycle
+      state.timeoutId = setTimeout(() => {
+        state.isPaused = false;
+        elements.quoteContainer.textContent = '';
+        setRandomQuote();
+      }, 2500);
+      return;
+    }
+
+    const text = lines[lineIndex];
+    lineIndex++;
+
+    // Type the new line, appending to already-typed lines
+    let i = 0;
+    function tick() {
+      const current = text.slice(0, i + 1);
+      elements.quoteContainer.innerHTML =
+        typed.map(l => `<span class="text-selected">${l}</span>`).join('\n') +
+        (typed.length ? '\n' : '') +
+        `<span class="text-selected">${current}</span>` +
+        `<span class="cursor-block" aria-hidden="true"></span>`;
+      i++;
+      if (i < text.length) {
+        state.timeoutId = setTimeout(tick, lineIndex === 1 ? 40 : 22);
+      } else {
+        typed.push(text);
+        // Brief pause between lines, longer after the header
+        state.timeoutId = setTimeout(nextLine, lineIndex === 1 ? 300 : 80);
+      }
+    }
+    tick();
+  }
+
+  elements.quoteContainer.textContent = '';
+  nextLine();
+}
+
 // Run the POST boot sequence, then resolve when complete.
 // Three lines: system ident, db load confirmation, ready prompt.
 // Each line holds briefly so the user can read it before the next fires.
@@ -1128,11 +1265,10 @@ function runBootSequence(onComplete) {
 
   function nextLine() {
     if (lineIndex >= lines.length) {
-      // Hold the prompt cursor for one beat, then hand off
-      state.timeoutId = setTimeout(() => {
-        elements.quoteContainer.innerHTML = '';
-        onComplete();
-      }, 380);
+      // Last line is done — hand off directly without clearing.
+      // displayQuoteWithTransition clears the container itself on the
+      // next tick, so the cursor keeps blinking with no black gap.
+      onComplete();
       return;
     }
 
