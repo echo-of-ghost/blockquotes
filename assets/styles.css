@@ -16,9 +16,6 @@
     /* Colors */
     --primary-color: #E0E0E0;
     --primary-rgb: 224, 224, 224;
-    --author-rgb: 245, 245, 245;
-    --theme-background-rgb: 16, 19, 16;
-    --site-grey: 128, 128, 128;
 
     /* Typography */
     --font-family: 'IBM Plex Mono', 'Courier New', monospace;
@@ -33,10 +30,9 @@
     --cursor-blink-rate: 0.53s;
 
     /* Spacing */
-    --quote-padding-top: clamp(0.8rem, 0.8vw + 0.5vh, 1rem);
-    --quote-padding-bottom: clamp(1.7rem, 1.5vw + 1vh, 2rem);
-    --main-padding-top: clamp(3rem, 2vw + 1.5vh, 4rem);
-    --quote-max-height: calc(100vh - 2 * clamp(2rem, 6vw + 3vh + 1rem, 12rem) - 3rem);
+    --quote-padding-top: clamp(0.5rem, 0.8vw + 0.5vh, 0.8rem);
+    --quote-padding-bottom: clamp(1rem, 1.5vw + 1vh, 1.5rem);
+
 
     /* Transitions */
     --base-transition: opacity 0.3s ease, text-shadow 0.3s ease;
@@ -83,15 +79,12 @@
 */
 @keyframes cursor-afterglow {
     0%   {
-        opacity: 0;
         box-shadow: var(--cursor-afterglow, 0 0 6px rgba(87, 255, 140, 0.5));
     }
     40%  {
-        opacity: 0;
         box-shadow: var(--cursor-afterglow-mid, 0 0 4px rgba(87, 255, 140, 0.2));
     }
     100% {
-        opacity: 0;
         box-shadow: none;
     }
 }
@@ -111,28 +104,29 @@ body[class*="theme-"] {
     font-feature-settings: 'liga' 1, 'clig' 1, 'calt' 1;
     line-height: 1.6;
     margin: 0;
-    min-height: 100vh;
-    overflow-y: hidden;
-    padding: clamp(2rem, 6vw + 3vh + 1rem, 12rem) clamp(1rem, 1vw + 0.5vh + 0.5rem, 2rem);
+    height: 100vh;
+    overflow: clip;
+    /* Horizontal gutters only — vertical positioning is handled by main/flex */
+    padding: 0 clamp(1rem, 2vw, 2rem);
     text-rendering: optimizeLegibility;
     white-space: pre-wrap;
     overflow-wrap: break-word;
     word-wrap: break-word;
     letter-spacing: var(--letter-spacing);
-    transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-                color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-                text-shadow 0.6s ease;
+    transition: background-color 0.35s ease,
+                color 0.35s ease,
+                text-shadow 0.35s ease;
     scrollbar-color: var(--primary-color) var(--theme-background);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
 body[class*="theme-"] * {
-    transition: color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-                background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-                border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-                text-shadow 0.5s ease,
-                box-shadow 0.5s ease;
+    /* Only transition properties that have no per-element rule and benefit
+       from a slow phosphor-like decay. Color and background-color are left
+       to each element's own transition so UI chrome stays snappy. */
+    transition: text-shadow 0.4s ease,
+                box-shadow 0.4s ease;
 }
 
 /*
@@ -212,13 +206,16 @@ body::after {
      P31 (green)  — brighter, cooler than P1. Commodore PET 2001-N
      Custom teal  — Hazeltine 1500 house phosphor, ~495–515nm
 
-   Cursor blink rates sourced from hardware manuals:
-     IBM 327x: ~2.1 Hz (0.47s)
-     DEC VT100/VT220: ~1.9 Hz (0.53s)
-     Apple II: ~2.3 Hz via 6502 interrupt (0.43s)
-     Commodore 64: CIA timer, ~1.9 Hz (0.52s)
-     PET 2001: BASIC ROM timer, ~2.5 Hz (0.40s)
-     DEC VT05: teletype-era, slower ~1.7 Hz (0.60s)
+   Cursor blink rates sourced from hardware/firmware:
+     IBM 327x:    ~2.1 Hz (0.47s)  — hardware timer, mainframe documentation
+     DEC VT100:   ~0.57 Hz (1.77s) — ROM-derived: 8080 counts 53 × 60Hz frames
+                                      per toggle; 53÷60=0.883s/state, 1.767s period
+     DEC VT220:   ~1.9 Hz (0.53s)  — firmware-configurable; common default
+     ADM-3A:      ~1.88 Hz (0.533s)— TTL divide: 60Hz÷32=1.875Hz; 1/1.875=0.533s
+     Apple II:    ~2.0 Hz (0.50s)  — 555 timer circuit on video board
+     Commodore 64:~1.5 Hz (0.667s) — CIA counts 20×60Hz IRQs; 20÷60=0.333s/state
+     PET 2001:    ~2.5 Hz (0.40s)  — BASIC ROM system timer
+     DEC VT05:    ~1.7 Hz (0.60s)  — teletype-era, conservative estimate
 
    Background blacks are NOT pure #000000 — real P1/P3 screens had a
    very slight tinted black from the faceplate glass and phosphor coating.
@@ -305,6 +302,36 @@ body::after {
     --scanline-opacity: 0.028;
 }
 
+/* Lear Siegler ADM-3A — P1 green phosphor, 80×24, 1976
+   The terminal Bill Joy used at UC Berkeley to write vi.
+   The hjkl arrow keys exist because the ADM-3A had arrows
+   printed on those keys. Every vim user alive has this machine
+   in their muscle memory.
+   Lear Siegler sourced tubes from a different supplier than IBM:
+   the P1 runs slightly warmer and more yellow-shifted than IBM's
+   cooler 57B variant — a distinct character even against zenith.
+   TTL-only design, no microprocessor. Cursor blink derived from
+   the 60Hz display oscillator divided by 32: 60/32 = 1.875Hz.
+   Period: 1/1.875 = 0.533s — not rounded, that's the actual rate.
+   12" compact tube, scanlines slightly more visible than 14" IBM units. */
+.theme-adm3a-green {
+    --theme-background: #070B07;
+    --primary-color: #A8FF60;
+    --primary-rgb: 168, 255, 96;
+    --author-hover-decoration: underline;
+    --bloom-rgb: 120, 220, 60;
+    --bloom-duration: 3.2s;
+    --cursor-blink-rate: 0.533s;
+    /* Lear Siegler P1 warm variant: ~22ms decay, yellow-shifted halation.
+       Two-layer shadow: tight yellow-green core + wider cooler corona */
+    --cursor-afterglow: 0 0 6px rgba(168, 255, 96, 0.52), 0 0 14px rgba(120, 220, 60, 0.18);
+    --cursor-afterglow-mid: 0 0 4px rgba(168, 255, 96, 0.23), 0 0 9px rgba(120, 220, 60, 0.07);
+    --cursor-decay: 0.22s;
+    /* Scanlines: 12" compact tube, pitch slightly coarser than 14" IBM */
+    --scanline-size: 3px;
+    --scanline-opacity: 0.033;
+}
+
 /* DEC VT05 — P4 white phosphor, 72×20, 1972 teletype-era terminal
    P4 is a blue-white daylight phosphor. At lower brightness the
    slight warm cast from the glass envelope tints it towards cream.
@@ -373,8 +400,11 @@ body::after {
    The canonical terminal. P3 peaks ~585nm: true amber, not yellow.
    Longer persistence than P1 = slightly softer character edges.
    Background: near-black with very slight warm brown from P3 faceplate.
-   Blink: VT100 manual spec ~1.87Hz, closest to 0.53s but amber tradition
-   is slightly slower-feeling → 0.55s */
+   Blink: derived from annotated VT100 ROM disassembly. The 8080 firmware
+   counts down blink_timer from 0x35 (53) on each 60Hz vertical frame
+   interrupt, then toggles the blink flip-flop. Each state (on or off)
+   lasts 53 frames: 53 ÷ 60Hz = 0.883s. Full period = 1.767s (~0.566Hz).
+   Much slower than commonly assumed — the amber VT100 blinks languidly. */
 .theme-vt100-amber {
     --theme-background: #0C0800;
     --primary-color: #FFB000;
@@ -382,7 +412,7 @@ body::after {
     --author-hover-decoration: underline;
     --bloom-rgb: 210, 130, 0;
     --bloom-duration: 3.4s;
-    --cursor-blink-rate: 0.55s;
+    --cursor-blink-rate: 1.767s;
     /* P3 amber: ~14ms decay — the halation bleeds warm orange into near darkness.
        Two-layer shadow: tight hot core + wide warm corona, matching P3's longer tail */
     --cursor-afterglow: 0 0 8px rgba(255, 176, 0, 0.65), 0 0 20px rgba(180, 100, 0, 0.28);
@@ -396,7 +426,8 @@ body::after {
 /* Apple II — P1 green phosphor, 40×24, 1977
    Apple used a P1 variant with higher brightness than IBM's version.
    The RGB monitor used in the II+ onward was distinctly sharp and vivid.
-   6502 interrupt-driven cursor: measured at ~2.3Hz */
+   Blink: hardware 555 timer circuit on the video board, not software.
+   The 555 was wired for ~2Hz → 0.5s full period per hardware schematics. */
 .theme-apple2-green {
     --theme-background: #000000;
     --primary-color: #24FF52;
@@ -404,7 +435,7 @@ body::after {
     --author-hover-decoration: underline;
     --bloom-rgb: 25, 210, 60;
     --bloom-duration: 2.2s;
-    --cursor-blink-rate: 0.43s;
+    --cursor-blink-rate: 0.50s;
     /* Apple II P1 variant: high-brightness, sharp — similar ~24ms decay but more vivid */
     --cursor-afterglow: 0 0 6px rgba(36, 255, 82, 0.55), 0 0 14px rgba(20, 190, 55, 0.20);
     --cursor-afterglow-mid: 0 0 4px rgba(36, 255, 82, 0.25), 0 0 9px rgba(20, 190, 55, 0.08);
@@ -418,7 +449,8 @@ body::after {
    Actual C64 NTSC measured colour values from hardware capture:
    background: #2C2391, text: #7469BA (VIC-II register colour 14 = light blue)
    The RF composite output added a slight chroma blur — simulated with filter below.
-   CIA 8520 timer drives ~1.9Hz cursor blink */
+   Blink: CIA 8520 timer fires at 60Hz; the KERNAL counts 20 interrupts before
+   toggling the cursor. 20 ÷ 60Hz = 0.333s per state → full period 0.667s (~1.5Hz). */
 .theme-commodore64 {
     --theme-background: #2B2290;
     --primary-color: #7469C8;
@@ -426,7 +458,7 @@ body::after {
     --author-hover-decoration: underline;
     --bloom-rgb: 90, 80, 190;
     --bloom-duration: 3.0s;
-    --cursor-blink-rate: 0.52s;
+    --cursor-blink-rate: 0.667s;
     /* C64 composite: TV phosphor decay ~8ms, but chroma blur smears the afterglow horizontally.
        The glow has a purple-blue cast from the NTSC chroma bleed */
     --cursor-afterglow: 0 0 6px rgba(116, 105, 200, 0.55), 0 0 14px rgba(80, 70, 180, 0.22);
@@ -448,7 +480,9 @@ body::after {
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding: 0.75rem clamp(0.5rem, 2vw, 0.75rem);
+    /* env() fallback: safe-area-inset-* is 0 on non-notched devices,
+       so this is a no-op everywhere except iPhone notch / Dynamic Island */
+    padding: max(0.75rem, env(safe-area-inset-top)) max(clamp(0.5rem, 2vw, 0.75rem), env(safe-area-inset-right)) 0.75rem clamp(0.5rem, 2vw, 0.75rem);
     z-index: 10000;
     min-height: 2rem;
     transition: opacity 0.3s ease;
@@ -477,9 +511,22 @@ body::after {
 }
 
 .header-icon:hover,
-.header-icon:focus {
+.header-icon:focus-visible {
     color: rgba(var(--primary-rgb), 1);
     text-shadow: 0 0 4px rgba(var(--primary-rgb), 0.7);
+}
+
+/*
+   :active gives a brief phosphor flash on press — immediate feedback,
+   releases the moment the finger/mouse lifts. Transition is instant in,
+   fast out. :focus (not :focus-visible) suppressed so mobile taps don't
+   leave the icon lit after release.
+*/
+.header-icon:active {
+    color: rgba(var(--primary-rgb), 1);
+    text-shadow: 0 0 8px rgba(var(--primary-rgb), 0.9),
+                 0 0 16px rgba(var(--primary-rgb), 0.4);
+    transition: color 0s, text-shadow 0s;
 }
 
 /* =========================================
@@ -487,11 +534,17 @@ body::after {
    ========================================= */
 
 main {
-    padding-top: var(--main-padding-top);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     padding-left: clamp(0.5rem, 1vw, 1rem);
     padding-right: clamp(0.5rem, 1vw, 1rem);
+    /* Nudge centre of mass slightly above geometric centre — optical balance.
+       True 50% centre feels low. ~42vh gives the quote a grounded-but-open feel. */
+    padding-bottom: 8vh;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow: clip;
 }
 
 /*
@@ -501,13 +554,10 @@ main {
 */
 #quote-container {
     color: rgba(var(--primary-rgb), 0.9);
-    margin: 0 0 0 15px;
-    min-height: 6em;
+    margin: 0;
     font-size: var(--font-size);
-    font-weight: 500;
-    padding: var(--quote-padding-top) 0.25rem var(--quote-padding-bottom) 1rem;
-    max-height: var(--quote-max-height);
-    overflow-y: auto;
+    font-weight: 400;
+    padding: var(--quote-padding-top) 0.25rem var(--quote-padding-bottom) clamp(0.5rem, 1vw, 1rem);
     text-align: left;
     width: 100%;
     position: relative;
@@ -520,30 +570,12 @@ main {
     transform: translateZ(0);
     will-change: transform, opacity;
     backface-visibility: hidden;
-    scroll-behavior: smooth;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(var(--primary-rgb), 0.3) rgba(var(--primary-rgb), 0.1);
     text-rendering: geometricPrecision;
     font-variant-ligatures: none;
     letter-spacing: 0.02em;
 }
 
 
-
-/* Custom Scrollbar */
-#quote-container::-webkit-scrollbar { width: 8px; }
-#quote-container::-webkit-scrollbar-track {
-    background: rgba(var(--primary-rgb), 0.1);
-    border-radius: 4px;
-}
-#quote-container::-webkit-scrollbar-thumb {
-    background: rgba(var(--primary-rgb), 0.3);
-    border-radius: 4px;
-    transition: background 0.3s ease;
-}
-#quote-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(var(--primary-rgb), 0.5);
-}
 
 /* ---- Per-theme text glow ----
    Tuned to the emission spectrum and persistence of each phosphor.
@@ -569,6 +601,10 @@ main {
 }
 .theme-zenith-green #quote-container {
     text-shadow: 0 0 5px rgba(127, 255, 127, 0.28);
+}
+/* ADM-3A P1 warm variant: yellow-green halation, slightly wider than IBM's cooler P1 */
+.theme-adm3a-green #quote-container {
+    text-shadow: 0 0 5px rgba(168, 255, 96, 0.30);
 }
 /* VT05 white P4: barely any glow, faint warm cast */
 .theme-white #quote-container {
@@ -598,9 +634,10 @@ main {
    1. cursor-block-blink (step-end) — hard digital on/off at hardware rate.
       Controls opacity: 1→0 with no easing. Authentic.
 
-   2. cursor-afterglow (ease-out) — fires on the "off" phase.
-      The box-shadow represents residual phosphor glow decaying after the
-      electron beam has moved on. Duration = --cursor-decay (per-theme).
+   2. cursor-afterglow (ease-out) — synced to fire on the "off" phase only.
+      delay = half the blink period (cursor switches off at 50% of cycle).
+      duration = --cursor-decay (per-theme phosphor persistence time).
+      Animates box-shadow only — opacity is entirely owned by blink above.
       P4 white: 0.03s (barely visible). P3 amber: 0.14s (warm corona).
       P1 green: 0.22s (medium persistence).
 
@@ -617,7 +654,7 @@ main {
     border-radius: 1px;
     animation:
         cursor-block-blink var(--cursor-blink-rate) step-end infinite,
-        cursor-afterglow var(--cursor-blink-rate) var(--cursor-decay, 0.15s) ease-out infinite;
+        cursor-afterglow var(--cursor-decay, 0.15s) calc(var(--cursor-blink-rate) * 0.5) ease-out infinite;
     will-change: opacity, box-shadow;
 }
 
@@ -680,84 +717,6 @@ main {
 }
 
 /* =========================================
-   KEY COMMANDS (FOOTER SHORTCUTS)
-   ========================================= */
-
-#key-commands {
-    color: rgba(var(--site-grey), 0.65);
-    font-family: var(--font-family);
-    font-size: clamp(0.55rem, 0.8vw + 0.4vh, 0.675rem);
-    letter-spacing: var(--letter-spacing);
-    line-height: 1.6;
-    padding: 0.025rem 1rem;
-    white-space: nowrap;
-    font-weight: 400;
-    text-align: center;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: clamp(0.5rem, 1vw, 1rem);
-}
-
-#key-commands span {
-    display: inline-flex;
-    align-items: center;
-    margin: 0.1rem;
-}
-
-#key-commands .key {
-    font-weight: 600;
-    margin-right: 0.025rem;
-    color: rgba(var(--primary-rgb), 0.5);
-    text-shadow: 0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7));
-}
-
-/* =========================================
-   FOOTER
-   ========================================= */
-
-#footer {
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-    font-family: var(--font-family);
-    z-index: 9997;
-}
-
-.footer-subtext {
-    font-size: clamp(0.5rem, 0.7vw + 0.35vh, 0.5rem);
-    letter-spacing: var(--letter-spacing);
-    line-height: 1.6;
-    padding: 0.025rem 0.8rem 0.55rem 0.8rem;
-    text-align: center;
-    text-transform: uppercase;
-    transition: opacity 0.3s ease;
-    opacity: 0.8;
-    max-width: 90vw;
-    color: rgba(var(--site-grey), 0.65);
-}
-
-#footer a {
-    color: rgba(var(--site-grey), 0.65);
-    text-decoration: none;
-    font-family: var(--font-family);
-    transition: color 0.2s ease, text-decoration 0.2s ease;
-}
-
-#footer a:hover {
-    color: rgba(var(--primary-rgb), 0.65);
-    text-decoration: underline;
-    text-shadow: 0 0 1px rgba(var(--primary-rgb), 0.3),
-                 0 0 2px rgba(var(--primary-rgb), 0.15);
-}
-
-/* =========================================
    TEXT SELECTION & HIGHLIGHTING
    ========================================= */
 
@@ -781,19 +740,6 @@ main {
 .text-selected a {
     color: var(--theme-background) !important;
     text-shadow: none !important;
-}
-
-/* =========================================
-   TYPING CURSOR (legacy — kept for compat)
-   ========================================= */
-
-.typing-cursor {
-    animation: cursor-glow 1s ease-in-out infinite alternate;
-}
-
-@keyframes cursor-glow {
-    from { text-shadow: inherit; }
-    to   { text-shadow: inherit, 0 0 10px currentColor; }
 }
 
 /* =========================================
@@ -871,6 +817,11 @@ main {
     fill: #7FFF7F !important;
     filter: drop-shadow(0 0 4px rgba(127, 255, 127, 0.35)) !important;
     -webkit-filter: drop-shadow(0 0 4px rgba(127, 255, 127, 0.35)) !important;
+}
+.theme-adm3a-green .bitcoin-b {
+    fill: #A8FF60 !important;
+    filter: drop-shadow(0 0 4px rgba(168, 255, 96, 0.38)) !important;
+    -webkit-filter: drop-shadow(0 0 4px rgba(168, 255, 96, 0.38)) !important;
 }
 .theme-white .bitcoin-b {
     fill: #D6D6C6 !important;
@@ -975,10 +926,15 @@ body.tab-hidden .cursor-block {
    ========================================= */
 
 @media (max-width: 768px) {
+    body[class*="theme-"] {
+        padding: 0 0.75rem;
+    }
+
     main {
-        padding-top: clamp(2rem, 4vw + 2vh, 3rem);
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
+        /* Less optical offset on small screens — content fills more of the frame */
+        padding-bottom: 4vh;
+        padding-left: 0;
+        padding-right: 0;
     }
 
     #header {
@@ -993,27 +949,16 @@ body.tab-hidden .cursor-block {
         font-size: 0.8rem;
     }
 
-    #key-commands {
-        font-size: clamp(0.5rem, 0.7vw + 0.3vh, 0.6rem);
-        padding: 0.025rem 0.5rem;
-        gap: 0.3rem;
-    }
-
     #quote-container {
-        --font-size: clamp(1.2rem, 2vw, 2rem);
-        font-size: var(--font-size);
-        padding: var(--quote-padding-top) 0.25rem var(--quote-padding-bottom) 0.25rem;
+        /* Mobile: viewport is narrow, use a stable absolute size not a dead vw clamp */
+        font-size: clamp(1.1rem, 4.5vw, 1.6rem);
+        padding: var(--quote-padding-top) 0 var(--quote-padding-bottom) 0;
         margin: 0;
         text-align: left;
     }
 
     .author {
-        --author-font-size: clamp(1rem, 1.8vw, 1.8rem);
-        font-size: var(--author-font-size);
+        font-size: clamp(0.9rem, 3.8vw, 1.3rem);
         margin-top: clamp(0.8rem, 1vw + 0.6vh, 1.5rem);
-    }
-
-    #footer {
-        display: none;
     }
 }

@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="dark">
+  <title>404 — blockquotes.sh</title>
+
+  <!--
+    Set browser chrome colour from saved theme before first paint.
+    Mirrors the same map in index.html exactly.
+  -->
+  <script>
+    (function() {
+      var backgrounds = {
+        'ibm3279-green':          '#0A0F0A',
+        'teletype-blue-green':    '#0C1010',
+        'pet2001-green':          '#060A06',
+        'ibm3279-bitcoin-orange': '#0B0800',
+        'hazeltine-teal':         '#090E0E',
+        'zenith-green':           '#0B100B',
+        'adm3a-green':            '#070B07',
+        'white':                  '#0E0E0F',
+        'vt100-amber':            '#0C0800',
+        'apple2-green':           '#000000',
+        'commodore64':            '#2B2290',
+      };
+      var saved = localStorage.getItem('theme');
+      var bg = (saved && backgrounds[saved]) ? backgrounds[saved] : '#0A0F0A';
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', bg);
+    })();
+  </script>
+
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&display=swap">
+
+  <style>
+    /* =========================================
+       RESET
+       ========================================= */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* =========================================
+       THEME DEFINITIONS
+       Mirrors styles.css exactly — same variables,
+       same phosphor values, same blink rates.
+       ========================================= */
+
+    .theme-ibm3279-green {
+      --theme-background: #0A0F0A;
+      --primary-color: #57FF8C;
+      --primary-rgb: 87, 255, 140;
+      --cursor-blink-rate: 0.47s;
+      --cursor-afterglow: 0 0 7px rgba(87, 255, 140, 0.55), 0 0 16px rgba(60, 200, 100, 0.20);
+      --cursor-afterglow-mid: 0 0 5px rgba(87, 255, 140, 0.25), 0 0 11px rgba(60, 200, 100, 0.08);
+      --cursor-decay: 0.24s;
+      --scanline-size: 3px;
+      --scanline-opacity: 0.030;
+    }
+    .theme-teletype-blue-green {
+      --theme-background: #0C1010;
+      --primary-color: #A4C8B0;
+      --primary-rgb: 164, 200, 176;
+      --cursor-blink-rate: 0.53s;
+      --cursor-afterglow: 0 0 4px rgba(164, 200, 176, 0.30), 0 0 8px rgba(120, 170, 150, 0.10);
+      --cursor-afterglow-mid: 0 0 2px rgba(164, 200, 176, 0.12), 0 0 5px rgba(120, 170, 150, 0.04);
+      --cursor-decay: 0.05s;
+      --scanline-size: 3px;
+      --scanline-opacity: 0.025;
+    }
+    .theme-pet2001-green {
+      --theme-background: #060A06;
+      --primary-color: #00FF44;
+      --primary-rgb: 0, 255, 68;
+      --cursor-blink-rate: 0.40s;
+      --cursor-afterglow: 0 0 7px rgba(0, 255, 68, 0.58), 0 0 15px rgba(0, 200, 50, 0.22);
+      --cursor-afterglow-mid: 0 0 5px rgba(0, 255, 68, 0.26), 0 0 10px rgba(0, 200, 50, 0.09);
+      --cursor-decay: 0.20s;
+      --scanline-size: 3px;
+      --scanline-opacity: 0.038;
+    }
+    .theme-ibm3279-bitcoin-orange {
+      --theme-background: #0B0800;
+      --primary-color: #FF9500;
+      --primary-rgb: 255, 149, 0;
+      --cursor-blink-rate: 0.47s;
+      --cursor-afterglow: 0 0 8px rgba(255, 149, 0, 0.60), 0 0 18px rgba(200, 100, 0, 0.24);
+      --cursor-afterglow-mid: 0 0 6px rgba(255, 149, 0, 0.28), 0 0 13px rgba(200, 100, 0, 0.09);
+      --cursor-decay: 0.14s;
+      --scanline-size: 3px;
+      --scanline-opacity: 0.030;
+    }
+    .theme-hazeltine-teal {
+      --theme-background: #090E0E;
+      --primary-color: #50C8C8;
+      --primary-rgb: 80, 200, 200;
+      --cursor-blink-rate: 0.50s;
+      --cursor-afterglow: 0 0 5px rgba(80, 200, 200, 0.48), 0 0 12px rgba(40, 150, 150, 0.16);
+      --cursor-afterglow-mid: 0 0 3px rgba(80, 200, 200, 0.20), 0 0 8px rgba(40, 150, 150, 0.06);
+      --cursor-decay: 0.18s;
+      --scanline-size: 3px;
+      --scanline-opacity: 0.026;
+    }
+    .theme-zenith-green {
+      --theme-background: #0B100B;
+      --primary-color: #7FFF7F;
+      --primary-rgb: 127, 255, 127;
+      --cursor-blink-rate: 0.50s;
+      --cursor-afterglow: 0 0 6px rgba(127, 255, 127, 0.50), 0 0 13px rgba(80, 210, 80, 0.18);
+      --cursor-afterglow-mid: 0 0 4px rgba(127, 255, 127, 0.22), 0 0 9px rgba(80, 210, 80, 0.07);
+      --cursor-decay: 0.22s;
+      --scanline-size: 3px;
+      --scanline-opacity: 0.028;
+    }
+    .theme-adm3a-green {
+      --theme-background: #070B07;
+      --primary-color: #A8FF60;
+      --primary-rgb: 168, 255, 96;
+      --cursor-blink-rate: 0.533s;
+      --cursor-afterglow: 0 0 6px rgba(168, 255, 96, 0.52), 0 0 14px rgba(120, 220, 60, 0.18);
+      --cursor-afterglow-mid: 0 0 4px rgba(168, 255, 96, 0.23), 0 0 9px rgba(120, 220, 60, 0.07);
+      --cursor-decay: 0.22s;
+      --scanline-size: 3px;
+      --scanline-opacity: 0.033;
+    }
+    .theme-white {
+      --theme-background: #0E0E0F;
+      --primary-color: #D6D6C6;
+      --primary-rgb: 214, 214, 198;
+      --cursor-blink-rate: 0.60s;
+      --cursor-afterglow: 0 0 3px rgba(214, 214, 198, 0.18), 0 0 6px rgba(200, 200, 185, 0.07);
+      --cursor-afterglow-mid: 0 0 2px rgba(214, 214, 198, 0.07), 0 0 4px rgba(200, 200, 185, 0.03);
+      --cursor-decay: 0.03s;
+      --scanline-size: 2px;
+      --scanline-opacity: 0.022;
+    }
+    .theme-vt100-amber {
+      --theme-background: #0C0800;
+      --primary-color: #FFB000;
+      --primary-rgb: 255, 176, 0;
+      --cursor-blink-rate: 0.55s;
+      --cursor-afterglow: 0 0 8px rgba(255, 176, 0, 0.65), 0 0 20px rgba(180, 100, 0, 0.28);
+      --cursor-afterglow-mid: 0 0 6px rgba(255, 176, 0, 0.30), 0 0 15px rgba(180, 100, 0, 0.11);
+      --cursor-decay: 0.14s;
+      --scanline-size: 3px;
+      --scanline-opacity: 0.030;
+    }
+    .theme-apple2-green {
+      --theme-background: #000000;
+      --primary-color: #24FF52;
+      --primary-rgb: 36, 255, 82;
+      --cursor-blink-rate: 0.43s;
+      --cursor-afterglow: 0 0 6px rgba(36, 255, 82, 0.55), 0 0 14px rgba(20, 190, 55, 0.20);
+      --cursor-afterglow-mid: 0 0 4px rgba(36, 255, 82, 0.25), 0 0 9px rgba(20, 190, 55, 0.08);
+      --cursor-decay: 0.22s;
+      --scanline-size: 3px;
+      --scanline-opacity: 0.034;
+    }
+    .theme-commodore64 {
+      --theme-background: #2B2290;
+      --primary-color: #7469C8;
+      --primary-rgb: 116, 105, 200;
+      --cursor-blink-rate: 0.52s;
+      --cursor-afterglow: 0 0 6px rgba(116, 105, 200, 0.55), 0 0 14px rgba(80, 70, 180, 0.22);
+      --cursor-afterglow-mid: 0 0 4px rgba(116, 105, 200, 0.24), 0 0 10px rgba(80, 70, 180, 0.09);
+      --cursor-decay: 0.10s;
+      --scanline-size: 4px;
+      --scanline-opacity: 0.044;
+    }
+
+    /* =========================================
+       KEYFRAMES — identical to main site
+       ========================================= */
+
+    @keyframes cursor-block-blink {
+      0%, 49%   { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    @keyframes cursor-afterglow {
+      0%   { opacity: 0; box-shadow: var(--cursor-afterglow, 0 0 6px rgba(87, 255, 140, 0.5)); }
+      40%  { opacity: 0; box-shadow: var(--cursor-afterglow-mid, 0 0 4px rgba(87, 255, 140, 0.2)); }
+      100% { opacity: 0; box-shadow: none; }
+    }
+
+    /* Scanline flutter — during the crash sequence only.
+       Simulates beam instability as the terminal loses sync: the
+       scanlines shift slightly, mimicking a real CRT losing its
+       vertical hold before the display stabilises at the panic screen. */
+    @keyframes scanline-flutter {
+      0%   { background-position: 0 0; }
+      15%  { background-position: 0 2px; }
+      30%  { background-position: 0 -1px; }
+      50%  { background-position: 0 3px; }
+      70%  { background-position: 0 -2px; }
+      85%  { background-position: 0 1px; }
+      100% { background-position: 0 0; }
+    }
+
+    /* =========================================
+       BODY
+       ========================================= */
+
+    body[class*="theme-"] {
+      background-color: var(--theme-background, #0A0F0A);
+      color: var(--primary-color);
+      display: flex;
+      flex-direction: column;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-feature-settings: 'liga' 1, 'clig' 1, 'calt' 1;
+      line-height: 1.6;
+      margin: 0;
+      height: 100vh;
+      overflow: clip;
+      padding: 0 clamp(1rem, 2vw, 2rem);
+      text-rendering: optimizeLegibility;
+      letter-spacing: 0.015em;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* CRT vignette — identical radial gradient from main site */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      background: radial-gradient(
+        ellipse at 50% 50%,
+        transparent 0%,
+        transparent 42%,
+        rgba(0, 0, 0, 0.04) 55%,
+        rgba(0, 0, 0, 0.10) 65%,
+        rgba(0, 0, 0, 0.20) 75%,
+        rgba(0, 0, 0, 0.32) 85%,
+        rgba(0, 0, 0, 0.44) 93%,
+        rgba(0, 0, 0, 0.52) 100%
+      );
+      transform: translateZ(0);
+    }
+
+    /* CRT scanlines — same as main site */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9998;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent calc(var(--scanline-size, 3px) - 1px),
+        rgba(0, 0, 0, var(--scanline-opacity, 0.030)) calc(var(--scanline-size, 3px) - 1px),
+        rgba(0, 0, 0, var(--scanline-opacity, 0.030)) var(--scanline-size, 3px)
+      );
+      transform: translateZ(0);
+      transition: animation 0s;
+    }
+
+    body.scanline-flutter::after {
+      animation: scanline-flutter 0.18s steps(1) 3;
+    }
+
+    /* =========================================
+       LAYOUT — main flex centre, same as site
+       ========================================= */
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-bottom: 8vh;
+      overflow: clip;
+    }
+
+    /* =========================================
+       TERMINAL OUTPUT AREA
+       ========================================= */
+
+    #output {
+      font-size: clamp(1.1rem, 2.2vw, 1.8rem);
+      font-weight: 400;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      padding-left: clamp(0.5rem, 1vw, 1rem);
+    }
+
+    /* The typed text — same class name and glow as main site for consistency */
+    .text-selected {
+      color: var(--primary-color);
+      text-shadow: 0 0 5px rgba(var(--primary-rgb), 0.28);
+    }
+
+    /* =========================================
+       PANIC LINES — styled differently from boot
+       ========================================= */
+
+    /* Panic header line — brighter, slightly wider glow */
+    .panic-line {
+      display: block;
+      color: var(--primary-color);
+      text-shadow:
+        0 0 6px rgba(var(--primary-rgb), 0.50),
+        0 0 18px rgba(var(--primary-rgb), 0.14);
+    }
+
+    /* Address and detail lines — dimmer, recessed */
+    .panic-detail {
+      display: block;
+      color: rgba(var(--primary-rgb), 0.75);
+      text-shadow: 0 0 4px rgba(var(--primary-rgb), 0.20);
+    }
+
+    /* =========================================
+       CURSOR — exact copy from main site
+       ========================================= */
+
+    .cursor-block {
+      display: inline-block;
+      width: 0.55em;
+      height: 1.05em;
+      vertical-align: text-bottom;
+      background: currentColor;
+      margin-left: 0.05em;
+      border-radius: 1px;
+      animation:
+        cursor-block-blink var(--cursor-blink-rate, 0.53s) step-end infinite,
+        cursor-afterglow var(--cursor-blink-rate, 0.53s) var(--cursor-decay, 0.15s) ease-out infinite;
+      will-change: opacity, box-shadow;
+    }
+
+    /* =========================================
+       RETURN PROMPT — the dim "press any key" line
+       ========================================= */
+
+    #return-prompt {
+      margin-top: clamp(1.8rem, 2.5vw + 1vh, 3rem);
+      font-size: clamp(0.7rem, 1.1vw + 0.5vh, 0.95rem);
+      color: rgba(var(--primary-rgb), 0.35);
+      letter-spacing: 0.06em;
+      text-transform: lowercase;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      cursor: pointer;
+      user-select: none;
+      /* Subtle hover — just enough for discovery */
+    }
+
+    #return-prompt:hover {
+      color: rgba(var(--primary-rgb), 0.55);
+    }
+
+    #return-prompt.visible {
+      opacity: 1;
+    }
+
+    /* =========================================
+       ACCESSIBILITY
+       ========================================= */
+
+    @media (prefers-reduced-motion: reduce) {
+      .cursor-block {
+        animation: none !important;
+        box-shadow: none !important;
+      }
+      body.scanline-flutter::after {
+        animation: none !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body[class*="theme-"] {
+        padding: 0 0.75rem;
+      }
+      main {
+        padding-bottom: 4vh;
+      }
+      #output {
+        font-size: clamp(1rem, 4vw, 1.4rem);
+      }
+    }
+  </style>
+</head>
+
+<body class="theme-ibm3279-green">
+  <main>
+    <section id="output" aria-live="polite" aria-label="Terminal output">
+      <span class="cursor-block" aria-hidden="true"></span>
+    </section>
+    <div id="return-prompt" role="button" tabindex="0" aria-label="Return to home">
+      [ press any key to return ]
+    </div>
+  </main>
+
+  <script>
+    // =========================================
+    // THEME — apply saved theme, mirror colours.js
+    // =========================================
+
+    const themes = [
+      'ibm3279-green', 'teletype-blue-green', 'pet2001-green',
+      'ibm3279-bitcoin-orange', 'hazeltine-teal', 'zenith-green',
+      'adm3a-green', 'white', 'vt100-amber', 'apple2-green', 'commodore64',
+    ];
+
+    // Per-theme prompt characters — mirrored from script.js themePrompts
+    const themePrompts = {
+      'ibm3279-green':          '===>',
+      'teletype-blue-green':    '$',
+      'pet2001-green':          '',
+      'ibm3279-bitcoin-orange': '===>',
+      'hazeltine-teal':         '*',
+      'zenith-green':           'A>',
+      'adm3a-green':            '%',   // ADM-3A ran Unix — default sh prompt
+      'white':                  '$',
+      'vt100-amber':            '%',
+      'apple2-green':           ']',
+      'commodore64':            '',
+    };
+
+    (function applyTheme() {
+      const saved = localStorage.getItem('theme');
+      const active = (saved && themes.includes(saved)) ? saved : 'ibm3279-green';
+      themes.forEach(t => document.body.classList.remove(`theme-${t}`));
+      document.body.classList.add(`theme-${active}`);
+    })();
+
+    function getPrompt() {
+      for (const t of themes) {
+        if (document.body.classList.contains(`theme-${t}`)) {
+          return themePrompts[t] ?? '>';
+        }
+      }
+      return '>';
+    }
+
+    // =========================================
+    // TYPING ENGINE — minimal, same feel as site
+    // =========================================
+
+    const output = document.getElementById('output');
+    const returnPrompt = document.getElementById('return-prompt');
+
+    let currentTimeout = null;
+    let sequenceDone = false;
+
+    function type(text, speed, done) {
+      let i = 0;
+      function tick() {
+        output.innerHTML =
+          `<span class="text-selected">${text.slice(0, i + 1)}</span>` +
+          `<span class="cursor-block" aria-hidden="true"></span>`;
+        i++;
+        if (i < text.length) {
+          const ch = text[i - 1];
+          const pd = /[.!?]/.test(ch) ? 140 : /[,;:]/.test(ch) ? 50 : 0;
+          currentTimeout = setTimeout(tick, speed + pd);
+        } else {
+          done();
+        }
+      }
+      tick();
+    }
+
+    // Show a completed line (no cursor), then pause, then call next()
+    function showLine(html, pause, next) {
+      output.innerHTML = html;
+      currentTimeout = setTimeout(next, pause);
+    }
+
+    // =========================================
+    // CRASH SEQUENCE
+    //
+    // Act 1 — normal boot (fast, confident)
+    // Act 2 — DB load hangs, dots stutter, then fails
+    // Act 3 — scanline flutter (beam instability)
+    // Act 4 — kernel panic lines type in, one by one
+    // Act 5 — cursor parks, return prompt fades in
+    // =========================================
+
+    function runCrashSequence() {
+      const prompt = getPrompt();
+
+      // Act 1 — system ident line, same as main site boot
+      type('BLOCKQUOTES.SH  v1.0 — PHOSPHOR TERMINAL READY', 26, () => {
+        showLine(
+          `<span class="text-selected">BLOCKQUOTES.SH  v1.0 — PHOSPHOR TERMINAL READY</span>`,
+          480,
+          act2
+        );
+      });
+    }
+
+    function act2() {
+      // DB load line — types the prefix, then the dots stutter and die
+      const prefix  = 'LOADING QUOTE DATABASE';
+      const dots    = '..............';      // types out normally
+      const ellipsis = '....';              // the last few — slow, then stop
+
+      type(prefix, 30, () => {
+        showLine(
+          `<span class="text-selected">${prefix}</span>` +
+          `<span class="cursor-block" aria-hidden="true"></span>`,
+          160,
+          () => typeDots(prefix, dots, 0)
+        );
+      });
+    }
+
+    function typeDots(prefix, dots, i) {
+      if (i >= dots.length) {
+        // Dots done — now stutter the last few slowly, then fail
+        stutterDots(prefix + dots, 0);
+        return;
+      }
+      const sofar = prefix + dots.slice(0, i + 1);
+      output.innerHTML =
+        `<span class="text-selected">${sofar}</span>` +
+        `<span class="cursor-block" aria-hidden="true"></span>`;
+      // Normal dot speed — snappy, confident
+      currentTimeout = setTimeout(() => typeDots(prefix, dots, i + 1), 55);
+    }
+
+    function stutterDots(text, i) {
+      // Three more dots — each one slower than the last, like a stalling disk
+      const delays = [280, 520, 1100];
+      if (i >= delays.length) {
+        // Hard stop — erase the line, trigger beam flutter, then panic
+        output.innerHTML =
+          `<span class="text-selected">${text + '...'}</span>`;
+
+        // Scanline flutter — beam loses sync as the system dies
+        document.body.classList.add('scanline-flutter');
+        currentTimeout = setTimeout(() => {
+          document.body.classList.remove('scanline-flutter');
+          setTimeout(act3, 200);
+        }, 600);
+        return;
+      }
+      const sofarDots = text + '.'.repeat(i + 1);
+      output.innerHTML =
+        `<span class="text-selected">${sofarDots}</span>` +
+        `<span class="cursor-block" aria-hidden="true"></span>`;
+      currentTimeout = setTimeout(() => stutterDots(text, i + 1), delays[i]);
+    }
+
+    function act3() {
+      // Short blank pause — the screen goes quiet before the panic
+      output.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
+      currentTimeout = setTimeout(act4, 380);
+    }
+
+    function act4() {
+      // Kernel panic lines — type fast, no hesitation
+      // Each line is a span so we can stack them and style independently
+      const lines = [
+        { cls: 'panic-line',   text: 'KERNEL PANIC — ADDRESS NOT FOUND' },
+        { cls: 'panic-detail', text: 'SEGMENT FAULT AT 0x00000404' },
+        { cls: 'panic-detail', text: 'CORE DUMPED TO /dev/null' },
+      ];
+
+      let rendered = [];
+      let lineIdx = 0;
+
+      function nextPanicLine() {
+        if (lineIdx >= lines.length) {
+          act5(rendered);
+          return;
+        }
+        const { cls, text } = lines[lineIdx];
+        lineIdx++;
+
+        let i = 0;
+        function tick() {
+          const current = text.slice(0, i + 1);
+          const all = rendered.map(l => `<span class="${l.cls}">${l.text}</span>`).join('\n');
+          output.innerHTML =
+            all + (all ? '\n' : '') +
+            `<span class="${cls}">${current}</span>` +
+            `<span class="cursor-block" aria-hidden="true"></span>`;
+          i++;
+          if (i < text.length) {
+            currentTimeout = setTimeout(tick, 22);
+          } else {
+            rendered.push({ cls, text });
+            currentTimeout = setTimeout(nextPanicLine, lineIdx === lines.length ? 340 : 120);
+          }
+        }
+        tick();
+      }
+
+      nextPanicLine();
+    }
+
+    function act5(rendered) {
+      // Park the cursor after a blank line — the terminal has stopped
+      const prompt = getPrompt();
+      const all = rendered.map(l => `<span class="${l.cls}">${l.text}</span>`).join('\n');
+      const promptLine = prompt
+        ? `\n<span class="panic-detail">${prompt} <span class="cursor-block" aria-hidden="true"></span></span>`
+        : `\n<span class="cursor-block" aria-hidden="true"></span>`;
+
+      output.innerHTML = all + promptLine;
+
+      // Fade in the return prompt
+      currentTimeout = setTimeout(() => {
+        returnPrompt.classList.add('visible');
+        sequenceDone = true;
+      }, 600);
+    }
+
+    // =========================================
+    // NAVIGATION — any key or click returns home
+    // =========================================
+
+    function goHome() {
+      window.location.href = '/';
+    }
+
+    document.addEventListener('keydown', () => {
+      if (sequenceDone) goHome();
+    });
+
+    returnPrompt.addEventListener('click', goHome);
+    returnPrompt.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') goHome();
+    });
+
+    // Swipe right also goes home (mirrors main site gesture)
+    let startX = 0;
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) startX = e.touches[0].clientX;
+    }, { passive: true });
+    document.addEventListener('touchend', (e) => {
+      if (!sequenceDone) return;
+      const diff = e.changedTouches[0].clientX - startX;
+      if (diff > 60) goHome();
+    }, { passive: true });
+
+    // =========================================
+    // RUN
+    // =========================================
+
+    // Small delay before sequence starts — lets the theme render first
+    // so the phosphor colour is correct before the first character appears
+    setTimeout(runCrashSequence, 120);
+  </script>
+</body>
+</html>

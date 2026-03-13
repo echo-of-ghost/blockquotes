@@ -2,12 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
   <meta name="description" content="Discover inspiring Bitcoin quotes. A curated collection of insights about the world's first cryptocurrency.">
   <meta name="author" content="blockquotes.sh">
-  <meta name="theme-color" content="#1A1A1A"> 
+  <meta name="theme-color" content="#1A1A1A">
+  <!--
+    Set browser chrome colour from saved theme before first paint.
+    Must run synchronously in <head> — defer/async would be too late.
+    Mirrors --theme-background values in styles.css exactly.
+    Falls back to #0A0F0A (ibm3279-green default) if no saved theme.
+  -->
+  <script>
+    (function() {
+      var backgrounds = {
+        'ibm3279-green':          '#0A0F0A',
+        'teletype-blue-green':    '#0C1010',
+        'pet2001-green':          '#060A06',
+        'ibm3279-bitcoin-orange': '#0B0800',
+        'hazeltine-teal':         '#090E0E',
+        'zenith-green':           '#0B100B',
+        'adm3a-green':            '#070B07',
+        'white':                  '#0E0E0F',
+        'vt100-amber':            '#0C0800',
+        'apple2-green':           '#000000',
+        'commodore64':            '#2B2290',
+      };
+      var saved = localStorage.getItem('theme');
+      var bg = (saved && backgrounds[saved]) ? backgrounds[saved] : '#0A0F0A';
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', bg);
+    })();
+  </script>
   <meta property="og:title" content="Bitcoin Quotes | blockquotes.sh">
-  <meta property="og:description" content="A curated collection of insights about the world's first cryptocurrency..">
+  <meta property="og:description" content="A curated collection of insights about the world's first cryptocurrency.">
   <meta property="og:image" content="https://blockquotes.sh/assets/og.png">
   <meta property="og:url" content="https://blockquotes.sh">
   <meta property="og:type" content="website">
@@ -17,7 +43,8 @@
   <meta name="twitter:description" content="A curated collection of insights about the world's first cryptocurrency.">
   <meta name="twitter:image" content="https://blockquotes.sh/assets/og.png">
   <link rel="canonical" href="https://blockquotes.sh">
-  <title>blockquotes.sh | Bitcoin Quotes</title>
+  <meta name="color-scheme" content="dark">
+  <title>Bitcoin Quotes | blockquotes.sh</title>
   
   <!-- Structured Data -->
   <script type="application/ld+json">
@@ -63,8 +90,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
 <body class="theme-ibm3279-green">
-  <div id="crt-sweep" aria-hidden="true"></div>
-  <header id="header" role="banner" aria-label="Header containing links and information"><a href="lightning:lnurl1dp68gurn8ghj7cnjv4jh5tnxw4hz7mrww4excup0xqerscfc8pjkgvnr8y6nqepnx4skvefhv3nryvejxpskvwrpxsengdfjv5urwvr9vgcrqvmz8p3rgcejx9jn2cmrvejxgcecx9jr2dfkxgstgsm6" class="header-icon bolt-link" aria-label="Lightning link"><i class="fas fa-bolt" aria-hidden="true"></i></a><a href="nostr:npub1hqrqk49gdkdgl2cyx2xwzd8s7teq6t3vvlqj3yedp0anwv4t78mqxtds60" class="header-icon" aria-label="Feather link" target="_blank"><i class="fas fa-feather" aria-hidden="true"></i></a><a href="https://github.com/echo-of-ghost/blockquotes" class="header-icon" aria-label="GitHub link" target="_blank"><i class="fab fa-github" aria-hidden="true"></i></a><a href="https://bitcoin.org" class="header-icon" aria-label="Bitcoin link" target="_blank"><i class="fab fa-bitcoin" aria-hidden="true"></i></a>
+  <header id="header" role="banner" aria-label="Header containing links and information"><a href="lightning:lnurl1dp68gurn8ghj7cnjv4jh5tnxw4hz7mrww4excup0xqerscfc8pjkgvnr8y6nqepnx4skvefhv3nryvejxpskvwrpxsengdfjv5urwvr9vgcrqvmz8p3rgcejx9jn2cmrvejxgcecx9jr2dfkxgstgsm6" class="header-icon bolt-link" aria-label="Lightning link"><i class="fas fa-bolt" aria-hidden="true"></i></a><a href="https://github.com/echo-of-ghost/blockquotes" class="header-icon" aria-label="GitHub link" target="_blank"><i class="fab fa-github" aria-hidden="true"></i></a><a href="https://bitcoin.org" class="header-icon" aria-label="Bitcoin link" target="_blank"><i class="fab fa-bitcoin" aria-hidden="true"></i></a>
   </header><main><section id="quote-container" aria-live="polite" aria-label="Bitcoin quotes display area">
         <noscript>
           <p>"Bitcoin is a remarkable cryptographic achievement and the ability to create something that is not duplicable in the digital world has enormous value."</p>
