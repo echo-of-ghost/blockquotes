@@ -544,14 +544,14 @@ function viewNextBookmarkedQuote() {
 // Display a quote — clear immediately and let the typing engine serve as the transition.
 // Real terminals don't fade or slide; the beam simply stops writing old content
 // and starts writing new content. The character-by-character typing IS the transition.
-function displayQuoteWithTransition(quote, startIndex = 0, finishImmediately = false, preformattedAuthor = null) {
+function displayQuoteWithTransition(quote, startIndex = 0, finishImmediately = false, preformattedAuthor = null, skipHistory = false) {
   PerformanceUtils.cancelAnimation();
   elements.quoteContainer.innerHTML = '';
-  displayQuote(quote, startIndex, finishImmediately, preformattedAuthor);
+  displayQuote(quote, startIndex, finishImmediately, preformattedAuthor, skipHistory);
 }
 
 // Core typing effect display with character-by-character animation
-function displayQuote(quote, startIndex = 0, finishImmediately = false, preformattedAuthor = null) {
+function displayQuote(quote, startIndex = 0, finishImmediately = false, preformattedAuthor = null, skipHistory = false) {
   if (!isValidQuote(quote)) {
     console.warn('Tried to display invalid quote:', quote);
     setRandomQuote();
@@ -559,7 +559,7 @@ function displayQuote(quote, startIndex = 0, finishImmediately = false, preforma
   }
 
   state.currentQuote = quote;
-  pushToHistory(quote); // #5 track history for back-navigation
+  if (!skipHistory) pushToHistory(quote); // #5 track history for back-navigation
   const quoteText = QuoteUtils.getQuoteText(quote);
   state.currentIndex = startIndex;
   state.isTyping = true;
@@ -672,7 +672,8 @@ function displayQuote(quote, startIndex = 0, finishImmediately = false, preforma
       state.parkTimeoutId = setTimeout(() => {
         state.parkTimeoutId = null;
         state.isPaused = false;
-        elements.quoteContainer.textContent = '';
+        elements.quoteContainer.innerHTML =
+          `<span class="cursor-block" aria-hidden="true"></span>`;
         setRandomQuote();
       }, config.pauseDuration);
     }
@@ -788,7 +789,8 @@ function handleClick(event) {
     clearTimeout(state.parkTimeoutId);
     state.parkTimeoutId = null;
     state.isPaused = false;
-    elements.quoteContainer.textContent = '';
+    elements.quoteContainer.innerHTML =
+      `<span class="cursor-block" aria-hidden="true"></span>`;
     setRandomQuote();
     QuoteUtils.announceAction('Next quote');
   } else {
@@ -797,7 +799,8 @@ function handleClick(event) {
     QuoteUtils.announceAction(state.isPaused ? 'Paused' : 'Resumed');
     if (!state.isPaused) {
       clearTimeout(state.timeoutId);
-      elements.quoteContainer.textContent = '';
+      elements.quoteContainer.innerHTML =
+        `<span class="cursor-block" aria-hidden="true"></span>`;
       setRandomQuote();
     }
   }
@@ -807,33 +810,12 @@ function handleClick(event) {
 // Share current quote on Twitter/X
 function shareQuoteOnTwitter() {
   if (!state.currentQuote) return;
-  
+  // Use web intent on all platforms — the twitter:// app URI trick is blocked
+  // by iOS Safari (programmatic .click() on a created element is not a user gesture).
+  // x.com/intent/tweet works on all devices and opens the app if installed on mobile.
   const tweetText = QuoteUtils.getTweetText(state.currentQuote);
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                   ('ontouchstart' in window) || 
-                   (navigator.maxTouchPoints > 0);
-  
-  if (isMobile) {
-    // Try to open mobile X app
-    const appUrl = `twitter://post?message=${encodeURIComponent(tweetText)}`;
-    const link = document.createElement('a');
-    link.href = appUrl;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    
-    try {
-      link.click();
-      setTimeout(() => document.body.removeChild(link), 100);
-    } catch (error) {
-      document.body.removeChild(link);
-      QuoteUtils.announceAction('X app not found - please install the X app to share quotes');
-    }
-  } else {
-    // Desktop: open web version
-    const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-    window.open(tweetUrl, '_blank', 'noopener,noreferrer');
-  }
-  
+  const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+  window.open(tweetUrl, '_blank', 'noopener,noreferrer');
   QuoteUtils.announceAction('Opened share window');
 }
 
@@ -862,6 +844,17 @@ function handleKeyPress(event) {
     const next = getRandomQuote(quotes);
     if (next) displayQuoteWithTransition(next, 0, true);
     QuoteUtils.announceAction('Next quote displayed');
+    setTimeout(() => (state.isProcessing = false), 100);
+  }
+
+  // P: Previous quote (back in history)
+  if (event.key.toLowerCase() === 'p' && state.isPaused && !state.isTyping) {
+    state.isProcessing = true;
+    const prev = goBackInHistory();
+    if (prev) {
+      displayQuoteWithTransition(prev, 0, true, null, true);
+      QuoteUtils.announceAction('Previous quote');
+    }
     setTimeout(() => (state.isProcessing = false), 100);
   }
 
@@ -912,9 +905,14 @@ function handleKeyPress(event) {
     setTimeout(() => (state.isProcessing = false), 100);
   }
 
-  // H: Show keyboard shortcuts in terminal boot-sequence style
-  if (event.key.toLowerCase() === 'h') {
+  // ?: Show keyboard shortcuts in terminal boot-sequence style
+  if (event.key === '?') {
     showHelp();
+  }
+
+  // R: reload — undocumented
+  if (event.key.toLowerCase() === 'r') {
+    location.reload();
   }
 }
 
@@ -990,7 +988,7 @@ function handleSwipeEnd(event) {
       if (state.isPaused && !state.isTyping) {
         const prev = goBackInHistory();
         if (prev) {
-          displayQuoteWithTransition(prev, 0, true);
+          displayQuoteWithTransition(prev, 0, true, null, true);
           QuoteUtils.announceAction('Previous quote');
         }
       }
@@ -1044,7 +1042,7 @@ function handleWheelNavigation(event) {
   // Process accumulated scroll after short delay
   wheelTimeout = setTimeout(() => {
     if (Math.abs(wheelDelta) >= WHEEL_THRESHOLD) {
-      lastWheelTime = currentTime;
+      lastWheelTime = Date.now(); // capture fresh timestamp at execution time, not at event time
 
       if (state.isPaused && !state.isTyping) {
         const quotes = state.quotes;
@@ -1059,8 +1057,7 @@ function handleWheelNavigation(event) {
           // Scroll up = go back in history
           const prev = goBackInHistory();
           if (prev) {
-            // Temporarily step back past the current entry we just added
-            displayQuoteWithTransition(prev, 0, true);
+            displayQuoteWithTransition(prev, 0, true, null, true);
             QuoteUtils.announceAction('Previous quote');
           }
         } else {
@@ -1097,6 +1094,7 @@ function handleWheelNavigation(event) {
     Hazeltine 1500 — proprietary OS: '*'
     Zenith Z-19    — CP/M: 'A>' (default drive prompt)
     ADM-3A         — Unix csh (BSD): '%' (Bill Joy's shell at UC Berkeley)
+    Kaypro II      — CP/M 2.2: 'A>' (default drive prompt)
     DEC VT05       — early Unix: '$'
     DEC VT100      — VAX/VMS csh: '%'
     Apple II       — Applesoft BASIC: ']' (the iconic right-bracket)
@@ -1110,6 +1108,7 @@ const themePrompts = {
   'hazeltine-teal':         '*',
   'zenith-green':           'A>',
   'adm3a-green':            '%',
+  'kaypro-green':           'A>',
   'white':                  '$',
   'vt100-amber':            '%',
   'apple2-green':           ']',
@@ -1190,6 +1189,7 @@ function showHelp() {
     'KEYBOARD SHORTCUTS',
     'SPACE / CLICK  finish typing / next quote',
     'N              next quote',
+    'P              previous quote',
     'C              copy quote',
     'X              share on x/twitter',
     'L              copy share link',
@@ -1198,7 +1198,7 @@ function showHelp() {
     'E              export bookmarks',
     'U              toggle uppercase',
     'T              cycle theme',
-    'H              show this help',
+    '?              show this help',
   ];
 
   let lineIndex = 0;
@@ -1210,7 +1210,8 @@ function showHelp() {
       // All lines typed — hold, then resume quote cycle
       state.timeoutId = setTimeout(() => {
         state.isPaused = false;
-        elements.quoteContainer.textContent = '';
+        elements.quoteContainer.innerHTML =
+          `<span class="cursor-block" aria-hidden="true"></span>`;
         setRandomQuote();
       }, 2500);
       return;

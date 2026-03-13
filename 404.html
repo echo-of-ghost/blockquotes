@@ -21,6 +21,7 @@
         'hazeltine-teal':         '#090E0E',
         'zenith-green':           '#0B100B',
         'adm3a-green':            '#070B07',
+        'kaypro-green':           '#060A06',
         'white':                  '#0E0E0F',
         'vt100-amber':            '#0C0800',
         'apple2-green':           '#000000',
@@ -63,7 +64,7 @@
       --theme-background: #0A0F0A;
       --primary-color: #57FF8C;
       --primary-rgb: 87, 255, 140;
-      --cursor-blink-rate: 0.47s;
+      --cursor-blink-rate: 0.476s;
       --cursor-afterglow: 0 0 7px rgba(87, 255, 140, 0.55), 0 0 16px rgba(60, 200, 100, 0.20);
       --cursor-afterglow-mid: 0 0 5px rgba(87, 255, 140, 0.25), 0 0 11px rgba(60, 200, 100, 0.08);
       --cursor-decay: 0.24s;
@@ -96,7 +97,7 @@
       --theme-background: #0B0800;
       --primary-color: #FF9500;
       --primary-rgb: 255, 149, 0;
-      --cursor-blink-rate: 0.47s;
+      --cursor-blink-rate: 0.476s;
       --cursor-afterglow: 0 0 8px rgba(255, 149, 0, 0.60), 0 0 18px rgba(200, 100, 0, 0.24);
       --cursor-afterglow-mid: 0 0 6px rgba(255, 149, 0, 0.28), 0 0 13px rgba(200, 100, 0, 0.09);
       --cursor-decay: 0.14s;
@@ -151,7 +152,7 @@
       --theme-background: #0C0800;
       --primary-color: #FFB000;
       --primary-rgb: 255, 176, 0;
-      --cursor-blink-rate: 0.55s;
+      --cursor-blink-rate: 1.767s;
       --cursor-afterglow: 0 0 8px rgba(255, 176, 0, 0.65), 0 0 20px rgba(180, 100, 0, 0.28);
       --cursor-afterglow-mid: 0 0 6px rgba(255, 176, 0, 0.30), 0 0 15px rgba(180, 100, 0, 0.11);
       --cursor-decay: 0.14s;
@@ -162,7 +163,7 @@
       --theme-background: #000000;
       --primary-color: #24FF52;
       --primary-rgb: 36, 255, 82;
-      --cursor-blink-rate: 0.43s;
+      --cursor-blink-rate: 0.50s;
       --cursor-afterglow: 0 0 6px rgba(36, 255, 82, 0.55), 0 0 14px rgba(20, 190, 55, 0.20);
       --cursor-afterglow-mid: 0 0 4px rgba(36, 255, 82, 0.25), 0 0 9px rgba(20, 190, 55, 0.08);
       --cursor-decay: 0.22s;
@@ -173,12 +174,24 @@
       --theme-background: #2B2290;
       --primary-color: #7469C8;
       --primary-rgb: 116, 105, 200;
-      --cursor-blink-rate: 0.52s;
+      --cursor-blink-rate: 0.667s;
       --cursor-afterglow: 0 0 6px rgba(116, 105, 200, 0.55), 0 0 14px rgba(80, 70, 180, 0.22);
       --cursor-afterglow-mid: 0 0 4px rgba(116, 105, 200, 0.24), 0 0 10px rgba(80, 70, 180, 0.09);
       --cursor-decay: 0.10s;
       --scanline-size: 4px;
       --scanline-opacity: 0.044;
+    }
+
+    .theme-kaypro-green {
+      --theme-background: #060A06;
+      --primary-color: #76FF76;
+      --primary-rgb: 118, 255, 118;
+      --cursor-blink-rate: 0.533s;
+      --cursor-afterglow: 0 0 4px rgba(118, 255, 118, 0.22), 0 0 8px rgba(80, 220, 80, 0.07);
+      --cursor-afterglow-mid: 0 0 2px rgba(118, 255, 118, 0.08), 0 0 5px rgba(80, 220, 80, 0.02);
+      --cursor-decay: 0.04s;
+      --scanline-size: 3px;
+      --scanline-opacity: 0.030;
     }
 
     /* =========================================
@@ -191,9 +204,10 @@
     }
 
     @keyframes cursor-afterglow {
-      0%   { opacity: 0; box-shadow: var(--cursor-afterglow, 0 0 6px rgba(87, 255, 140, 0.5)); }
-      40%  { opacity: 0; box-shadow: var(--cursor-afterglow-mid, 0 0 4px rgba(87, 255, 140, 0.2)); }
-      100% { opacity: 0; box-shadow: none; }
+      0%    { box-shadow: var(--cursor-afterglow,     0 0 6px rgba(87, 255, 140, 0.5)); }
+      1.5%  { box-shadow: var(--cursor-afterglow-mid, 0 0 4px rgba(87, 255, 140, 0.2)); }
+      3%    { box-shadow: none; }
+      100%  { box-shadow: none; }
     }
 
     /* Scanline flutter — during the crash sequence only.
@@ -260,13 +274,23 @@
       inset: 0;
       pointer-events: none;
       z-index: 9998;
-      background: repeating-linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent calc(var(--scanline-size, 3px) - 1px),
-        rgba(0, 0, 0, var(--scanline-opacity, 0.030)) calc(var(--scanline-size, 3px) - 1px),
-        rgba(0, 0, 0, var(--scanline-opacity, 0.030)) var(--scanline-size, 3px)
-      );
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0px,
+          transparent 2px,
+          rgba(0, 0, 0, calc(var(--scanline-opacity, 0.030) * 0.38)) 2px,
+          rgba(0, 0, 0, calc(var(--scanline-opacity, 0.030) * 0.38)) 3px,
+          transparent 3px,
+          transparent 6px
+        ),
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0px,
+          transparent calc(var(--scanline-size, 3px) - 1px),
+          rgba(0, 0, 0, var(--scanline-opacity, 0.030)) calc(var(--scanline-size, 3px) - 1px),
+          rgba(0, 0, 0, var(--scanline-opacity, 0.030)) var(--scanline-size, 3px)
+        );
       transform: translateZ(0);
       transition: animation 0s;
     }
@@ -416,7 +440,7 @@
     const themes = [
       'ibm3279-green', 'teletype-blue-green', 'pet2001-green',
       'ibm3279-bitcoin-orange', 'hazeltine-teal', 'zenith-green',
-      'adm3a-green', 'white', 'vt100-amber', 'apple2-green', 'commodore64',
+      'adm3a-green', 'kaypro-green', 'white', 'vt100-amber', 'apple2-green', 'commodore64',
     ];
 
     // Per-theme prompt characters — mirrored from script.js themePrompts
@@ -428,6 +452,7 @@
       'hazeltine-teal':         '*',
       'zenith-green':           'A>',
       'adm3a-green':            '%',   // ADM-3A ran Unix — default sh prompt
+      'kaypro-green':           'A>',  // Kaypro II — CP/M 2.2 default drive prompt
       'white':                  '$',
       'vt100-amber':            '%',
       'apple2-green':           ']',

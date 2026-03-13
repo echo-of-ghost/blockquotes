@@ -6,6 +6,7 @@ const themes = [
   'hazeltine-teal',          // Hazeltine 1500, 1977 — proprietary teal phosphor, 80×24
   'zenith-green',            // Zenith Z-19, 1979 — P1 green phosphor, 80×24, CP/M and Unix
   'adm3a-green',             // Lear Siegler ADM-3A, 1976 — P1 green phosphor (warm variant), 80×24, the terminal vi was written on
+  'kaypro-green',            // Kaypro II, 1982 — Toshiba P31 green phosphor, 80×24, CP/M 2.2
   'white',                   // DEC VT05, 1972 — P4 white phosphor, 72×20, teletype-era DEC
   'vt100-amber',             // DEC VT100, 1978 — P3 amber phosphor, 80×24, the canonical terminal
   'apple2-green',            // Apple II, 1977 — P1 green phosphor, 40×24, 6502 interrupt blink
@@ -30,6 +31,7 @@ const themeNames = {
   'hazeltine-teal':          'Hazeltine 1500 — teal phosphor',
   'zenith-green':            'Zenith Z-19 — P1 green phosphor',
   'adm3a-green':             'ADM-3A — P1 green phosphor (the vi terminal)',
+  'kaypro-green':            'Kaypro II — P31 green phosphor',
   'white':                   'DEC VT05 — P4 white phosphor',
   'vt100-amber':             'DEC VT100 — P3 amber phosphor',
   'apple2-green':            'Apple II — P1 green phosphor',
