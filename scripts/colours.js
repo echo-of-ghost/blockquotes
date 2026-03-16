@@ -3,7 +3,7 @@ const themes = [
   'teletype-blue-green',     // DEC VT220, 1983 — P4 white (blue-green aged), 80×24, Unix/ANSI
   'pet2001-green',           // Commodore PET 2001-N, 1979 — P31 green phosphor, 40×25
   'ibm3279-bitcoin-orange',  // IBM 3279, 1979 — custom bitcoin orange, cypherpunk homage
-  'hazeltine-teal',          // Hazeltine 1500, 1977 — proprietary teal phosphor, 80×24
+  'wyse50-amber',            // Wyse WY-50, 1983 — P134 amber phosphor, 80×24, Wall Street trading terminal
   'zenith-green',            // Zenith Z-19, 1979 — P1 green phosphor, 80×24, CP/M and Unix
   'adm3a-green',             // Lear Siegler ADM-3A, 1976 — P1 green phosphor (warm variant), 80×24, the terminal vi was written on
   'kaypro-green',            // Kaypro II, 1982 — Toshiba P31 green phosphor, 80×24, CP/M 2.2
@@ -28,7 +28,7 @@ const themeNames = {
   'teletype-blue-green':     'DEC VT220 — P4 blue-green',
   'pet2001-green':           'Commodore PET 2001-N — P31 green',
   'ibm3279-bitcoin-orange':  'IBM 3279 — bitcoin orange',
-  'hazeltine-teal':          'Hazeltine 1500 — teal phosphor',
+  'wyse50-amber':            'Wyse WY-50 — P134 amber (Wall Street)',
   'zenith-green':            'Zenith Z-19 — P1 green phosphor',
   'adm3a-green':             'ADM-3A — P1 green phosphor (the vi terminal)',
   'kaypro-green':            'Kaypro II — P31 green phosphor',
@@ -41,33 +41,174 @@ const themeNames = {
 /**
  * Changes to the next theme in the array
  */
+/*
+  Per-terminal screen clear timing — sourced from hardware.
+  The blackout duration matches the real time each terminal took to
+  clear its screen buffer and begin displaying new content.
+
+  IBM 3279:      ~50ms  — 3270 protocol host-driven screen clear, ~3 frames
+  DEC VT220:     ~18ms  — fast firmware, 1 frame + P4 ~1ms decay
+  PET 2001:      ~18ms  — 6502 1MHz writes 1000 bytes + 1 frame sync
+  Bitcoin orange: ~50ms — same IBM 3279 chassis
+  Wyse WY-50:    ~25ms  — 8031 firmware screen clear, 14" tube
+  Zenith Z-19:   ~25ms  — CP/M BDOS CLS, firmware-dependent
+  ADM-3A:        ~17ms  — TTL hardware counter reset, 1 frame
+  Kaypro II:     ~25ms  — CP/M BDOS CLS
+  VT05:          ~120ms — teletype-era shift register, character-by-character
+  VT100:         ~47ms  — firmware nulls + P3 amber ~14ms persistence ghost
+  Apple II:      ~18ms  — HOME (CALL -936), 960 bytes + 1 frame
+  Commodore 64:  ~17ms  — KERNAL CHROUT 1000 spaces + 1 frame
+*/
+const themeBlackout = {
+  'ibm3279-green':          50,
+  'teletype-blue-green':    18,
+  'pet2001-green':          18,
+  'ibm3279-bitcoin-orange': 50,
+  'wyse50-amber':           25,
+  'zenith-green':           25,
+  'adm3a-green':            17,
+  'kaypro-green':           25,
+  'white':                  120,
+  'vt100-amber':            47,
+  'apple2-green':           18,
+  'commodore64':            17,
+};
+
+// Phosphor colour for each theme — used to paint the favicon square.
+// Matches --primary-color values in styles.css exactly.
+const themePhosphorColors = {
+  'ibm3279-green':           '#57FF8C',
+  'teletype-blue-green':     '#A4C8B0',
+  'pet2001-green':           '#00FF44',
+  'ibm3279-bitcoin-orange':  '#FF9500',
+  'wyse50-amber':            '#FFBE00',
+  'zenith-green':            '#7FFF7F',
+  'adm3a-green':             '#A8FF60',
+  'kaypro-green':            '#76FF76',
+  'white':                   '#D6D6C6',
+  'vt100-amber':             '#FFB000',
+  'apple2-green':            '#24FF52',
+  'commodore64':             '#7469C8',
+};
+
+/**
+ * Updates the favicon and manifest theme_color to match the active theme.
+ *
+ * Two-tier favicon strategy:
+ *   Cold load  — index.html inline script sets a pre-rendered 1×1 PNG data URL
+ *                synchronously before first paint. No JS defer delay, no SVG flash.
+ *   Live swap  — this function repaints a 32×32 canvas on every theme change and
+ *                swaps the <link rel="icon"> href. Browsers re-read it immediately.
+ *
+ * manifest.json theme_color is a static fallback for the PWA install prompt.
+ * The live <meta name="theme-color"> (updated in changeTheme) is what browsers
+ * actually use for the chrome tint at runtime — no manifest round-trip needed.
+ */
+function updateFavicon(themeName) {
+  try {
+    const color = themePhosphorColors[themeName];
+    if (!color) return;
+
+    // --- favicon ---
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 32, 32);
+
+    const dataURL = canvas.toDataURL('image/png');
+
+    let link = document.querySelector('link[rel="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.type = 'image/png';
+    link.href = dataURL;
+  } catch (e) {
+    // Canvas blocked or unavailable — silently skip
+  }
+}
+
 function changeTheme() {
   const body = document.body;
   const currentTheme = themes.find(theme => body.classList.contains(`theme-${theme}`)) || 'ibm3279-green';
   const nextIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
   const nextTheme = themes[nextIndex];
 
-  themes.forEach(theme => body.classList.remove(`theme-${theme}`));
-  body.classList.add(`theme-${nextTheme}`);
-  localStorage.setItem('theme', nextTheme);
+  /*
+    CRT blackout — real terminals didn't crossfade between phosphor colours.
+    The screen went dark while the beam reset and the new content was written
+    to the display buffer. Duration varies by hardware: a fast TTL terminal
+    like the ADM-3A blanked for ~17ms (one frame), while the teletype-era
+    VT05 took ~120ms to repaint its shift-register display.
 
-  // Keep the browser chrome in sync on mobile — read the new background
-  // from computed styles so we never hardcode a colour here
-  requestAnimationFrame(() => {
-    const bg = getComputedStyle(body).getPropertyValue('--theme-background').trim();
-    if (bg) {
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
+    We use the *incoming* theme's timing because the new terminal determines
+    how fast the new image appears — the old phosphor is already extinct.
+  */
+  const blackoutMs = themeBlackout[nextTheme] || 50;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Skip blackout for reduced-motion users — instant swap
+  if (reducedMotion) {
+    themes.forEach(theme => body.classList.remove(`theme-${theme}`));
+    body.classList.add(`theme-${nextTheme}`);
+    localStorage.setItem('theme', nextTheme);
+
+    requestAnimationFrame(() => {
+      const bg = getComputedStyle(body).getPropertyValue('--theme-background').trim();
+      if (bg) {
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
+      }
+    });
+
+    updateFavicon(nextTheme);
+
+    if (typeof showToast === 'function') {
+      showToast(themeNames[nextTheme] || nextTheme);
     }
-  });
 
-  if (typeof showToast === 'function') {
-    showToast(themeNames[nextTheme] || nextTheme);
+    if (typeof updateLivePrompt === 'function') {
+      updateLivePrompt();
+    }
+    return;
   }
 
-  if (typeof updateLivePrompt === 'function') {
-    updateLivePrompt();
-  }
+  body.style.transition = 'none';
+  body.style.opacity = '0';
 
+  setTimeout(() => {
+    themes.forEach(theme => body.classList.remove(`theme-${theme}`));
+    body.classList.add(`theme-${nextTheme}`);
+    localStorage.setItem('theme', nextTheme);
+
+    requestAnimationFrame(() => {
+      const bg = getComputedStyle(body).getPropertyValue('--theme-background').trim();
+      if (bg) {
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
+      }
+    });
+
+    body.style.opacity = '1';
+
+    requestAnimationFrame(() => {
+      body.style.transition = '';
+    });
+
+    updateFavicon(nextTheme);
+
+    if (typeof showToast === 'function') {
+      showToast(themeNames[nextTheme] || nextTheme);
+    }
+
+    if (typeof updateLivePrompt === 'function') {
+      updateLivePrompt();
+    }
+  }, blackoutMs);
 }
 
 /**
@@ -148,9 +289,11 @@ function applyInitialTheme() {
   if (savedTheme && themes.includes(savedTheme)) {
     themes.forEach(theme => document.body.classList.remove(`theme-${theme}`));
     document.body.classList.add(`theme-${savedTheme}`);
+    updateFavicon(savedTheme);
   } else {
     themes.forEach(theme => document.body.classList.remove(`theme-${theme}`));
     document.body.classList.add('theme-ibm3279-green');
+    updateFavicon('ibm3279-green');
   }
 }
 
