@@ -1072,7 +1072,7 @@ function handleSwipeEnd(event) {
     if (diffY > 0) {
       toggleTextCase();
     } else {
-      if (state.currentQuote) toggleBookmark();
+      if (state.currentQuote) copyShareableURL();
     }
   }
 }
