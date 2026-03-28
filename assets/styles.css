@@ -899,6 +899,33 @@ a:focus-visible {
 .author-name {
     display: inline;
 }
+
+/* Source citation — same line as author, same phosphor intensity as author.
+   Real CRT terminals had no per-character brightness control; every character
+   glowed at the same intensity. The en-dash separator provides visual
+   separation without dimming. */
+.source {
+    display: inline;
+    font-size: 0.88em;
+    transition: var(--base-transition);
+}
+
+.source-text {
+    display: inline;
+}
+
+.source a {
+    text-decoration: none;
+    color: inherit;
+    transition: var(--base-transition);
+}
+
+.source a:hover,
+.source a:focus-visible {
+    opacity: 1;
+    text-decoration: var(--author-hover-decoration, none);
+    outline: none;
+}
  
 /* =========================================
    ERROR MESSAGE

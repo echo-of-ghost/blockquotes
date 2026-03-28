@@ -100,6 +100,7 @@ const state = {
   isUppercase: false, // Text case mode
   preloadedQuote: null, // Next quote preloaded
   preloadedAuthorHTML: null, // Preformatted author HTML
+  preloadedSourceHTML: null, // Preformatted source HTML
   animationFrameId: null, // For requestAnimationFrame
   bookmarkedQuotes: JSON.parse(localStorage.getItem('bookmarked-quotes') || '[]'),
   currentBookmarkIndex: 0, // Position in bookmark list
@@ -143,7 +144,13 @@ const QuoteUtils = {
   getQuoteText: quote => `"${quote?.text?.trim() || 'No quote available'}"`,
   
   // Format quote for Twitter/X sharing (strips markdown links)
-  getTweetText: quote => `"${quote.text}" — ${quote.author.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1').trim()}`,
+  getTweetText: quote => {
+    const author = quote.author.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1').trim();
+    const source = quote.source
+      ? ', ' + quote.source.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1').trim()
+      : '';
+    return `"${quote.text}" — ${author}${source}`;
+  },
   
   // Announce action to screen readers
   announceAction: (message) => {
@@ -205,11 +212,15 @@ const PerformanceUtils = {
     const randomQuote = getRandomQuote(quotes);
     if (!randomQuote) return;
     
-    // Pre-format author HTML
+    // Pre-format author and source HTML
     const preformattedAuthor = PerformanceUtils.formatAuthor(randomQuote.author);
+    const preformattedSource = randomQuote.source
+      ? PerformanceUtils.formatSource(randomQuote.source)
+      : null;
     
     state.preloadedQuote = randomQuote;
     state.preloadedAuthorHTML = preformattedAuthor;
+    state.preloadedSourceHTML = preformattedSource;
   },
   
   // Get next quote (preloaded if available, otherwise fetch)
@@ -217,14 +228,16 @@ const PerformanceUtils = {
     if (state.preloadedQuote) {
       const quote = state.preloadedQuote;
       const authorHTML = state.preloadedAuthorHTML;
+      const sourceHTML = state.preloadedSourceHTML ?? null;
       
       state.preloadedQuote = null;
       state.preloadedAuthorHTML = null;
+      state.preloadedSourceHTML = null;
       
       // Start preloading next quote
       setTimeout(() => PerformanceUtils.preloadNextQuote(), 100);
       
-      return { quote, authorHTML };
+      return { quote, authorHTML, sourceHTML };
     }
     
     // Fallback if no preloaded quote
@@ -235,43 +248,52 @@ const PerformanceUtils = {
     if (!randomQuote) return null;
     
     const authorHTML = PerformanceUtils.formatAuthor(randomQuote.author);
+    const sourceHTML = randomQuote.source
+      ? PerformanceUtils.formatSource(randomQuote.source)
+      : null;
     setTimeout(() => PerformanceUtils.preloadNextQuote(), 100);
     
-    return { quote: randomQuote, authorHTML };
+    return { quote: randomQuote, authorHTML, sourceHTML };
   },
   
-  // Format author text with markdown links and @handles
-  formatAuthor: (author) => {
-    const cleanAuthor = String(author).replace(/^"|"$/g, '').trim();
+  // Format source text with markdown links (same engine as formatAuthor)
+  formatSource: (source) => {
+    if (!source) return null;
+    return PerformanceUtils._formatLinkedText(String(source).trim());
+  },
+
+  // Shared markdown link formatter. linkHandles=true converts @handles to X links (author only).
+  _formatLinkedText: (text, linkHandles = false) => {
     const span = document.createElement('span');
-    let currentText = cleanAuthor;
-    
-    // Parse [text](url) markdown links
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
     let lastIndex = 0;
     let match;
-    
-    while ((match = linkRegex.exec(cleanAuthor)) !== null) {
-      span.appendChild(document.createTextNode(currentText.slice(lastIndex, match.index)));
+
+    while ((match = linkRegex.exec(text)) !== null) {
+      span.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
       const a = document.createElement('a');
       a.href = match[2];
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       a.textContent = match[1];
-      a.setAttribute('aria-label', `Visit ${match[1]}'s website`);
+      a.setAttribute('aria-label', `Visit ${match[1]}`);
       span.appendChild(a);
       lastIndex = linkRegex.lastIndex;
     }
-    
-    span.appendChild(document.createTextNode(currentText.slice(lastIndex)));
-    
-    // Convert @handles to Twitter/X links
-    const finalHtml = span.innerHTML.replace(
+    span.appendChild(document.createTextNode(text.slice(lastIndex)));
+
+    if (!linkHandles) return span.innerHTML;
+
+    return span.innerHTML.replace(
       /@(\w+)/g,
       '<a href="https://x.com/$1" target="_blank" rel="noopener noreferrer" aria-label="Visit $1\'s Twitter profile">@$1</a>'
     );
-    
-    return finalHtml;
+  },
+
+  // Format author text with markdown links and @handles
+  formatAuthor: (author) => {
+    const cleanAuthor = String(author).replace(/^"|"$/g, '').trim();
+    return PerformanceUtils._formatLinkedText(cleanAuthor, true);
   },
   
   // Use requestAnimationFrame for short delays, setTimeout for longer
@@ -485,6 +507,7 @@ function exportBookmarksAsJSON() {
     quotes: state.bookmarkedQuotes.map(q => ({
       text: q.text,
       author: q.author,
+      ...(q.source ? { source: q.source } : {}),
       bookmarkedAt: q.bookmarkedAt ? new Date(q.bookmarkedAt).toISOString() : null
     }))
   };
@@ -573,6 +596,7 @@ function toggleBookmark() {
     state.bookmarkedQuotes.push({
       text: state.currentQuote.text,
       author: state.currentQuote.author,
+      ...(state.currentQuote.source ? { source: state.currentQuote.source } : {}),
       bookmarkedAt: Date.now()
     });
     QuoteUtils.announceAction('Quote bookmarked');
@@ -616,14 +640,14 @@ function viewNextBookmarkedQuote() {
 // Display a quote — clear immediately and let the typing engine serve as the transition.
 // Real terminals don't fade or slide; the beam simply stops writing old content
 // and starts writing new content. The character-by-character typing IS the transition.
-function displayQuoteWithTransition(quote, startIndex = 0, finishImmediately = false, preformattedAuthor = null, skipHistory = false) {
+function displayQuoteWithTransition(quote, startIndex = 0, finishImmediately = false, preformattedAuthor = null, skipHistory = false, preformattedSource = null) {
   PerformanceUtils.cancelAnimation();
   elements.quoteContainer.innerHTML = '';
-  displayQuote(quote, startIndex, finishImmediately, preformattedAuthor, skipHistory);
+  displayQuote(quote, startIndex, finishImmediately, preformattedAuthor, skipHistory, preformattedSource);
 }
 
 // Core typing effect display with character-by-character animation
-function displayQuote(quote, startIndex = 0, finishImmediately = false, preformattedAuthor = null, skipHistory = false) {
+function displayQuote(quote, startIndex = 0, finishImmediately = false, preformattedAuthor = null, skipHistory = false, preformattedSource = null) {
   if (!isValidQuote(quote)) {
     console.warn('Tried to display invalid quote:', quote);
     setRandomQuote();
@@ -647,6 +671,9 @@ function displayQuote(quote, startIndex = 0, finishImmediately = false, preforma
   QuoteUtils.updateBookmarkCounter();
   
   const authorHTML = preformattedAuthor || PerformanceUtils.formatAuthor(quote.author);
+  const sourceHTML = preformattedSource !== null
+    ? preformattedSource
+    : (quote.source ? PerformanceUtils.formatSource(quote.source) : null);
 
   // Plain text for character-by-character author typing.
   // Strip markdown links [text](url) → text and surrounding quotes.
@@ -654,6 +681,12 @@ function displayQuote(quote, startIndex = 0, finishImmediately = false, preforma
     .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
     .replace(/^"|"$/g, '')
     .trim();
+
+  // Plain text for source typing — strip markdown links.
+  const sourcePlain = quote.source
+    ? String(quote.source).replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1').trim()
+    : null;
+
   // NOTE: prompt is intentionally NOT frozen at displayQuote call time.
   // getAuthorTypingText() re-reads getThemePrompt() on every tick so a
   // mid-type theme change is reflected immediately — the new prompt character
@@ -661,15 +694,21 @@ function displayQuote(quote, startIndex = 0, finishImmediately = false, preforma
   // renderParked() fires at the end of Phase 2.
   function getAuthorTypingText() {
     const livePrompt = getThemePrompt();
-    return livePrompt ? `${livePrompt} ${authorPlain}` : authorPlain;
+    // Author + optional dimmed source on the same line, separated by en-dash
+    const sourceStr = sourcePlain ? ` — ${sourcePlain}` : '';
+    return livePrompt ? `${livePrompt} ${authorPlain}${sourceStr}` : `${authorPlain}${sourceStr}`;
   }
 
-  // Render the final parked state: quote body + fully-linked author + blinking cursor.
+  // Render the final parked state: quote body + fully-linked author + optional dimmed source + blinking cursor.
   function renderParked() {
     try {
+      const prompt = getThemePrompt();
+      const sourcePart = sourceHTML
+        ? `<span class="source"> — <span class="source-text">${sourceHTML}</span></span>`
+        : '';
       elements.quoteContainer.innerHTML =
         `<span class="text-selected">${quoteText}</span>` +
-        `<span class="author">${getThemePrompt() ? getThemePrompt() + ' ' : ''}<span class="author-name">${authorHTML}</span> ` +
+        `<span class="author">${prompt ? prompt + ' ' : ''}<span class="author-name">${authorHTML}</span>${sourcePart} ` +
         `<span class="cursor-block" aria-hidden="true"></span></span>`;
       elements.quoteContainer.style.textTransform = state.isUppercase ? 'uppercase' : 'none';
       const authorElement = elements.quoteContainer.querySelector('.author');
@@ -766,8 +805,8 @@ async function setRandomQuote() {
       return;
     }
     
-    const { quote, authorHTML } = result;
-    displayQuote(quote, 0, false, authorHTML);
+    const { quote, authorHTML, sourceHTML } = result;
+    displayQuote(quote, 0, false, authorHTML, false, sourceHTML);
   } catch (error) {
     console.error('Error loading quote:', error);
     elements.errorMessage.textContent = '*** ERROR: FAILED TO LOAD QUOTES';
@@ -1189,9 +1228,9 @@ function updateLivePrompt() {
   const author = elements.quoteContainer.querySelector('.author');
   if (!author) return;
 
-  // Structure is always: [textNode: "{prompt} "] [span.author-name] [span.cursor-block]
-  // OR when no prompt:   [span.author-name] [span.cursor-block]
-  // Replace or insert/remove just the leading text node — never touch author-name or cursor.
+  // Structure is: [textNode: "{prompt} "] [span.author-name] [span.source?] [span.cursor-block]
+  // OR no prompt:  [span.author-name] [span.source?] [span.cursor-block]
+  // Replace or insert/remove just the leading text node — never touch author-name, source, or cursor.
   const newPrompt = getThemePrompt();
   const firstNode = author.firstChild;
   const isLeadingTextNode = firstNode && firstNode.nodeType === Node.TEXT_NODE;
