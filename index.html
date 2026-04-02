@@ -1,18 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
-  <meta name="description" content="Discover inspiring Bitcoin quotes. A curated collection of insights about the world's first cryptocurrency.">
-  <meta name="author" content="blockquotes.sh">
-  <meta name="theme-color" content="#0A0F0A">
-  <!--
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="Discover inspiring Bitcoin quotes. A curated collection of insights about the world's first cryptocurrency."
+    />
+    <meta name="author" content="blockquotes.sh" />
+    <meta name="theme-color" content="#0A0F0A" />
+    <!--
     The favicon link must appear BEFORE the inline script below so that
     querySelector('link[rel="icon"]') finds it synchronously on first parse.
     The script patches href to a PNG data URL before first paint — no SVG flash.
   -->
-  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMI/98DAAOTAeMKU0PdAAAAAElFTkSuQmCC">
-  <!--
+    <link
+      rel="icon"
+      type="image/png"
+      href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMI/98DAAOTAeMKU0PdAAAAAElFTkSuQmCC"
+    />
+    <!--
     Set browser chrome colour AND favicon from saved theme before first paint.
     Must run synchronously in <head> — defer/async would be too late.
 
@@ -30,117 +40,193 @@
     Mirrors --theme-background (backgrounds) and --primary-color (favicons) from
     styles.css exactly. Falls back to ibm3279-green defaults if no saved theme.
   -->
-  <script>
-    (function() {
-      var backgrounds = {
-        'ibm3279-green':          '#0A0F0A',
-        'teletype-blue-green':    '#0C1010',
-        'pet2001-green':          '#060A06',
-        'ibm3279-bitcoin-orange': '#0B0800',
-        'wyse50-amber':           '#0A0700',
-        'zenith-green':           '#0B100B',
-        'adm3a-green':            '#070B07',
-        'kaypro-green':           '#060A06',
-        'white':                  '#0E0E0F',
-        'vt100-amber':            '#0C0800',
-        'apple2-green':           '#000000',
-        'commodore64':            '#2B2290',
-      };
-      // 1×1 solid-colour PNGs — one per theme, matching --primary-color in styles.css.
-      // Generated from raw PNG binary; no canvas, no network request.
-      var favicons = {
-        'ibm3279-green':          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMI/98DAAOTAeMKU0PdAAAAAElFTkSuQmCC',
-        'teletype-blue-green':    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNYcmIDAAQwAh3GXOuYAAAAAElFTkSuQmCC',
-        'pet2001-green':          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNg+O8CAAJGAUT/Xrl6AAAAAElFTkSuQmCC',
-        'ibm3279-bitcoin-orange': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4P5UBAAQrAZWkTA9UAAAAAElFTkSuQmCC',
-        'wyse50-amber':           'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4v48BAAR9Ab7wVOJMAAAAAElFTkSuQmCC',
-        'zenith-green':           'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOo/18PAAP+Af4yKt8SAAAAAElFTkSuQmCC',
-        'adm3a-green':            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNY8T8BAARaAgg8v+rAAAAAAElFTkSuQmCC',
-        'kaypro-green':           'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMo+18GAAPaAew7xx8bAAAAAElFTkSuQmCC',
-        'white':                  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGO4du0YAAT4AnNa2YdtAAAAAElFTkSuQmCC',
-        'vt100-amber':            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4v4EBAARhAbBS7+4CAAAAAElFTkSuQmCC',
-        'apple2-green':           'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNQ+R8EAALAAXaCjZZAAAAAAElFTkSuQmCC',
-        'commodore64':            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMoyTwBAAL6AaZNjKTQAAAAAElFTkSuQmCC',
-      };
-      var saved = localStorage.getItem('theme');
-      var theme = (saved && backgrounds[saved]) ? saved : 'ibm3279-green';
+    <script>
+      (function () {
+        var backgrounds = {
+          "ibm3279-green": "#0A0F0A",
+          "teletype-blue-green": "#0C1010",
+          "pet2001-green": "#060A06",
+          "ibm3279-bitcoin-orange": "#0B0800",
+          "wyse50-amber": "#0A0700",
+          "zenith-green": "#0B100B",
+          "adm3a-green": "#070B07",
+          "kaypro-green": "#060A06",
+          white: "#0E0E0F",
+          "vt100-amber": "#0C0800",
+          "apple2-green": "#000000",
+          commodore64: "#2B2290",
+        };
+        // 1×1 solid-colour PNGs — one per theme, matching --primary-color in styles.css.
+        // Generated from raw PNG binary; no canvas, no network request.
+        var favicons = {
+          "ibm3279-green":
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMI/98DAAOTAeMKU0PdAAAAAElFTkSuQmCC",
+          "teletype-blue-green":
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNYcmIDAAQwAh3GXOuYAAAAAElFTkSuQmCC",
+          "pet2001-green":
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNg+O8CAAJGAUT/Xrl6AAAAAElFTkSuQmCC",
+          "ibm3279-bitcoin-orange":
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4P5UBAAQrAZWkTA9UAAAAAElFTkSuQmCC",
+          "wyse50-amber":
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4v48BAAR9Ab7wVOJMAAAAAElFTkSuQmCC",
+          "zenith-green":
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOo/18PAAP+Af4yKt8SAAAAAElFTkSuQmCC",
+          "adm3a-green":
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNY8T8BAARaAgg8v+rAAAAAAElFTkSuQmCC",
+          "kaypro-green":
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMo+18GAAPaAew7xx8bAAAAAElFTkSuQmCC",
+          white:
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGO4du0YAAT4AnNa2YdtAAAAAElFTkSuQmCC",
+          "vt100-amber":
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4v4EBAARhAbBS7+4CAAAAAElFTkSuQmCC",
+          "apple2-green":
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNQ+R8EAALAAXaCjZZAAAAAAElFTkSuQmCC",
+          commodore64:
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMoyTwBAAL6AaZNjKTQAAAAAElFTkSuQmCC",
+        };
+        var saved = localStorage.getItem("theme");
+        var theme = saved && backgrounds[saved] ? saved : "ibm3279-green";
 
-      // 1. Set browser chrome colour
-      document.querySelector('meta[name="theme-color"]').setAttribute('content', backgrounds[theme]);
+        // 1. Set browser chrome colour
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute("content", backgrounds[theme]);
 
-      // 2. Set favicon inline — replaces the SVG href before first paint
-      var link = document.querySelector('link[rel="icon"]');
-      if (link && favicons[theme]) {
-        link.type = 'image/png';
-        link.href = favicons[theme];
+        // 2. Set favicon inline — replaces the SVG href before first paint
+        var link = document.querySelector('link[rel="icon"]');
+        if (link && favicons[theme]) {
+          link.type = "image/png";
+          link.href = favicons[theme];
+        }
+      })();
+    </script>
+    <meta property="og:title" content="blockquotes.sh" />
+    <meta
+      property="og:description"
+      content="A curated collection of insights about the world's first cryptocurrency."
+    />
+    <meta property="og:image" content="https://blockquotes.sh/assets/og.png" />
+    <meta property="og:url" content="https://blockquotes.sh" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="blockquotes.sh" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="blockquotes.sh" />
+    <meta
+      name="twitter:description"
+      content="A curated collection of insights about the world's first cryptocurrency."
+    />
+    <meta name="twitter:image" content="https://blockquotes.sh/assets/og.png" />
+    <link rel="canonical" href="https://blockquotes.sh" />
+    <meta name="color-scheme" content="dark" />
+    <title>blockquotes.sh</title>
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "blockquotes.sh",
+        "description": "A curated collection of insights about the world's first cryptocurrency.",
+        "url": "https://blockquotes.sh",
+        "author": {
+          "@type": "Organization",
+          "name": "blockquotes.sh"
+        }
       }
-    })();
-  </script>
-  <meta property="og:title" content="blockquotes.sh">
-  <meta property="og:description" content="A curated collection of insights about the world's first cryptocurrency.">
-  <meta property="og:image" content="https://blockquotes.sh/assets/og.png">
-  <meta property="og:url" content="https://blockquotes.sh">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="blockquotes.sh">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="blockquotes.sh">
-  <meta name="twitter:description" content="A curated collection of insights about the world's first cryptocurrency.">
-  <meta name="twitter:image" content="https://blockquotes.sh/assets/og.png">
-  <link rel="canonical" href="https://blockquotes.sh">
-  <meta name="color-scheme" content="dark">
-  <title>blockquotes.sh</title>
-  
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "blockquotes.sh",
-    "description": "A curated collection of insights about the world's first cryptocurrency.",
-    "url": "https://blockquotes.sh",
-    "author": {
-      "@type": "Organization",
-      "name": "blockquotes.sh"
-    }
-  }
-  </script>
-  
-  <!--
+    </script>
+
+    <!--
     colours.js takes over favicon management for live theme switching via canvas.
     The link above is patched synchronously by the inline script before first paint.
   -->
-  
-  <!-- Preload critical resources -->
-  <link rel="preload" href="assets/styles.css" as="style">
-  <link rel="preload" href="data/bitcoin_quotes.json" as="fetch" crossorigin>
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&display=swap"></noscript>
-  
-  <!-- DNS prefetch for external resources -->
-  <link rel="dns-prefetch" href="//fonts.googleapis.com">
-  <link rel="dns-prefetch" href="//fonts.gstatic.com">
-  <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
-  
-  <!-- Preconnect to external domains -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-  
-  <!-- Load stylesheets -->
-  <link rel="stylesheet" href="assets/styles.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-</head>
-<body class="theme-ibm3279-green">
-  <header id="header" role="banner" aria-label="Header containing links and information"><a href="lightning:lnurl1dp68gurn8ghj7cnjv4jh5tnxw4hz7mrww4excup0xqerscfc8pjkgvnr8y6nqepnx4skvefhv3nryvejxpskvwrpxsengdfjv5urwvr9vgcrqvmz8p3rgcejx9jn2cmrvejxgcecx9jr2dfkxgstgsm6" class="header-icon bolt-link" aria-label="Lightning tip"><i class="fas fa-bolt" aria-hidden="true"></i></a><a href="bitcoin:bc1qkdzhkcxuphprczh2uaq3vj5qvar7t4z6qdvuv9" class="header-icon btc-link" aria-label="Bitcoin on-chain tip"><i class="fab fa-bitcoin" aria-hidden="true"></i></a><a href="https://github.com/echo-of-ghost/blockquotes" class="header-icon" aria-label="GitHub source" target="_blank"><i class="fab fa-github" aria-hidden="true"></i></a>
-  </header><main><section id="quote-container" aria-live="polite" aria-label="Bitcoin quotes display area">
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="assets/styles.css" as="style" />
+    <link
+      rel="preload"
+      href="data/bitcoin_quotes.json"
+      as="fetch"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&display=swap"
+      as="style"
+      onload="
+        this.onload = null;
+        this.rel = 'stylesheet';
+      "
+    />
+    <noscript
+      ><link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&display=swap"
+    /></noscript>
+
+    <!-- DNS prefetch for external resources -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="//fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com" />
+
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+
+    <!-- Load stylesheets -->
+    <link rel="stylesheet" href="assets/styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+  </head>
+  <body class="theme-ibm3279-green">
+    <header
+      id="header"
+      role="banner"
+      aria-label="Header containing links and information"
+    >
+      <a
+        href="lightning:lnurl1dp68gurn8ghj7cnjv4jh5tnxw4hz7mrww4excup0xqerscfc8pjkgvnr8y6nqepnx4skvefhv3nryvejxpskvwrpxsengdfjv5urwvr9vgcrqvmz8p3rgcejx9jn2cmrvejxgcecx9jr2dfkxgstgsm6"
+        class="header-icon bolt-link"
+        aria-label="Lightning tip"
+        ><i class="fas fa-bolt" aria-hidden="true"></i></a
+      ><a
+        href="bitcoin:bc1qkdzhkcxuphprczh2uaq3vj5qvar7t4z6qdvuv9"
+        class="header-icon btc-link"
+        aria-label="Bitcoin on-chain tip"
+        ><i class="fab fa-bitcoin" aria-hidden="true"></i></a
+      ><a
+        href="https://github.com/echo-of-ghost/blockquotes"
+        class="header-icon"
+        aria-label="GitHub source"
+        target="_blank"
+        ><i class="fab fa-github" aria-hidden="true"></i
+      ></a>
+    </header>
+    <main>
+      <section
+        id="quote-container"
+        aria-live="polite"
+        aria-label="Bitcoin quotes display area"
+      >
         <noscript>
-          <p>"Bitcoin is a remarkable cryptographic achievement and the ability to create something that is not duplicable in the digital world has enormous value."</p>
+          <p>
+            "Bitcoin is a remarkable cryptographic achievement and the ability
+            to create something that is not duplicable in the digital world has
+            enormous value."
+          </p>
           <p class="author">— Eric Schmidt, former CEO of Google</p>
         </noscript>
-      </section><div id="error-message" aria-live="polite">Houston, we have a problem.</div></main>
-  <!-- Load non-critical scripts with defer -->
-  <script src="scripts/colours.js" defer></script>
-  <script src="scripts/script.js" defer></script>
-
-</body>
+      </section>
+      <div id="error-message" aria-live="polite">
+        Houston, we have a problem.
+      </div>
+    </main>
+    <!-- Load non-critical scripts with defer -->
+    <script src="scripts/colours.js" defer></script>
+    <script src="scripts/script.js" defer></script>
+  </body>
 </html>

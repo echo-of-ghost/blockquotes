@@ -7,6 +7,7 @@ Welcome to blockquotes.sh, a webpage showcasing a growing collection of Bitcoin 
 ## 🎮 Controls
 
 ### Desktop (Keyboard Shortcuts)
+
 - **`Space`** — Pause/resume quote display (or finish typing immediately)
 - **`N`** — Next quote (when paused)
 - **`P`** — Previous quote / back in history (when paused)
@@ -24,6 +25,7 @@ Welcome to blockquotes.sh, a webpage showcasing a growing collection of Bitcoin 
 - **`Mouse Wheel Up`** — Previous quote / back in history (when paused)
 
 ### Mobile (Touch Gestures)
+
 - **Tap** — Pause/resume quote display (or finish typing immediately)
 - **Swipe Left** — Next quote (when paused)
 - **Swipe Right** — Previous quote / back in history (when paused)
@@ -35,12 +37,14 @@ Welcome to blockquotes.sh, a webpage showcasing a growing collection of Bitcoin 
 ## 📖 Features
 
 ### Quote Display
+
 - **Typewriter Effect** — Quotes appear character by character with adaptive speed based on length and complexity
 - **Text Highlighting** — Typed text is highlighted with inverted colours
 - **12 Retro Terminal Themes** — IBM 3279 Green, DEC VT220 Blue-Green, Commodore PET 2001 Green, IBM 3279 Bitcoin Orange, Wyse WY-50 Amber, Zenith Z-19 Green, ADM-3A Green, Kaypro II Green, DEC VT05 White, DEC VT100 Amber, Apple II Green, and Commodore 64
 - **CRT Phosphor Resync** — Animated sweep effect on theme change
 
 ### Bookmarking System
+
 - **Save Favourites** — Bookmark quotes you love with the `B` key
 - **Quick Access** — Cycle through bookmarked quotes with the `V` key
 - **Export** — Download all bookmarks as a JSON file with `E`
@@ -48,6 +52,7 @@ Welcome to blockquotes.sh, a webpage showcasing a growing collection of Bitcoin 
 - **Bookmark Counter** — See how many quotes you've saved in the top-left corner
 
 ### Navigation
+
 - **Quote History** — Navigate back through previously seen quotes via swipe right, scroll up, or `P` key
 - **Mouse Wheel Support** — Scroll through quotes with momentum on desktop
 - **Shareable Links** — Copy a direct URL to any quote with `L`
@@ -59,6 +64,7 @@ Welcome to blockquotes.sh, a webpage showcasing a growing collection of Bitcoin 
 ## 🛠️ Getting Started
 
 Clone the repo:
+
 ```
 git clone https://github.com/echo-of-ghost/blockquotes.git
 ```
