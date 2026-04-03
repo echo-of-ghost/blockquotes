@@ -42,7 +42,8 @@ import {
  */
 const config = {
   /** True when the user has requested reduced motion; skips animations. */
-  performanceMode: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  performanceMode: window.matchMedia("(prefers-reduced-motion: reduce)")
+    .matches,
 };
 
 // =========================================
@@ -90,7 +91,9 @@ const state = {
   /** requestAnimationFrame handle from optimizedDelay */
   animationFrameId: null,
   /** Bookmarked quotes, hydrated from localStorage on load */
-  bookmarkedQuotes: JSON.parse(localStorage.getItem("bookmarked-quotes") || "[]"),
+  bookmarkedQuotes: JSON.parse(
+    localStorage.getItem("bookmarked-quotes") || "[]",
+  ),
   /** Index into bookmarkedQuotes for the V-key cycling view */
   currentBookmarkIndex: 0,
   /** History of recently shown quotes for P-key back-navigation */
@@ -447,7 +450,9 @@ export const PerformanceUtils = {
     if (!randomQuote) return;
 
     state.preloadedQuote = randomQuote;
-    state.preloadedAuthorHTML = PerformanceUtils.formatAuthor(randomQuote.author);
+    state.preloadedAuthorHTML = PerformanceUtils.formatAuthor(
+      randomQuote.author,
+    );
     state.preloadedSourceHTML = randomQuote.source
       ? PerformanceUtils.formatSource(randomQuote.source)
       : null;
@@ -896,7 +901,7 @@ function displayQuote(
         msPerChar + punctuationDelay,
       );
 
-    // Phase 2 — type the author line
+      // Phase 2 — type the author line
     } else if (
       state.currentIndex <
       quoteText.length + getAuthorTypingText().length
@@ -926,7 +931,7 @@ function displayQuote(
         msPerChar + punctuationDelay,
       );
 
-    // Phase 3 — park cursor, schedule auto-advance
+      // Phase 3 — park cursor, schedule auto-advance
     } else {
       renderParked();
       state.isTyping = false;
@@ -1187,7 +1192,9 @@ function exitHelp() {
 function updatePositionIndicator() {
   if (!state.currentQuote || !state.quotes) return;
   const index = state.quotes.findIndex(
-    (q) => q.text === state.currentQuote.text && q.author === state.currentQuote.author,
+    (q) =>
+      q.text === state.currentQuote.text &&
+      q.author === state.currentQuote.author,
   );
   let el = document.querySelector(".bq-position");
   if (!el) {
@@ -1234,8 +1241,29 @@ function enterClockMode() {
     const hh = String(now.getHours()).padStart(2, "0");
     const mm = String(now.getMinutes()).padStart(2, "0");
     const ss = String(now.getSeconds()).padStart(2, "0");
-    const days = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
-    const months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+    const days = [
+      "SUNDAY",
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY",
+    ];
+    const months = [
+      "JAN",
+      "FEB",
+      "MAR",
+      "APR",
+      "MAY",
+      "JUN",
+      "JUL",
+      "AUG",
+      "SEP",
+      "OCT",
+      "NOV",
+      "DEC",
+    ];
     const date = `${days[now.getDay()]} ${String(now.getDate()).padStart(2, "0")} ${months[now.getMonth()]} ${now.getFullYear()}`;
     const prompt = getThemePrompt() || ">";
     elements.quoteContainer.innerHTML =
@@ -1578,7 +1606,9 @@ function toggleBookmark() {
     state.bookmarkedQuotes.push({
       text: state.currentQuote.text,
       author: state.currentQuote.author,
-      ...(state.currentQuote.source ? { source: state.currentQuote.source } : {}),
+      ...(state.currentQuote.source
+        ? { source: state.currentQuote.source }
+        : {}),
       bookmarkedAt: Date.now(),
     });
     QuoteUtils.announceAction("Quote bookmarked");
@@ -1592,7 +1622,6 @@ function toggleBookmark() {
   );
   QuoteUtils.updateBookmarkCounter();
 }
-
 
 /**
  * Exports all bookmarked quotes as a dated JSON file download.
@@ -1634,7 +1663,9 @@ function exportBookmarksAsJSON() {
     URL.revokeObjectURL(url);
   }, EXPORT_REVOKE_MS);
 
-  QuoteUtils.announceAction(`Exported ${state.bookmarkedQuotes.length} bookmarks`);
+  QuoteUtils.announceAction(
+    `Exported ${state.bookmarkedQuotes.length} bookmarks`,
+  );
   showToast(`exported ${state.bookmarkedQuotes.length} bookmarks`);
 }
 
@@ -1776,10 +1807,22 @@ function advanceToNextQuote() {
 function handleClick(event) {
   if (state.booting) return;
 
-  if (state.helpMode) { exitHelp(); return; }
-  if (state.clockMode) { exitClockMode(); return; }
-  if (state.bookmarkListMode) { exitBookmarkList(); return; }
-  if (state.searchMode) { exitSearchMode(false); return; }
+  if (state.helpMode) {
+    exitHelp();
+    return;
+  }
+  if (state.clockMode) {
+    exitClockMode();
+    return;
+  }
+  if (state.bookmarkListMode) {
+    exitBookmarkList();
+    return;
+  }
+  if (state.searchMode) {
+    exitSearchMode(false);
+    return;
+  }
 
   if (event.target.closest(".bolt-link")) {
     LightningTip.handleBoltClick(event);
@@ -1887,10 +1930,22 @@ function handleKeyPress(event) {
   };
 
   // Unguarded — no debounce needed
-  if (key === "c" && state.currentQuote) { copyCurrentQuote(); return; }
-  if (event.key === "?") { showHelp(); return; }
-  if (event.key === "/") { enterSearchMode(); return; }
-  if (key === "r") { location.reload(); return; }
+  if (key === "c" && state.currentQuote) {
+    copyCurrentQuote();
+    return;
+  }
+  if (event.key === "?") {
+    showHelp();
+    return;
+  }
+  if (event.key === "/") {
+    enterSearchMode();
+    return;
+  }
+  if (key === "r") {
+    location.reload();
+    return;
+  }
 
   if (guardedActions[key]) {
     withProcessing(guardedActions[key]);
@@ -2038,7 +2093,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const loadedFromURL = checkURLQuote();
     if (loadedFromURL) {
       state.booting = false;
-      setTimeout(() => PerformanceUtils.preloadNextQuote(), URL_PRELOAD_DELAY_MS);
+      setTimeout(
+        () => PerformanceUtils.preloadNextQuote(),
+        URL_PRELOAD_DELAY_MS,
+      );
       QuoteUtils.updateBookmarkCounter();
       return;
     }
@@ -2046,7 +2104,10 @@ document.addEventListener("DOMContentLoaded", () => {
     runBootSequence(() => {
       state.booting = false;
       setRandomQuote();
-      setTimeout(() => PerformanceUtils.preloadNextQuote(), URL_PRELOAD_DELAY_MS);
+      setTimeout(
+        () => PerformanceUtils.preloadNextQuote(),
+        URL_PRELOAD_DELAY_MS,
+      );
       QuoteUtils.updateBookmarkCounter();
     });
   });

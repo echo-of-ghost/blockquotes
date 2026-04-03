@@ -453,7 +453,7 @@ body::after {
   --crt-tilt-x: 0.25deg;
   /* Chromatic aberration: P4 aged white — slight blue-channel ghost from phosphor shift */
   --chroma-offset: 0.5px;
-  --chroma-opacity: 0.10;
+  --chroma-opacity: 0.1;
   /* Burn-in: P4 white burns fastest — VT220s notoriously ghosted after sustained use */
   --burn-in-opacity: 0.055;
 }
@@ -562,16 +562,16 @@ body::after {
   --crt-perspective: 1400px;
   --crt-tilt-x: 0.6deg;
   --chroma-offset: 0.8px;
-  --chroma-opacity: 0.10;
+  --chroma-opacity: 0.1;
   /* Burn-in: P31 very fast decay (<1ms) — minimal accumulation, most resistant of greens */
   --burn-in-opacity: 0.03;
 }
 
-/* DEC VT05 — P4 white phosphor, 72×20, 1972 teletype-era terminal
+/* DEC VT05 — P4 white phosphor, 72×20, 1970 teletype-era terminal
    P4 is a blue-white daylight phosphor. At lower brightness the
    slight warm cast from the glass envelope tints it towards cream.
    Background: very dark, almost black with blue hint */
-.theme-white {
+.theme-vt05-white {
   --theme-background: #0e0e0f;
   --primary-color: #d6d6c6;
   --primary-rgb: 214, 214, 198;
@@ -595,12 +595,12 @@ body::after {
   --crt-tilt-x: 0.4deg;
   /* Chromatic aberration: P4 white — blue fringe from broad-spectrum phosphor scatter */
   --chroma-offset: 0.5px;
-  --chroma-opacity: 0.10;
+  --chroma-opacity: 0.1;
   /* Burn-in: P4 white — fastest accumulation of any phosphor here */
   --burn-in-opacity: 0.055;
 }
 
-/* Wyse WY-50 — P134 amber phosphor, 80×24, 1983 (amber variant)
+/* Wyse WY-50 — P134 amber phosphor, 80×24, 1985 (amber variant)
    The terminal Wall Street ran on. Introduced at $695, half the price
    of the competition, it became Wyse's best-seller and the default
    screen on trading floors, bank back-offices, and brokerage houses
@@ -663,7 +663,7 @@ body::after {
   --scanline-size: 3px;
   --scanline-opacity: 0.038;
   /* P1: standard green efficiency, small 9" tube drives slightly above baseline */
-  --glow-intensity: 0.50;
+  --glow-intensity: 0.5;
   /* Warm-up: Commodore PET 2001 built-in 9" tube: ~1.8s */
   --warmup-duration: 1.8s;
   /* Barrel distortion: 9" built-in TV-type tube — significant curvature, 1977 design */
@@ -671,12 +671,12 @@ body::after {
   --crt-tilt-x: 0.8deg;
   /* Chromatic aberration: P1 single-gun — deflection fringe on 9" geometry */
   --chroma-offset: 0.8px;
-  --chroma-opacity: 0.10;
+  --chroma-opacity: 0.1;
   /* Burn-in: P1 ~20ms persistence — moderate accumulation with heavy use */
   --burn-in-opacity: 0.04;
   /* 50Hz PAL: scanline period for beat-frequency roll animation */
   --scanline-size: 4px;
-  --scanline-opacity: 0.040;
+  --scanline-opacity: 0.04;
 }
 
 /* DEC VT100 — amber phosphor, 80×24, 1978
@@ -751,7 +751,7 @@ body::after {
   --crt-tilt-x: 0.8deg;
   /* Chromatic aberration: P31 single-gun — deflection fringe at beam edges */
   --chroma-offset: 0.7px;
-  --chroma-opacity: 0.10;
+  --chroma-opacity: 0.1;
   /* Burn-in: P31 <1ms decay — most resistant of all, minimal accumulation */
   --burn-in-opacity: 0.03;
 }
@@ -784,9 +784,9 @@ body::after {
   --warmup-duration: 4s;
   /* Barrel distortion: consumer CRT television — most curved display in this set */
   --crt-perspective: 900px;
-  --crt-tilt-x: 1.0deg;
+  --crt-tilt-x: 1deg;
   /* Chromatic aberration: NTSC RF composite — real chroma bleed, comb filter recalibration */
-  --chroma-offset: 2.0px;
+  --chroma-offset: 2px;
   --chroma-opacity: 0.22;
   /* Burn-in: P22 composite phosphors — consumer TVs resist burn-in better */
   --burn-in-opacity: 0.03;
@@ -1002,7 +1002,7 @@ main {
     0 0 3px rgba(118, 255, 118, 0.24),
     0 0 10px rgba(80, 220, 80, 0.06);
 }
-.theme-white #quote-container {
+.theme-vt05-white #quote-container {
   /* P4 white — lower perceived brightness than green/amber */
   color: rgba(214, 214, 198, 0.86);
   /* VT05 P4: faintest of all — barely perceptible warm-white halo */
@@ -1357,7 +1357,7 @@ a:focus-visible {
   filter: drop-shadow(0 0 4px rgba(118, 255, 118, 0.3)) !important;
   -webkit-filter: drop-shadow(0 0 4px rgba(118, 255, 118, 0.3)) !important;
 }
-.theme-white .bitcoin-b {
+.theme-vt05-white .bitcoin-b {
   fill: #d6d6c6 !important;
   filter: drop-shadow(0 0 4px rgba(214, 214, 198, 0.26)) !important;
   -webkit-filter: drop-shadow(0 0 4px rgba(214, 214, 198, 0.26)) !important;

@@ -12,12 +12,12 @@ export const themes = [
   "teletype-blue-green", // DEC VT220, 1983 — P4 white (blue-green aged), 80×24, Unix/ANSI
   "pet2001-green", // Commodore PET 2001-N, 1979 — P1 green phosphor, 40×25
   "ibm3279-bitcoin-orange", // IBM 3279, 1979 — custom bitcoin orange, cypherpunk homage
-  "wyse50-amber", // Wyse WY-50, 1983 — P134 amber phosphor, 80×24, Wall Street
+  "wyse50-amber", // Wyse WY-50, 1985 — P134 amber phosphor, 80×24, Wall Street
   "zenith-green", // Zenith Z-19, 1979 — P1 green phosphor, 80×24, CP/M and Unix
   "adm3a-green", // Lear Siegler ADM-3A, 1976 — P1 green (warm), the terminal vi was written on
   "kaypro-green", // Kaypro II, 1982 — Toshiba P31 green phosphor, 80×24, CP/M 2.2
-  "white", // DEC VT05, 1972 — P4 white phosphor, 72×20, teletype-era DEC
-  "vt100-amber", // DEC VT100, 1978 — amber phosphor (type uncertain), 80×24, the canonical terminal
+  "vt05-white", // DEC VT05, 1970 — P4 white phosphor, 72×20, teletype-era DEC
+  "vt100-amber", // DEC VT100, 1978 — P3 amber phosphor, 80×24, the canonical terminal
   "apple2-green", // Apple II, 1977 — P31 green phosphor (Sanyo monitor), 40×24
   "commodore64", // Commodore 64, 1982 — VIC-II NTSC composite, 40×25
 ];
@@ -35,8 +35,8 @@ export const themeNames = {
   "zenith-green": "Zenith Z-19 — P1 green phosphor",
   "adm3a-green": "ADM-3A — P1 green phosphor (the vi terminal)",
   "kaypro-green": "Kaypro II — P31 green phosphor",
-  white: "DEC VT05 — P4 white phosphor",
-  "vt100-amber": "DEC VT100 — amber phosphor",
+  "vt05-white": "DEC VT05 — P4 white phosphor",
+  "vt100-amber": "DEC VT100 — P3 amber phosphor",
   "apple2-green": "Apple II — P31 green phosphor",
   commodore64: "Commodore 64 — VIC-II NTSC",
 };
@@ -51,15 +51,15 @@ export const themeNames = {
   configured baud rate (1 start + 7/8 data + 1/2 stop bits; 8N1 = 10 bits).
   ms per character = 10000 / baud.
 
-  IBM 3279:       9600 baud — 3274 controller default (EBCDIC async mode)
+  IBM 3279:       9600 baud — simulated; 3279 was synchronous block-mode (no serial baud)
   DEC VT220:      9600 baud — factory default; user-configurable up to 19200
-  PET 2001:        300 baud — Commodore serial IEC bus, BASIC PRINT output
-  Bitcoin orange: 9600 baud — same IBM 3279 chassis
+  PET 2001:       1200 baud — IEEE-488 parallel, not serial; simulated for effect
+  Bitcoin orange: 9600 baud — simulated; same IBM 3279 chassis
   Wyse WY-50:     9600 baud — RS-232 default, common Wall Street config
-  Zenith Z-19:    9600 baud — CP/M BIOS default
+  Zenith Z-19:    9600 baud — RS-232, common Unix config
   ADM-3A:         9600 baud — RS-232, common Unix lab config
-  Kaypro II:      9600 baud — CP/M BIOS default
-  DEC VT05:       2400 baud — pre-RS-232 era; teletype-speed default
+  Kaypro II:      9600 baud — serial port default
+  DEC VT05:       110 baud  — teletype-speed ASR-33 compatibility; later models 300-1200
   DEC VT100:      9600 baud — factory default; famously slow at large redraws
   Apple II:       9600 baud — Super Serial Card default
   Commodore 64:   1200 baud — user-port modem, BASIC print loop timing
@@ -68,13 +68,13 @@ export const themeNames = {
 export const themeBaudRates = {
   "ibm3279-green": 9600,
   "teletype-blue-green": 9600,
-  "pet2001-green": 300,
+  "pet2001-green": 1200,
   "ibm3279-bitcoin-orange": 9600,
   "wyse50-amber": 9600,
   "zenith-green": 9600,
   "adm3a-green": 9600,
   "kaypro-green": 9600,
-  white: 2400,
+  "vt05-white": 300,
   "vt100-amber": 9600,
   "apple2-green": 9600,
   commodore64: 1200,
@@ -93,13 +93,13 @@ export const themeBaudRates = {
 export const themePauseDurations = {
   "ibm3279-green": 2800,
   "teletype-blue-green": 2500,
-  "pet2001-green": 4000, // 300 baud — everything is slow
+  "pet2001-green": 3500,
   "ibm3279-bitcoin-orange": 2800,
   "wyse50-amber": 2500,
   "zenith-green": 2800,
   "adm3a-green": 2500,
   "kaypro-green": 2800,
-  white: 3500, // VT05 teletype era — deliberate pace
+  "vt05-white": 4500, // VT05 teletype era — deliberate pace, 300 baud feel
   "vt100-amber": 4200, // VT100: languid blink, languid feel
   "apple2-green": 2800,
   commodore64: 3800, // 1200 baud — BASIC output is leisurely
@@ -116,7 +116,7 @@ export const themePauseDurations = {
     ADM-3A         — Unix csh (BSD): '%' (Bill Joy's shell at UC Berkeley)
     Kaypro II      — CP/M 2.2: 'A>' (default drive prompt)
     DEC VT05       — early Unix: '$'
-    DEC VT100      — VAX/VMS csh: '%'
+    DEC VT100      — VAX/VMS DCL: '$' (not csh %)
     Apple II       — Applesoft BASIC: ']' (the iconic right-bracket)
     Commodore 64   — BASIC V2: '' (blank — cursor after READY.)
 */
@@ -130,8 +130,8 @@ export const themePrompts = {
   "zenith-green": "A>",
   "adm3a-green": "%",
   "kaypro-green": "A>",
-  white: "$",
-  "vt100-amber": "%",
+  "vt05-white": "$",
+  "vt100-amber": "$",
   "apple2-green": "]",
   commodore64: "",
 };
@@ -146,11 +146,11 @@ export const themePrompts = {
   PET 2001:      ~18ms  — 6502 1MHz writes 1000 bytes + 1 frame sync
   Bitcoin orange: ~50ms — same IBM 3279 chassis
   Wyse WY-50:    ~25ms  — 8031 firmware screen clear, 14" tube
-  Zenith Z-19:   ~25ms  — CP/M BDOS CLS, firmware-dependent
-  ADM-3A:        ~17ms  — TTL hardware counter reset, 1 frame
-  Kaypro II:     ~25ms  — CP/M BDOS CLS
+  Zenith Z-19:   ~25ms  — Z80 firmware, ~1.5 frames
+  ADM-3A:        ~17ms  — hardware clear, 1 frame
+  Kaypro II:     ~25ms  — Z80 firmware screen clear
   VT05:          ~120ms — teletype-era shift register, character-by-character
-  VT100:         ~47ms  — firmware nulls + amber phosphor ~10–14ms estimated persistence ghost
+  VT100:         ~33ms  — firmware erase sequence + 2 frames
   Apple II:      ~18ms  — HOME (CALL -936), 960 bytes + 1 frame
   Commodore 64:  ~17ms  — KERNAL CHROUT 1000 spaces + 1 frame
 */
@@ -164,8 +164,8 @@ export const themeBlackout = {
   "zenith-green": 25,
   "adm3a-green": 17,
   "kaypro-green": 25,
-  white: 120,
-  "vt100-amber": 47,
+  "vt05-white": 120,
+  "vt100-amber": 33,
   "apple2-green": 18,
   commodore64: 17,
 };
@@ -184,7 +184,7 @@ export const themePhosphorColors = {
   "zenith-green": "#7FFF7F",
   "adm3a-green": "#A8FF60",
   "kaypro-green": "#76FF76",
-  white: "#D6D6C6",
+  "vt05-white": "#D6D6C6",
   "vt100-amber": "#FFB000",
   "apple2-green": "#24FF52",
   commodore64: "#7469C8",
@@ -219,16 +219,14 @@ export const themeBootLines = {
     { text: "blockquotes.sh v1.0 — phosphor terminal ready", speed: 26 },
     { text: "loading quote database.................. ok", speed: 30 },
   ],
-  white: [
-    { text: "RT-11SJ  V04.00", speed: 20 },
-    { text: ".RUN BLOCKQUOTES", speed: 26 },
+  "vt05-white": [
+    { text: "VT05", speed: 20 },
     { text: "BLOCKQUOTES.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 28 },
     { text: "LOADING QUOTE DATABASE.................. OK", speed: 30 },
   ],
   "adm3a-green": [
-    { text: "4.2 BSD UNIX (ucbvax)", speed: 20 },
     { text: "login: blockquotes", speed: 26 },
-    { text: "Last login: Sat Mar 15 03:42 on ttya", speed: 22 },
+    { text: "Last login: Sat Mar 15 03:42 on tty0", speed: 22 },
     { text: "blockquotes.sh v1.0 — phosphor terminal ready", speed: 26 },
     { text: "loading quote database.................. ok", speed: 30 },
   ],
@@ -289,11 +287,11 @@ export const themeHelpHeaders = {
   "ibm3279-bitcoin-orange": "HELP - BLOCKQUOTES ISPF FUNCTION KEYS",
   "teletype-blue-green": "usage: blockquotes [key]",
   "wyse50-amber": "usage: blockquotes [key]",
-  white: "usage: blockquotes [key]",
+  "vt05-white": "usage: blockquotes [key]",
   "adm3a-green": "usage: blockquotes [key]",
   "zenith-green": "BLOCKQUOTES HELP",
   "kaypro-green": "BLOCKQUOTES HELP",
-  "vt100-amber": "BLOCKQUOTES - HELP topic",
+  "vt100-amber": "HELP BLOCKQUOTES",
   "pet2001-green": "READY.",
   commodore64: "READY.",
   "apple2-green": "]CATALOG - BLOCKQUOTES.SH",
