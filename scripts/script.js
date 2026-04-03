@@ -1443,7 +1443,12 @@ function handleBookmarkListKey(event) {
   } else if (key === "ArrowDown" || key.toLowerCase() === "n") {
     state.bookmarkListIndex = Math.min(total - 1, state.bookmarkListIndex + 1);
     renderBookmarkList();
-  } else if (key === "Enter" || key === " ") {
+  } else if (key.toLowerCase() === "e") {
+    exportBookmarksAsJSON();
+  } else if (key === " ") {
+    event.preventDefault();
+    exitBookmarkList();
+  } else if (key === "Enter") {
     event.preventDefault();
     const selected = state.bookmarkedQuotes[state.bookmarkListIndex];
     if (selected) {
@@ -1657,6 +1662,7 @@ function exportBookmarksAsJSON() {
   a.download = `blockquotes-bookmarks-${new Date().toISOString().slice(0, 10)}.json`;
   a.style.display = "none";
   document.body.appendChild(a);
+  a.addEventListener("click", (e) => e.stopPropagation(), { once: true });
   a.click();
   setTimeout(() => {
     document.body.removeChild(a);
