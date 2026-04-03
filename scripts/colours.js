@@ -173,7 +173,7 @@ if (document.readyState === "loading") {
 // =========================================
 
 document.addEventListener("keydown", (event) => {
-  if (event.key.toLowerCase() === "t") {
+  if (event.key.toLowerCase() === "t" && !document.body.classList.contains("search-mode")) {
     changeTheme();
   }
 });

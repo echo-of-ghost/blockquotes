@@ -10,15 +10,15 @@
 export const themes = [
   "ibm3279-green", // IBM 3279, 1979 — P1 green phosphor, 80×24, mainframe TSO/CMS
   "teletype-blue-green", // DEC VT220, 1983 — P4 white (blue-green aged), 80×24, Unix/ANSI
-  "pet2001-green", // Commodore PET 2001-N, 1979 — P31 green phosphor, 40×25
+  "pet2001-green", // Commodore PET 2001-N, 1979 — P1 green phosphor, 40×25
   "ibm3279-bitcoin-orange", // IBM 3279, 1979 — custom bitcoin orange, cypherpunk homage
   "wyse50-amber", // Wyse WY-50, 1983 — P134 amber phosphor, 80×24, Wall Street
   "zenith-green", // Zenith Z-19, 1979 — P1 green phosphor, 80×24, CP/M and Unix
   "adm3a-green", // Lear Siegler ADM-3A, 1976 — P1 green (warm), the terminal vi was written on
   "kaypro-green", // Kaypro II, 1982 — Toshiba P31 green phosphor, 80×24, CP/M 2.2
   "white", // DEC VT05, 1972 — P4 white phosphor, 72×20, teletype-era DEC
-  "vt100-amber", // DEC VT100, 1978 — P3 amber phosphor, 80×24, the canonical terminal
-  "apple2-green", // Apple II, 1977 — P1 green phosphor, 40×24, 6502 interrupt blink
+  "vt100-amber", // DEC VT100, 1978 — amber phosphor (type uncertain), 80×24, the canonical terminal
+  "apple2-green", // Apple II, 1977 — P31 green phosphor (Sanyo monitor), 40×24
   "commodore64", // Commodore 64, 1982 — VIC-II NTSC composite, 40×25
 ];
 
@@ -29,15 +29,15 @@ export const themes = [
 export const themeNames = {
   "ibm3279-green": "IBM 3279 — P1 green phosphor",
   "teletype-blue-green": "DEC VT220 — P4 blue-green",
-  "pet2001-green": "Commodore PET 2001-N — P31 green",
+  "pet2001-green": "Commodore PET 2001-N — P1 green",
   "ibm3279-bitcoin-orange": "IBM 3279 — bitcoin orange",
   "wyse50-amber": "Wyse WY-50 — P134 amber (Wall Street)",
   "zenith-green": "Zenith Z-19 — P1 green phosphor",
   "adm3a-green": "ADM-3A — P1 green phosphor (the vi terminal)",
   "kaypro-green": "Kaypro II — P31 green phosphor",
   white: "DEC VT05 — P4 white phosphor",
-  "vt100-amber": "DEC VT100 — P3 amber phosphor",
-  "apple2-green": "Apple II — P1 green phosphor",
+  "vt100-amber": "DEC VT100 — amber phosphor",
+  "apple2-green": "Apple II — P31 green phosphor",
   commodore64: "Commodore 64 — VIC-II NTSC",
 };
 
@@ -150,7 +150,7 @@ export const themePrompts = {
   ADM-3A:        ~17ms  — TTL hardware counter reset, 1 frame
   Kaypro II:     ~25ms  — CP/M BDOS CLS
   VT05:          ~120ms — teletype-era shift register, character-by-character
-  VT100:         ~47ms  — firmware nulls + P3 amber ~14ms persistence ghost
+  VT100:         ~47ms  — firmware nulls + amber phosphor ~10–14ms estimated persistence ghost
   Apple II:      ~18ms  — HOME (CALL -936), 960 bytes + 1 frame
   Commodore 64:  ~17ms  — KERNAL CHROUT 1000 spaces + 1 frame
 */
@@ -353,9 +353,6 @@ export const WHEEL_DEBOUNCE_MS = 100;
 
 /** How long the toast status line remains visible */
 export const TOAST_DURATION_MS = 2200;
-
-/** How long the help screen stays before resuming the quote cycle */
-export const HELP_RESUME_MS = 2500;
 
 /** Typing speed for the first (header) line of the help screen */
 export const HELP_HEADER_TYPE_SPEED_MS = 40;

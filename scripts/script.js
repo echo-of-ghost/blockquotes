@@ -17,7 +17,6 @@ import {
   AUTHOR_CLAUSE_PAUSE_MS,
   BOOT_LINE_PAUSE_MS,
   BOOT_FINAL_PAUSE_MS,
-  HELP_RESUME_MS,
   HELP_HEADER_TYPE_SPEED_MS,
   HELP_LINE_TYPE_SPEED_MS,
   HELP_HEADER_PAUSE_MS,
@@ -100,6 +99,20 @@ const state = {
   historyPosition: -1,
   /** True during the boot sequence — blocks all user input */
   booting: true,
+  /** True while the help screen is displayed — any key/click exits */
+  helpMode: false,
+  /** True when vim-style / search mode is active */
+  searchMode: false,
+  /** Current search query string */
+  searchQuery: "",
+  /** True when clock display mode is active */
+  clockMode: false,
+  /** setInterval ID for the clock tick */
+  clockIntervalId: null,
+  /** True when the bookmark list view is active */
+  bookmarkListMode: false,
+  /** Currently highlighted bookmark index in list view */
+  bookmarkListIndex: 0,
   /** Accumulated wheel delta between debounce ticks */
   wheelDelta: 0,
   /** Timestamp of the last wheel-triggered navigation */
@@ -579,6 +592,11 @@ export const PerformanceUtils = {
       clearTimeout(state.wheelTimeout);
       state.wheelTimeout = null;
     }
+    if (state.clockIntervalId) {
+      clearInterval(state.clockIntervalId);
+      state.clockIntervalId = null;
+      state.clockMode = false;
+    }
   },
 
   /**
@@ -726,6 +744,7 @@ function displayQuoteWithTransition(
   preformattedSource = null,
 ) {
   PerformanceUtils.cancelAllTimers();
+  hidePositionIndicator();
   elements.quoteContainer.innerHTML = "";
   displayQuote(
     quote,
@@ -831,7 +850,7 @@ function displayQuote(
       if (authorEl) {
         authorEl.style.textTransform = state.isUppercase ? "uppercase" : "none";
       }
-
+      updatePositionIndicator();
     } catch (e) {
       console.error("Error rendering quote:", e, { quoteText, quote });
       elements.quoteContainer.textContent = "Error displaying quote";
@@ -1060,14 +1079,16 @@ function runBootSequence(onComplete) {
 /**
  * Types the keyboard shortcut reference into the quote container,
  * using the active theme's HELP idiom as the header.
- * Automatically resumes the quote cycle after HELP_RESUME_MS.
+ * Stays on screen until the user presses any key or clicks.
  */
 function showHelp() {
   if (state.booting) return;
 
   PerformanceUtils.cancelAllTimers();
+  hidePositionIndicator();
   state.isTyping = false;
   state.isPaused = true;
+  state.helpMode = true;
 
   const currentTheme =
     themes.find((t) => document.body.classList.contains(`theme-${t}`)) ||
@@ -1079,27 +1100,34 @@ function showHelp() {
     "SPACE/CLICK    finish typing / next quote",
     "N              next quote",
     "P              previous quote",
+    "/              search quotes",
     "C              copy quote",
     "X              share on x/twitter",
     "L              copy share link",
     "B              bookmark quote",
-    "V              view bookmarks",
+    "SHIFT+V        view bookmark list",
     "E              export bookmarks",
     "U              toggle uppercase",
     "T              cycle theme",
     "?              show this help",
   ];
 
+  /** Renders the full help list instantly — used when user presses ? again
+   *  mid-type, or when typing completes. */
+  function renderFull() {
+    elements.quoteContainer.innerHTML =
+      lines.map((l) => `<span class="text-selected">${l}</span>`).join("\n") +
+      `\n<span class="cursor-block" aria-hidden="true"></span>`;
+    showToast("any key to close");
+  }
+
   let lineIndex = 0;
   const typed = [];
 
   function nextLine() {
+    // All lines typed — park with blinking cursor and wait for dismissal.
     if (lineIndex >= lines.length) {
-      state.timeoutId = setTimeout(() => {
-        state.isPaused = false;
-        elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
-        setRandomQuote();
-      }, HELP_RESUME_MS);
+      renderFull();
       return;
     }
 
@@ -1113,6 +1141,8 @@ function showHelp() {
       lineIndex === 1 ? HELP_HEADER_PAUSE_MS : HELP_LINE_PAUSE_MS;
 
     function tick() {
+      // If help was exited mid-type (e.g. ? pressed twice), stop quietly.
+      if (!state.helpMode) return;
       const current = text.slice(0, i + 1);
       elements.quoteContainer.innerHTML =
         typed.map((l) => `<span class="text-selected">${l}</span>`).join("\n") +
@@ -1132,6 +1162,283 @@ function showHelp() {
 
   elements.quoteContainer.textContent = "";
   nextLine();
+}
+
+/**
+ * Exits the help screen and resumes the quote cycle.
+ * Called by any key press or click while state.helpMode is true.
+ */
+function exitHelp() {
+  PerformanceUtils.cancelAllTimers();
+  state.helpMode = false;
+  state.isPaused = false;
+  elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
+  setRandomQuote();
+}
+
+// =========================================
+// QUOTE POSITION INDICATOR
+// =========================================
+
+/**
+ * Updates the [N / TOTAL] position badge in the bottom-right corner.
+ * Called when a quote parks so users know corpus size and current position.
+ */
+function updatePositionIndicator() {
+  if (!state.currentQuote || !state.quotes) return;
+  const index = state.quotes.findIndex(
+    (q) => q.text === state.currentQuote.text && q.author === state.currentQuote.author,
+  );
+  let el = document.querySelector(".bq-position");
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "bq-position";
+    document.body.appendChild(el);
+  }
+  if (index === -1) {
+    el.classList.add("hidden");
+    return;
+  }
+  el.textContent = `[${index + 1} / ${state.quotes.length}]`;
+  el.classList.remove("hidden");
+}
+
+/** Hides the position badge — called when entering non-quote modes. */
+function hidePositionIndicator() {
+  const el = document.querySelector(".bq-position");
+  if (el) el.classList.add("hidden");
+}
+
+// =========================================
+// CLOCK MODE
+// =========================================
+
+/**
+ * Toggles a full-screen terminal clock. Press W again or any key to exit.
+ * Displays HH:MM:SS with the current date on the author line, updating every second.
+ */
+function enterClockMode() {
+  if (state.booting) return;
+  if (state.clockMode) {
+    exitClockMode();
+    return;
+  }
+  PerformanceUtils.cancelAllTimers();
+  hidePositionIndicator();
+  state.clockMode = true;
+  state.isPaused = true;
+  state.isTyping = false;
+
+  function tick() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    const days = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
+    const months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+    const date = `${days[now.getDay()]} ${String(now.getDate()).padStart(2, "0")} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    const prompt = getThemePrompt() || ">";
+    elements.quoteContainer.innerHTML =
+      `<span class="text-selected">${hh}:${mm}:${ss}</span>\n` +
+      `<span class="author">${prompt} ${date}<span class="cursor-block" aria-hidden="true"></span></span>`;
+  }
+
+  tick();
+  state.clockIntervalId = setInterval(tick, 1000);
+  showToast("clock — any key to exit");
+}
+
+/** Exits clock mode and resumes the quote cycle. */
+function exitClockMode() {
+  if (state.clockIntervalId) {
+    clearInterval(state.clockIntervalId);
+    state.clockIntervalId = null;
+  }
+  state.clockMode = false;
+  state.isPaused = false;
+  elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
+  setRandomQuote();
+}
+
+// =========================================
+// VIM-STYLE SEARCH  ( / )
+// =========================================
+
+/** Enters search mode — renders a live / prompt on the status line. */
+function enterSearchMode() {
+  if (state.booting || state.clockMode || state.bookmarkListMode) return;
+  state.searchMode = true;
+  state.searchQuery = "";
+  document.body.classList.add("search-mode");
+  renderSearchPrompt();
+}
+
+/** Renders the live search prompt with a blinking cursor on the status line. */
+function renderSearchPrompt() {
+  let el = document.querySelector(".bq-status");
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "bq-status";
+    document.body.appendChild(el);
+  }
+  const prompt = getThemePrompt() || ">";
+  // Reuse cursor-block for the input caret — same phosphor blink, no extra CSS needed
+  el.innerHTML = `${prompt} /${state.searchQuery}<span class="cursor-block" aria-hidden="true"></span>`;
+  el.classList.remove("hidden");
+}
+
+/**
+ * Handles keystrokes while search mode is active.
+ * Printable characters append to the query; Backspace trims; Enter commits; Escape cancels.
+ *
+ * @param {KeyboardEvent} event
+ */
+function handleSearchKey(event) {
+  const key = event.key;
+  if (key === "Escape") {
+    exitSearchMode(false);
+  } else if (key === "Enter") {
+    commitSearch();
+  } else if (key === "Backspace") {
+    state.searchQuery = state.searchQuery.slice(0, -1);
+    renderSearchPrompt();
+  } else if (key.length === 1) {
+    state.searchQuery += key;
+    renderSearchPrompt();
+  }
+}
+
+/**
+ * Executes the search against loaded quotes (text, author, source).
+ * Picks a random result from all matches; shows a count toast when multiple match.
+ */
+function commitSearch() {
+  const query = state.searchQuery.toLowerCase().trim();
+  exitSearchMode(true);
+  if (!query || !state.quotes) return;
+
+  const matches = state.quotes.filter(
+    (q) =>
+      q.text.toLowerCase().includes(query) ||
+      q.author.toLowerCase().includes(query) ||
+      (q.source && q.source.toLowerCase().includes(query)),
+  );
+
+  if (matches.length === 0) {
+    showToast(`no match: ${query}`);
+    return;
+  }
+
+  const hit = matches[Math.floor(Math.random() * matches.length)];
+  state.isPaused = false;
+  displayQuoteWithTransition(hit, 0, true);
+  if (matches.length > 1) showToast(`${matches.length} matches`);
+}
+
+/**
+ * Exits search mode.
+ *
+ * @param {boolean} keepToast - When true, leaves any active toast visible (e.g. match count).
+ */
+function exitSearchMode(keepToast = false) {
+  state.searchMode = false;
+  state.searchQuery = "";
+  document.body.classList.remove("search-mode");
+  if (!keepToast) {
+    const el = document.querySelector(".bq-status");
+    if (el) el.classList.add("hidden");
+  }
+}
+
+// =========================================
+// BOOKMARK LIST VIEW  ( Shift+V )
+// =========================================
+
+/**
+ * Opens the scannable bookmark list view.
+ * Shows all saved bookmarks as a numbered reverse-video list.
+ * Arrow keys / N / P navigate; Enter or number key selects; Escape exits.
+ */
+function showBookmarkList() {
+  if (state.booting) return;
+  if (state.bookmarkedQuotes.length === 0) {
+    showToast("no bookmarks — press B to save quotes");
+    return;
+  }
+  PerformanceUtils.cancelAllTimers();
+  hidePositionIndicator();
+  state.bookmarkListMode = true;
+  state.bookmarkListIndex = 0;
+  state.isPaused = true;
+  state.isTyping = false;
+  renderBookmarkList();
+  showToast("↑↓ navigate · enter select · esc close");
+}
+
+/** Renders the bookmark list, highlighting the currently selected row in reverse-video. */
+function renderBookmarkList() {
+  const total = state.bookmarkedQuotes.length;
+  const selected = state.bookmarkListIndex;
+  const header = `BOOKMARKS [${total} saved]`;
+
+  const lines = state.bookmarkedQuotes.map((q, i) => {
+    const num = String(i + 1).padStart(2, " ");
+    const rawAuthor = q.author
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+      .replace(/^"|"$/g, "")
+      .trim();
+    const rawText = q.text.length > 44 ? q.text.slice(0, 44) + "…" : q.text;
+    const line = `${num}  \u201c${rawText}\u201d \u2014 ${rawAuthor}`;
+    return i === selected
+      ? `<span class="text-selected">${line}<span class="cursor-block" aria-hidden="true"></span></span>`
+      : `<span>${line}</span>`;
+  });
+
+  elements.quoteContainer.innerHTML =
+    `<span class="text-selected">${header}</span>\n\n` + lines.join("\n");
+}
+
+/**
+ * Handles keystrokes while the bookmark list is active.
+ *
+ * @param {KeyboardEvent} event
+ */
+function handleBookmarkListKey(event) {
+  const key = event.key;
+  const total = state.bookmarkedQuotes.length;
+
+  if (key === "Escape" || key.toLowerCase() === "q") {
+    exitBookmarkList();
+  } else if (key === "ArrowUp" || key.toLowerCase() === "p") {
+    state.bookmarkListIndex = Math.max(0, state.bookmarkListIndex - 1);
+    renderBookmarkList();
+  } else if (key === "ArrowDown" || key.toLowerCase() === "n") {
+    state.bookmarkListIndex = Math.min(total - 1, state.bookmarkListIndex + 1);
+    renderBookmarkList();
+  } else if (key === "Enter" || key === " ") {
+    event.preventDefault();
+    const selected = state.bookmarkedQuotes[state.bookmarkListIndex];
+    if (selected) {
+      state.bookmarkListMode = false;
+      state.isPaused = false;
+      displayQuoteWithTransition(selected, 0, true);
+    }
+  } else {
+    // Number keys 1–9 jump directly to that row
+    const num = parseInt(key, 10);
+    if (!isNaN(num) && num >= 1 && num <= total) {
+      state.bookmarkListIndex = num - 1;
+      renderBookmarkList();
+    }
+  }
+}
+
+/** Exits the bookmark list and resumes the quote cycle. */
+function exitBookmarkList() {
+  state.bookmarkListMode = false;
+  state.isPaused = false;
+  elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
+  setRandomQuote();
 }
 
 // =========================================
@@ -1286,29 +1593,6 @@ function toggleBookmark() {
   QuoteUtils.updateBookmarkCounter();
 }
 
-/**
- * Advances to the next bookmarked quote in the saved list.
- * Shows a toast with the current position in the list.
- */
-function viewNextBookmarkedQuote() {
-  if (state.bookmarkedQuotes.length === 0) {
-    QuoteUtils.announceAction(
-      "No bookmarked quotes yet. Press B to bookmark the current quote.",
-    );
-    return;
-  }
-
-  const bookmarkedQuote = state.bookmarkedQuotes[state.currentBookmarkIndex];
-  state.currentBookmarkIndex =
-    (state.currentBookmarkIndex + 1) % state.bookmarkedQuotes.length;
-
-  displayQuoteWithTransition(bookmarkedQuote, 0, true);
-
-  const total = state.bookmarkedQuotes.length;
-  const position =
-    state.currentBookmarkIndex === 0 ? total : state.currentBookmarkIndex;
-  QuoteUtils.announceAction(`Viewing bookmark ${position} of ${total}`);
-}
 
 /**
  * Exports all bookmarked quotes as a dated JSON file download.
@@ -1492,6 +1776,11 @@ function advanceToNextQuote() {
 function handleClick(event) {
   if (state.booting) return;
 
+  if (state.helpMode) { exitHelp(); return; }
+  if (state.clockMode) { exitClockMode(); return; }
+  if (state.bookmarkListMode) { exitBookmarkList(); return; }
+  if (state.searchMode) { exitSearchMode(false); return; }
+
   if (event.target.closest(".bolt-link")) {
     LightningTip.handleBoltClick(event);
     document.activeElement?.blur();
@@ -1538,11 +1827,37 @@ function handleClick(event) {
 function handleKeyPress(event) {
   if (state.booting) return;
 
+  // Mode intercepts — capture all input before normal routing
+  if (state.helpMode) {
+    exitHelp();
+    return;
+  }
+  if (state.searchMode) {
+    event.preventDefault();
+    handleSearchKey(event);
+    return;
+  }
+  if (state.bookmarkListMode) {
+    event.preventDefault();
+    handleBookmarkListKey(event);
+    return;
+  }
+  if (state.clockMode) {
+    exitClockMode();
+    return;
+  }
+
   const key = event.key.toLowerCase();
 
   if (event.key === " ") {
     event.preventDefault();
     handleClick(event);
+    return;
+  }
+
+  // Shift+V — bookmark list view (checked before plain v in guardedActions)
+  if (event.shiftKey && key === "v") {
+    showBookmarkList();
     return;
   }
 
@@ -1564,29 +1879,18 @@ function handleKeyPress(event) {
     b: () => {
       if (state.currentQuote) toggleBookmark();
     },
-    v: () => {
-      if (!state.isPaused || state.isTyping) return;
-      viewNextBookmarkedQuote();
-    },
+    w: () => enterClockMode(),
     l: () => {
       if (state.currentQuote) copyShareableURL();
     },
     e: () => exportBookmarksAsJSON(),
   };
 
-  // Unguarded — no debounce needed for these
-  if (key === "c" && state.currentQuote) {
-    copyCurrentQuote();
-    return;
-  }
-  if (event.key === "?") {
-    showHelp();
-    return;
-  }
-  if (key === "r") {
-    location.reload();
-    return;
-  }
+  // Unguarded — no debounce needed
+  if (key === "c" && state.currentQuote) { copyCurrentQuote(); return; }
+  if (event.key === "?") { showHelp(); return; }
+  if (event.key === "/") { enterSearchMode(); return; }
+  if (key === "r") { location.reload(); return; }
 
   if (guardedActions[key]) {
     withProcessing(guardedActions[key]);

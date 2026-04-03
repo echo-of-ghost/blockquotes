@@ -24,6 +24,19 @@
   --font-size: clamp(1.4rem, 2.5vw, 2.5rem);
   --author-font-size: clamp(1.1rem, 2vw, 2rem);
   --letter-spacing: 0.015em;
+  /*
+     Three-tier type scale:
+       T1 — quote body:   clamp(1.4rem → 2.5rem)  hero
+       T2 — author line:  clamp(1.1rem → 2rem)     attribution
+       T3 — chrome:       clamp(0.72rem → 0.82rem) status / search / indicators
+       T4 — ambient:      clamp(0.65rem → 0.75rem) bookmark counter / position badge
+
+     T3 floor of 0.72rem = 11.5px comfortably clears the 11px absolute minimum
+     for secondary UI text on a high-DPI display. 0.82rem cap keeps it clearly
+     subordinate to T2 while remaining legible without squinting.
+  */
+  --chrome-font-size: clamp(0.72rem, 0.9vw + 0.15vh, 0.82rem);
+  --ambient-font-size: clamp(0.65rem, 0.8vw + 0.1vh, 0.75rem);
 
   /* Effects */
   --glow-intensity: 0.5;
@@ -64,11 +77,11 @@
  
    Real phosphor doesn't cut off instantly when the electron beam leaves —
    it decays exponentially. The rate depends on the phosphor type:
-     P4 (white) ~1ms  — barely perceptible, essentially instant
-     P3 (amber) ~14ms — warm orange corona lingers visibly
-     P1 (green) ~24ms — medium green ghost, slightly yellow at the edge
-     P31 (green) ~20ms — similar to P1, marginally faster
-     Wyse P134 (amber) ~12ms — golden amber, Wyse proprietary variant
+     P4  (white)        ~1–3ms  — barely perceptible, fast extinction
+     Amber (VT100/Wyse) ~10–14ms estimated — warm corona, type uncertain
+     P1  (green)        ~20ms   — medium green ghost, slightly yellow at edge
+     P31 (green)        <1ms    — faster than P4, essentially instant
+     Wyse P134 (amber)  ~12ms estimated — golden amber, proprietary
  
    The animation runs at the full blink period duration, delayed by half
    that period so it fires exactly when the cursor switches off. Duration
@@ -76,8 +89,9 @@
    re-firing mid-cycle, no flicker.
  
    The visible glow occupies only the first ~3% of the keyframe. At a
-   0.47s period that's ~14ms (P1 accurate). At 1.767s that's ~53ms —
-   longer than physical P3 decay but still imperceptible at that timescale.
+   0.47s period that's ~14ms (within P1's ~20ms window). At 1.767s that's
+   ~53ms — longer than any physical phosphor decay but imperceptible at
+   that timescale.
    The remaining 97% is silent (box-shadow: none), faithfully reproducing
    the hard off-state of the cursor between blinks.
 */
@@ -139,7 +153,7 @@
    Chromatic aberration flash — fired on theme switch via the .crt-switch class.
 
    Real behaviour differs by tube type:
-     Monochrome phosphor (P1/P3/P4/P31): no actual chromatic separation —
+     Monochrome phosphor (P1/P4/P31/amber): no actual chromatic separation —
        one wavelength, one gun. What exists is beam-geometry fringe from the
        deflection coil reaching its new equilibrium. Very subtle.
      NTSC composite (C64): genuine R/B chroma bleed from the TV's comb filter
@@ -316,15 +330,20 @@ body::after {
 /* =========================================
    THEME DEFINITIONS
    =========================================
-   Phosphor reference data:
-     P1  (green)  — peaks ~525 nm, medium decay ~24ms,
-                    warm yellow-green. IBM 3279, Zenith Z-19, Apple II
-     P3  (amber)  — peaks ~585 nm, shorter decay ~14ms,
-                    deep warm amber. DEC VT100
-     P4  (white)  — broad spectrum ~6500K, fast decay ~1ms.
-                    DEC VT05, VT220
-     P31 (green)  — brighter, cooler than P1. Commodore PET 2001-N
-     P134 (amber) — Wyse proprietary, ~580nm golden amber. Wyse WY-50
+   Phosphor reference data (corrected):
+     P1  (green)  — peaks ~525 nm, medium decay ~20ms,
+                    warm yellow-green. IBM 3279, Zenith Z-19, ADM-3A,
+                    Commodore PET 2001-N (green models), general CRTs.
+     P3  (amber)  — rare/poorly documented. NOT confirmed standard on VT100.
+                    May exist but exact specs unavailable.
+     P4  (white)  — broad spectrum, decay ~1–3ms.
+                    Early B&W TVs, TRS-80, Commodore PET (original white),
+                    DEC VT05, VT220.
+     P31 (green)  — brighter, cooler than P1, fast decay (<1ms).
+                    Oscilloscopes, Tektronix, Apple II (Sanyo monitor),
+                    Amdek terminals, Kaypro. NOT standard on PET 2001-N.
+     P134 (amber) — Wyse proprietary, ~580nm estimated. Exact specs
+                    not in public documentation. Wyse WY-50 and later.
  
    Cursor blink rates sourced from hardware/firmware:
      IBM 327x:    ~2.1 Hz (0.47s)  — hardware timer, mainframe documentation
@@ -337,7 +356,7 @@ body::after {
      PET 2001:    ~2.5 Hz (0.40s)  — BASIC ROM system timer
      DEC VT05:    ~1.7 Hz (0.60s)  — teletype-era, conservative estimate
  
-   Background blacks are NOT pure #000000 — real P1/P3 screens had a
+   Background blacks are NOT pure #000000 — real phosphor screens had a
    very slight tinted black from the faceplate glass and phosphor coating.
    ========================================= */
 
@@ -350,7 +369,7 @@ body::after {
   --primary-rgb: 87, 255, 140;
   --author-hover-decoration: underline;
   --cursor-blink-rate: 0.476s;
-  /* P1 phosphor: ~24ms decay, medium persistence, yellow-green halation.
+  /* P1 phosphor: ~20ms decay, medium persistence, yellow-green halation.
        Rate: 2.1Hz from IBM 3279 CE manual hardware timer = 1/2.1 = 0.476s */
   --cursor-afterglow:
     0 0 6px rgba(87, 255, 140, 0.55), 0 0 14px rgba(60, 200, 90, 0.2);
@@ -370,12 +389,12 @@ body::after {
   /* Chromatic aberration: single P1 gun, very slight deflection-coil fringe only */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.08;
-  /* Burn-in: P1 ~24ms persistence — moderate long-term accumulation */
+  /* Burn-in: P1 ~20ms persistence — moderate long-term accumulation */
   --burn-in-opacity: 0.04;
 }
 
 /* IBM 3279 Bitcoin Orange — custom phosphor homage.
-   Bitcoin's orange (#F7931A) shifted into the P3-adjacent amber territory,
+   Bitcoin's orange (#F7931A) shifted into the warm amber territory,
    married with the 3279 form factor. Cypherpunk editorial choice. */
 .theme-ibm3279-bitcoin-orange {
   --theme-background: #0b0800;
@@ -383,7 +402,7 @@ body::after {
   --primary-rgb: 255, 149, 0;
   --author-hover-decoration: underline;
   --cursor-blink-rate: 0.476s;
-  /* P3-adjacent: ~14ms decay but orange shift, warm amber halation.
+  /* Amber-adjacent: ~12–14ms estimated decay, warm orange halation.
        Rate: same IBM 3279 hardware timer, 0.476s */
   --cursor-afterglow:
     0 0 7px rgba(255, 149, 0, 0.6), 0 0 16px rgba(200, 80, 0, 0.22);
@@ -393,7 +412,7 @@ body::after {
   /* Scanlines: same IBM 3279 chassis, same dot pitch */
   --scanline-size: 3px;
   --scanline-opacity: 0.03;
-  /* P3-adjacent orange: warm wavelength, rich halation */
+  /* Amber-adjacent orange: warm wavelength, rich halation */
   --glow-intensity: 0.58;
   /* Warm-up: Same IBM 3279 chassis */
   --warmup-duration: 4s;
@@ -448,7 +467,7 @@ body::after {
   --primary-rgb: 127, 255, 127;
   --author-hover-decoration: underline;
   --cursor-blink-rate: 0.5s;
-  /* P1 purer variant: same ~24ms class but slightly cooler, less yellow halation */
+  /* P1 purer variant: same ~20ms class but slightly cooler, less yellow halation */
   --cursor-afterglow:
     0 0 6px rgba(127, 255, 127, 0.5), 0 0 13px rgba(80, 210, 80, 0.18);
   --cursor-afterglow-mid:
@@ -487,7 +506,7 @@ body::after {
   --primary-rgb: 168, 255, 96;
   --author-hover-decoration: underline;
   --cursor-blink-rate: 0.533s;
-  /* Lear Siegler P1 warm variant: ~22ms decay, yellow-shifted halation.
+  /* Lear Siegler P1 warm variant: ~20ms decay, yellow-shifted halation.
        Two-layer shadow: tight yellow-green core + wider cooler corona */
   --cursor-afterglow:
     0 0 6px rgba(168, 255, 96, 0.52), 0 0 14px rgba(120, 220, 60, 0.18);
@@ -586,9 +605,9 @@ body::after {
    of the competition, it became Wyse's best-seller and the default
    screen on trading floors, bank back-offices, and brokerage houses
    throughout the 1980s. The amber variant was preferred by traders
-   for all-day readability — warmer and more golden than DEC's P3.
-   P134 is Wyse's proprietary amber: ~580nm, slightly faster decay
-   than standard P3 (~12ms vs 14ms), more golden, less orange.
+   for all-day readability — warmer and more golden than VT100's amber.
+   P134 is Wyse's proprietary amber: ~580nm estimated, exact specs undocumented.
+   Estimated ~12ms decay, more golden and less orange than VT100.
    14" non-glare tube, 8031 microcontroller at 11MHz, 800×338.
    Cursor blink: ADM-31 clone, 60Hz÷32 = 0.533s period. */
 .theme-wyse50-amber {
@@ -597,8 +616,8 @@ body::after {
   --primary-rgb: 255, 190, 0;
   --author-hover-decoration: underline;
   --cursor-blink-rate: 0.533s;
-  /* P134 amber: ~12ms decay, slightly faster than standard P3.
-       Warm golden halation — less orange than VT100's P3, more honey.
+  /* P134 amber: ~12ms estimated decay, Wyse proprietary.
+       Warm golden halation — less orange than VT100's amber, more honey.
        Tighter corona than VT100 due to WY-50's praised non-glare tube. */
   --cursor-afterglow:
     0 0 7px rgba(255, 190, 0, 0.58), 0 0 16px rgba(200, 120, 0, 0.22);
@@ -609,7 +628,7 @@ body::after {
   --scanline-size: 3px;
   --scanline-opacity: 0.028;
   /* P134 amber: warm wavelength, moderate scatter — slightly less
-       than VT100's P3 due to the WY-50's anti-glare treatment */
+       than VT100's amber due to the WY-50's anti-glare treatment */
   --glow-intensity: 0.54;
   /* Warm-up: 14" tube, 45W PSU: ~2.5s */
   --warmup-duration: 2.5s;
@@ -622,10 +641,10 @@ body::after {
   --burn-in-opacity: 0.04;
 }
 
-/* Commodore PET 2001 — P31 green phosphor, 40×25
-   The original 1977 PET shipped with a white phosphor monitor,
-   but the 2001-N (1979) and most remembered units used P31 green:
-   brighter and slightly cooler/more saturated than P1.
+/* Commodore PET 2001 — P1 green phosphor, 40×25
+   The original 1977 PET shipped with a white P4 phosphor monitor.
+   The 2001-N (1979) green-screen models used standard P1, not P31 —
+   P31 is not documented as standard in Commodore PET hardware.
    PET BASIC ROM drove a fast ~2.5Hz blink via system timer. */
 .theme-pet2001-green {
   --theme-background: #060a06;
@@ -633,36 +652,38 @@ body::after {
   --primary-rgb: 0, 255, 68;
   --author-hover-decoration: underline;
   --cursor-blink-rate: 0.4s;
-  /* P31: brighter, cooler P1 variant, similar ~20ms decay, very saturated green halation */
+  /* P1 phosphor: ~20ms decay, medium persistence, saturated yellow-green halation.
+       9" tube drives harder than larger screens → vivid core, standard P1 corona. */
   --cursor-afterglow:
-    0 0 7px rgba(0, 255, 68, 0.58), 0 0 15px rgba(0, 200, 50, 0.22);
+    0 0 6px rgba(0, 255, 68, 0.52), 0 0 14px rgba(0, 200, 50, 0.18);
   --cursor-afterglow-mid:
-    0 0 5px rgba(0, 255, 68, 0.26), 0 0 10px rgba(0, 200, 50, 0.09);
+    0 0 4px rgba(0, 255, 68, 0.22), 0 0 9px rgba(0, 200, 50, 0.07);
   --cursor-decay: 0.2s;
   /* Scanlines: PET 2001 9" green tube, distinctly visible line structure */
   --scanline-size: 3px;
   --scanline-opacity: 0.038;
-  /* P31: brighter, higher efficiency than P1 — vivid saturated glow */
-  --glow-intensity: 0.65;
+  /* P1: standard green efficiency, small 9" tube drives slightly above baseline */
+  --glow-intensity: 0.50;
   /* Warm-up: Commodore PET 2001 built-in 9" tube: ~1.8s */
   --warmup-duration: 1.8s;
   /* Barrel distortion: 9" built-in TV-type tube — significant curvature, 1977 design */
   --crt-perspective: 1200px;
   --crt-tilt-x: 0.8deg;
-  /* Chromatic aberration: P31 single-gun — deflection fringe on 9" geometry */
+  /* Chromatic aberration: P1 single-gun — deflection fringe on 9" geometry */
   --chroma-offset: 0.8px;
   --chroma-opacity: 0.10;
-  /* Burn-in: P31 fast decay — minimal burn but heavy Commodore use left ghost screens */
-  --burn-in-opacity: 0.03;
+  /* Burn-in: P1 ~20ms persistence — moderate accumulation with heavy use */
+  --burn-in-opacity: 0.04;
   /* 50Hz PAL: scanline period for beat-frequency roll animation */
   --scanline-size: 4px;
   --scanline-opacity: 0.040;
 }
 
-/* DEC VT100 — P3 amber phosphor, 80×24, 1978
-   The canonical terminal. P3 peaks ~585nm: true amber, not yellow.
-   Longer persistence than P1 = slightly softer character edges.
-   Background: near-black with very slight warm brown from P3 faceplate.
+/* DEC VT100 — amber phosphor, 80×24, 1978
+   The canonical terminal. The amber phosphor type is uncertain: P3 is
+   rare and poorly documented; the VT100 likely used a proprietary DEC
+   amber phosphor or a filtered variant. Visual result: warm ~585nm amber.
+   Background: near-black with very slight warm brown from the faceplate.
    Blink: derived from annotated VT100 ROM disassembly. The 8080 firmware
    counts down blink_timer from 0x35 (53) on each 60Hz vertical frame
    interrupt, then toggles the blink flip-flop. Each state (on or off)
@@ -674,9 +695,9 @@ body::after {
   --primary-rgb: 255, 176, 0;
   --author-hover-decoration: underline;
   --cursor-blink-rate: 1.767s;
-  /* P3 amber: ~14ms physical decay, but at a 1.767s blink period this is
-       utterly imperceptible — less than 1% of the cycle. Cursor turns off hard.
-       Afterglow kept near-zero so it doesn't produce a visible fade. */
+  /* Amber phosphor: exact type uncertain, decay ~10–14ms estimated.
+       At a 1.767s blink period this is utterly imperceptible — less than 1%
+       of the cycle. Cursor turns off hard; afterglow near-zero. */
   --cursor-afterglow:
     0 0 8px rgba(255, 176, 0, 0.65), 0 0 20px rgba(180, 100, 0, 0.28);
   --cursor-afterglow-mid:
@@ -685,23 +706,24 @@ body::after {
   /* Scanlines: VT100 12" tube, ~480 lines, the canonical reference */
   --scanline-size: 3px;
   --scanline-opacity: 0.03;
-  /* P3 amber: ~14ms decay, longest persistence here, warmest wavelength — richest glow */
+  /* Amber phosphor: warmest wavelength in set, richest glow regardless of exact type */
   --glow-intensity: 0.6;
   /* Warm-up: DEC VT100 12" tube, field service manual: ~3.5s */
   --warmup-duration: 3.5s;
-  /* Barrel distortion: 12" P3 tube — moderate professional curve, DEC quality */
+  /* Barrel distortion: 12" amber tube — moderate professional curve, DEC quality */
   --crt-perspective: 1800px;
   --crt-tilt-x: 0.4deg;
-  /* Chromatic aberration: P3 amber single-gun — slight warm fringe at deflection limits */
+  /* Chromatic aberration: amber single-gun — slight warm fringe at deflection limits */
   --chroma-offset: 0.6px;
   --chroma-opacity: 0.09;
-  /* Burn-in: P3 amber ~14ms persistence — second highest accumulation rate */
+  /* Burn-in: amber phosphor ~10–14ms estimated — high accumulation rate */
   --burn-in-opacity: 0.05;
 }
 
-/* Apple II — P1 green phosphor, 40×24, 1977
-   Apple used a P1 variant with higher brightness than IBM's version.
-   The RGB monitor used in the II+ onward was distinctly sharp and vivid.
+/* Apple II — P31 green phosphor, 40×24, 1977
+   The Apple II (and Sanyo monitors used with it) used P31 phosphor,
+   not P1. P31 has higher quantum efficiency and sub-millisecond decay —
+   sharper, brighter, almost no afterglow. Same class as Kaypro/Tektronix.
    Blink: hardware 555 timer circuit on the video board, not software.
    The 555 was wired for ~2Hz → 0.5s full period per hardware schematics. */
 .theme-apple2-green {
@@ -710,26 +732,28 @@ body::after {
   --primary-rgb: 36, 255, 82;
   --author-hover-decoration: underline;
   --cursor-blink-rate: 0.5s;
-  /* Apple II P1 variant: high-brightness, sharp — similar ~24ms decay but more vivid */
+  /* P31 phosphor: <1ms decay — essentially instant extinction, no visible afterglow.
+       High quantum efficiency → bright but hard-edged. Same class as Kaypro Toshiba. */
   --cursor-afterglow:
-    0 0 6px rgba(36, 255, 82, 0.55), 0 0 14px rgba(20, 190, 55, 0.2);
+    0 0 4px rgba(36, 255, 82, 0.22), 0 0 8px rgba(20, 190, 55, 0.07);
   --cursor-afterglow-mid:
-    0 0 4px rgba(36, 255, 82, 0.25), 0 0 9px rgba(20, 190, 55, 0.08);
-  --cursor-decay: 0.22s;
+    0 0 2px rgba(36, 255, 82, 0.08), 0 0 5px rgba(20, 190, 55, 0.02);
+  --cursor-decay: 0.04s;
   /* Scanlines: Apple II composite monitor, slightly looser NTSC line structure */
   --scanline-size: 3px;
   --scanline-opacity: 0.034;
-  /* P1 high-brightness variant: Apple sourced vivid tubes, slightly above IBM standard */
-  --glow-intensity: 0.55;
+  /* P31: highest quantum efficiency of any phosphor here — very bright, tight glow */
+  --glow-intensity: 0.65;
   /* Warm-up: Apple II composite monitor: ~2.5s */
   --warmup-duration: 2.5s;
   /* Barrel distortion: consumer composite monitor — curved consumer tube, more than DEC */
   --crt-perspective: 1200px;
   --crt-tilt-x: 0.8deg;
-  /* Chromatic aberration: NTSC composite — mild chroma separation at beam edges */
-  --chroma-offset: 1.0px;
-  --chroma-opacity: 0.14;
-  --burn-in-opacity: 0.04;
+  /* Chromatic aberration: P31 single-gun — deflection fringe at beam edges */
+  --chroma-offset: 0.7px;
+  --chroma-opacity: 0.10;
+  /* Burn-in: P31 <1ms decay — most resistant of all, minimal accumulation */
+  --burn-in-opacity: 0.03;
 }
 
 /* Commodore 64 — VIC-II NTSC composite output, 40×25, 1982
@@ -906,9 +930,9 @@ main {
     0.4px 0 3px rgba(87, 255, 140, 0.05),
     -0.4px 0 3px rgba(87, 255, 140, 0.05);
 }
-/* Bitcoin orange: P3-adjacent warm amber — deep orange outer corona.
-   Corona at 16px: P3 amber wavelength scatters ~10-15% more than P1 green
-   in soda-lime glass, so wider than P1's 14px but not drastically so. */
+/* Bitcoin orange: warm amber — deep orange outer corona.
+   Amber wavelengths scatter ~10-15% more than P1 green in soda-lime glass,
+   so the corona is wider than P1's 14px but not drastically so. */
 .theme-ibm3279-bitcoin-orange #quote-container {
   text-shadow:
     0 0 4px rgba(255, 149, 0, 0.38),
@@ -922,18 +946,18 @@ main {
     0 0 3px rgba(164, 200, 176, 0.22),
     0 0 10px rgba(120, 170, 150, 0.06);
 }
-/* PET P31: bright saturated core, fast-decay corona.
-   P31 phosphor decays in <1ms — same class as P4 white, not P1 green.
-   Bloom structure matches Kaypro (also P31) but with a hotter core:
-   the PET's 9" tube drove the phosphor harder → brighter halation core,
-   but the corona still falls off fast because persistence is sub-millisecond.
-   No horizontal spread pair — P31's narrow emission band doesn't produce
-   the beam astigmatism artefact visible in slower P1/P3 phosphors. */
+/* PET P1: medium persistence, saturated yellow-green core + wider corona.
+   P1 ~20ms decay — same class as IBM 3279, Zenith Z-19.
+   Horizontal spread pair present: P1's beam astigmatism produces the
+   subtle lateral halo visible on slower phosphors. 9" tube drives harder
+   than larger screens so core opacity slightly above IBM's 0.32. */
 .theme-pet2001-green #quote-container {
   color: rgba(0, 255, 68, 0.96);
   text-shadow:
-    0 0 4px rgba(0, 255, 68, 0.36),
-    0 0 10px rgba(0, 200, 50, 0.07);
+    0 0 4px rgba(0, 255, 68, 0.34),
+    0 0 14px rgba(0, 200, 50, 0.08),
+    0.4px 0 3px rgba(0, 255, 68, 0.05),
+    -0.4px 0 3px rgba(0, 255, 68, 0.05);
   /* PET 2001-N: 40×25 display, 8×8 pixel character cells with zero
        inter-character gap — same tight grid as C64. */
   letter-spacing: 0;
@@ -943,7 +967,7 @@ main {
 }
 /* Wyse WY-50 P134 amber: golden core + warm corona, tighter than VT100.
    No blur filter — WY-50 praised for "crisper screen display" vs competition.
-   The P134's slightly faster decay (~12ms vs P3's 14ms) means less bloom spread. */
+   P134 estimated ~12ms decay — tighter bloom than VT100's amber. */
 .theme-wyse50-amber #quote-container {
   color: rgba(255, 190, 0, 0.92);
   text-shadow:
@@ -986,10 +1010,10 @@ main {
     0 0 3px rgba(214, 214, 198, 0.18),
     0 0 8px rgba(200, 200, 185, 0.05);
 }
-/* VT100 P3 amber: 80ms decay, longest persistence of any here —
-   warmest wavelength scatters most in soda-lime glass, richest bloom */
+/* VT100 amber: phosphor type uncertain, ~10–14ms estimated decay.
+   Warmest wavelength in set — scatters most in soda-lime glass, richest bloom. */
 .theme-vt100-amber #quote-container {
-  /* P3 amber — warm, rich drive */
+  /* Amber phosphor — warm, rich drive */
   color: rgba(255, 176, 0, 0.93);
   text-shadow:
     0 0 5px rgba(255, 176, 0, 0.4),
@@ -998,17 +1022,13 @@ main {
     -0.5px 0 4px rgba(255, 176, 0, 0.07);
   filter: blur(0.2px) saturate(0.9);
 }
-/* Apple II P1: 12" consumer monitor, high-brightness P1 variant.
-   Core at 0.34 — brightest P1 in the set (IBM=0.32, Zenith=0.30,
-   ADM-3A=0.32) but below P3 amber (VT100=0.40). Apple sourced brighter
-   tubes but P1 persistence (~24ms) is the same — the bloom spread doesn't
-   change, only the core intensity. */
+/* Apple II P31: <1ms decay — minimal corona, hard-edged like Kaypro.
+   No horizontal spread pair — P31's fast extinction means no beam
+   astigmatism artefact. High QE → bright core, tight falloff. */
 .theme-apple2-green #quote-container {
   text-shadow:
-    0 0 4px rgba(36, 255, 82, 0.34),
-    0 0 14px rgba(20, 190, 55, 0.1),
-    0.4px 0 3px rgba(36, 255, 82, 0.06),
-    -0.4px 0 3px rgba(36, 255, 82, 0.06);
+    0 0 3px rgba(36, 255, 82, 0.26),
+    0 0 10px rgba(20, 190, 55, 0.06);
 }
 /* C64: VIC-II RF composite — NTSC TV phosphor (~P22 tricolour), chroma blur.
    The C64's most distinctive artefact is horizontal chroma bleed: NTSC composite
@@ -1046,8 +1066,8 @@ main {
       delay = half the blink period (cursor switches off at 50% of cycle).
       duration = --cursor-decay (per-theme phosphor persistence time).
       Animates box-shadow only — opacity is entirely owned by blink above.
-      P4 white: 0.03s (barely visible). P3 amber: 0.14s (warm corona).
-      P1 green: 0.22s (medium persistence).
+      P4/P31: 0.03–0.04s (barely visible). Amber: 0.14s (warm corona).
+      P1 green: 0.2s (medium persistence).
  
    The combination: cursor turns off hard (step-end), then its ghost glow
    decays at the phosphor's natural rate. Hyperrealistic.
@@ -1228,9 +1248,9 @@ a:focus-visible {
   background: transparent;
   border: none;
   font-family: var(--font-family);
-  font-size: clamp(0.55rem, 0.7vw + 0.25vh, 0.65rem);
+  font-size: var(--ambient-font-size);
   font-weight: 400;
-  color: rgba(var(--primary-rgb), 0.4);
+  color: rgba(var(--primary-rgb), 0.35);
   z-index: 10000;
   transition: opacity 0.3s ease;
   pointer-events: none;
@@ -1391,13 +1411,56 @@ a:focus-visible {
   position: fixed;
   bottom: max(clamp(1rem, 2.5vh, 1.5rem), env(safe-area-inset-bottom));
   left: clamp(0.75rem, 2vw, 2rem);
+  /* No right anchor — allows search queries to extend naturally without clipping.
+     max-width keeps very long strings from crossing the position indicator. */
+  max-width: 65ch;
+  background: transparent;
+  color: rgba(var(--primary-rgb), 0.5);
+  font-family: var(--font-family);
+  font-size: var(--chrome-font-size);
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  padding: 0;
+  pointer-events: none;
+  z-index: 20000;
+  white-space: nowrap;
+  /* Faint ambient glow — status chrome is part of the phosphor display,
+     not a flat overlay. Matches the always-on glow of header icons. */
+  text-shadow: 0 0 6px rgba(var(--primary-rgb), 0.12);
+  contain: layout style paint;
+}
+
+/* Status line hidden — instant, no transition */
+.bq-status.hidden {
+  visibility: hidden;
+}
+
+/* Search mode — status line becomes an active input; brighten and sharpen it
+   so the user knows they are in an input context, not just reading a passive toast. */
+body.search-mode .bq-status {
+  color: rgba(var(--primary-rgb), 0.85);
+  text-shadow: 0 0 8px rgba(var(--primary-rgb), 0.25);
+  letter-spacing: 0.03em;
+}
+
+/* =========================================
+   QUOTE POSITION INDICATOR
+   [N / TOTAL] anchored to the bottom-right,
+   mirroring the status line on the left.
+   Lower opacity than status — ambient info,
+   not an action message.
+   ========================================= */
+
+.bq-position {
+  position: fixed;
+  bottom: max(clamp(1rem, 2.5vh, 1.5rem), env(safe-area-inset-bottom));
   right: clamp(0.75rem, 2vw, 2rem);
   background: transparent;
-  color: rgba(var(--primary-rgb), 0.4);
+  /* Slightly dimmer than status — ambient info, not an action message */
+  color: rgba(var(--primary-rgb), 0.3);
   font-family: var(--font-family);
-  font-size: clamp(0.45rem, 0.55vw + 0.25vh, 0.55rem);
-  letter-spacing: 0.08em;
-  text-transform: lowercase;
+  font-size: var(--ambient-font-size);
+  letter-spacing: 0.06em;
   padding: 0;
   pointer-events: none;
   z-index: 20000;
@@ -1405,8 +1468,7 @@ a:focus-visible {
   contain: layout style paint;
 }
 
-/* Status line hidden — instant, no transition */
-.bq-status.hidden {
+.bq-position.hidden {
   visibility: hidden;
 }
 
