@@ -1,120 +1,122 @@
+import {
+  themes,
+  themeBootLines,
+  themeHelpHeaders,
+  themeBaudRates,
+  themePauseDurations,
+  themePrompts,
+  CACHE_EXPIRY_MS,
+  DEBOUNCE_MS,
+  HISTORY_SIZE,
+  ANNOUNCE_REMOVE_MS,
+  PRELOAD_DELAY_MS,
+  MAX_BAUD_DELAY_MS,
+  SENTENCE_PAUSE_MS,
+  CLAUSE_PAUSE_MS,
+  AUTHOR_SENTENCE_PAUSE_MS,
+  AUTHOR_CLAUSE_PAUSE_MS,
+  BOOT_LINE_PAUSE_MS,
+  BOOT_FINAL_PAUSE_MS,
+  HELP_RESUME_MS,
+  HELP_HEADER_TYPE_SPEED_MS,
+  HELP_LINE_TYPE_SPEED_MS,
+  HELP_HEADER_PAUSE_MS,
+  HELP_LINE_PAUSE_MS,
+  TOAST_DURATION_MS,
+  BOOKMARK_HIDE_MS,
+  LONG_PRESS_MS,
+  SWIPE_MIN_PX,
+  WHEEL_THRESHOLD,
+  WHEEL_COOLDOWN_MS,
+  WHEEL_DEBOUNCE_MS,
+  EXPORT_REVOKE_MS,
+  URL_PRELOAD_DELAY_MS,
+} from "./config.js";
+
 // =========================================
-// CONFIGURATION
+// RUNTIME CONFIG
 // =========================================
 
-/*
-  Per-terminal baud rates — sourced from real hardware specs.
-  Each character on a serial terminal takes exactly 10 bit-times at the
-  configured baud rate (1 start + 7/8 data + 1/2 stop bits; 8N1 = 10 bits).
-  ms per character = 10000 / baud.
-
-  IBM 3279:     9600 baud — 3274 controller default (EBCDIC async mode)
-  DEC VT220:    9600 baud — factory default; user-configurable up to 19200
-  PET 2001:     300  baud — Commodore serial IEC bus, BASIC PRINT output
-  Bitcoin orange: 9600 baud — same IBM 3279 chassis
-  Wyse WY-50:   9600 baud — RS-232 default, common Wall Street config
-  Zenith Z-19:  9600 baud — CP/M BIOS default
-  ADM-3A:       9600 baud — RS-232, common Unix lab config
-  Kaypro II:    9600 baud — CP/M BIOS default
-  DEC VT05:     2400 baud — pre-RS-232 era; teletype-speed default
-  DEC VT100:    9600 baud — factory default; famously slow at large redraws
-  Apple II:     9600 baud — Super Serial Card default
-  Commodore 64: 1200 baud — user-port modem, BASIC print loop timing
-*/
-const themeBaudRates = {
-  "ibm3279-green": 9600,
-  "teletype-blue-green": 9600,
-  "pet2001-green": 300,
-  "ibm3279-bitcoin-orange": 9600,
-  "wyse50-amber": 9600,
-  "zenith-green": 9600,
-  "adm3a-green": 9600,
-  "kaypro-green": 9600,
-  white: 2400,
-  "vt100-amber": 9600,
-  "apple2-green": 9600,
-  commodore64: 1200,
-};
-
-/*
-  Per-theme auto-advance pause — how long the cursor sits parked after a
-  quote before the next one loads. Reflects the overall *feel* of each
-  machine: a VT100 operator on a loaded VAX felt the system's latency
-  everywhere; a C64 BASIC prompt held longer between outputs.
-
-  These are not sourced from a single spec — they're editorial pacing
-  decisions calibrated to the baud rate and character of each terminal.
-*/
-const themePauseDurations = {
-  "ibm3279-green": 2800,
-  "teletype-blue-green": 2500,
-  "pet2001-green": 4000, // 300 baud — everything is slow
-  "ibm3279-bitcoin-orange": 2800,
-  "wyse50-amber": 2500,
-  "zenith-green": 2800,
-  "adm3a-green": 2500,
-  "kaypro-green": 2800,
-  white: 3500, // VT05 teletype era — deliberate pace
-  "vt100-amber": 4200, // VT100: languid blink, languid feel
-  "apple2-green": 2800,
-  commodore64: 3800, // 1200 baud — BASIC output is leisurely
-};
-
-function getThemeBaudRate() {
-  for (const theme of Object.keys(themeBaudRates)) {
-    if (document.body.classList.contains(`theme-${theme}`)) {
-      return themeBaudRates[theme];
-    }
-  }
-  return 9600;
-}
-
-function getThemePauseDuration() {
-  for (const theme of Object.keys(themePauseDurations)) {
-    if (document.body.classList.contains(`theme-${theme}`)) {
-      return themePauseDurations[theme];
-    }
-  }
-  return 3000;
-}
-
+/**
+ * Runtime config derived from browser state at startup.
+ * Not theme data — these reflect user/device context.
+ */
 const config = {
-  cacheExpiry: 24 * 60 * 60 * 1000, // 24 hours in ms
-  performanceMode: window.matchMedia("(prefers-reduced-motion: reduce)")
-    .matches,
+  /** True when the user has requested reduced motion; skips animations. */
+  performanceMode: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
 };
 
 // =========================================
-// STATE MANAGEMENT
+// STATE
 // =========================================
-const HISTORY_SIZE = 20; // How many recent quotes to avoid repeating
 
+/**
+ * Central application state. All mutable runtime values live here so that
+ * any module can observe and update them through a single reference.
+ *
+ * Timer IDs are stored in state (rather than module-level variables) so they
+ * can be enumerated and cleared centrally — see PerformanceUtils.cancelAllTimers.
+ */
 const state = {
-  quotes: null, // All loaded quotes
-  isPaused: false, // Typing pause state
-  timeoutId: null, // Current timeout ID for typing ticks
-  parkTimeoutId: null, // Pause-between-quotes timer — isolated from cancelAnimation
-  currentQuote: null, // Currently displayed quote
-  currentIndex: 0, // Current typing position
-  isTyping: false, // Typing in progress
-  isProcessing: false, // Prevent double-clicks
-  isUppercase: false, // Text case mode
-  preloadedQuote: null, // Next quote preloaded
-  preloadedAuthorHTML: null, // Preformatted author HTML
-  preloadedSourceHTML: null, // Preformatted source HTML
-  animationFrameId: null, // For requestAnimationFrame
-  bookmarkedQuotes: JSON.parse(
-    localStorage.getItem("bookmarked-quotes") || "[]",
-  ),
-  currentBookmarkIndex: 0, // Position in bookmark list
-  quoteHistory: [], // Recently shown quotes for back-navigation
-  historyPosition: -1, // Current position when navigating back
-  booting: true, // Block input during boot sequence
+  /** Loaded quote array, null until first fetch completes */
+  quotes: null,
+  /** Whether typing is currently paused */
+  isPaused: false,
+  /** setTimeout ID for the current typing tick */
+  timeoutId: null,
+  /** setTimeout ID for the between-quotes park pause — cleared separately from timeoutId */
+  parkTimeoutId: null,
+  /** setTimeout ID for the toast hide timer (managed by showToast) */
+  statusTimer: null,
+  /** setTimeout ID for the debounced wheel handler */
+  wheelTimeout: null,
+  /** setTimeout ID for the long-press gesture */
+  longPressTimer: null,
+  /** Quote currently on screen */
+  currentQuote: null,
+  /** Character position within the current typing pass */
+  currentIndex: 0,
+  /** True while any phase of the typing animation is running */
+  isTyping: false,
+  /** Debounce flag — blocks re-entrant user actions for DEBOUNCE_MS */
+  isProcessing: false,
+  /** Whether text-transform: uppercase is active */
+  isUppercase: false,
+  /** Next quote, pre-fetched in the background for instant display */
+  preloadedQuote: null,
+  /** Pre-rendered author HTML for the preloaded quote */
+  preloadedAuthorHTML: null,
+  /** Pre-rendered source HTML for the preloaded quote, or null */
+  preloadedSourceHTML: null,
+  /** requestAnimationFrame handle from optimizedDelay */
+  animationFrameId: null,
+  /** Bookmarked quotes, hydrated from localStorage on load */
+  bookmarkedQuotes: JSON.parse(localStorage.getItem("bookmarked-quotes") || "[]"),
+  /** Index into bookmarkedQuotes for the V-key cycling view */
+  currentBookmarkIndex: 0,
+  /** History of recently shown quotes for P-key back-navigation */
+  quoteHistory: [],
+  /** Current position within quoteHistory (-1 = at latest) */
+  historyPosition: -1,
+  /** True during the boot sequence — blocks all user input */
+  booting: true,
+  /** Accumulated wheel delta between debounce ticks */
+  wheelDelta: 0,
+  /** Timestamp of the last wheel-triggered navigation */
+  lastWheelTime: 0,
+  /** Touch X coordinate at touchstart */
+  touchStartX: 0,
+  /** Touch Y coordinate at touchstart */
+  touchStartY: 0,
+  /** Timestamp of touchstart */
+  touchStartTime: 0,
 };
 
 // =========================================
 // DOM ELEMENTS
 // =========================================
+
+/** Cached references to the two DOM nodes the app writes to. */
 const elements = {
   quoteContainer: document.getElementById("quote-container"),
   errorMessage: document.getElementById("error-message"),
@@ -124,6 +126,10 @@ const elements = {
 // DEVICE DETECTION
 // =========================================
 
+/**
+ * True when running on a touch-primary device.
+ * Used to decide between mobile Lightning/Bitcoin URI handling vs desktop clipboard copy.
+ */
 const isMobile =
   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent,
@@ -131,9 +137,17 @@ const isMobile =
   "ontouchstart" in window ||
   navigator.maxTouchPoints > 0;
 
-// Wraps any action that should be debounced via state.isProcessing.
-// Sets the flag before calling fn, clears it 100ms after — same timing
-// as all the manual setTimeout calls it replaces.
+// =========================================
+// DEBOUNCE HELPER
+// =========================================
+
+/**
+ * Wraps an action with a debounce guard via state.isProcessing.
+ * Prevents rapid repeated calls from double-firing (click, keyboard, swipe).
+ * The guard is held for DEBOUNCE_MS after fn returns.
+ *
+ * @param {() => void} fn - The action to guard.
+ */
 function withProcessing(fn) {
   if (state.isProcessing) return;
   state.isProcessing = true;
@@ -142,18 +156,197 @@ function withProcessing(fn) {
   } finally {
     setTimeout(() => {
       state.isProcessing = false;
-    }, 100);
+    }, DEBOUNCE_MS);
   }
+}
+
+// =========================================
+// THEME ACCESSORS
+// (read body classes at call time — not frozen at import)
+// =========================================
+
+/**
+ * Returns the baud rate (bits/sec) for the currently active theme.
+ * Defaults to 9600 if no theme class is found.
+ *
+ * @returns {number} Baud rate in bits per second.
+ */
+function getThemeBaudRate() {
+  for (const theme of Object.keys(themeBaudRates)) {
+    if (document.body.classList.contains(`theme-${theme}`)) {
+      return themeBaudRates[theme];
+    }
+  }
+  return 9600;
+}
+
+/**
+ * Returns the auto-advance pause duration (ms) for the currently active theme.
+ * Defaults to 3000ms if no theme class is found.
+ *
+ * @returns {number} Pause duration in milliseconds.
+ */
+function getThemePauseDuration() {
+  for (const theme of Object.keys(themePauseDurations)) {
+    if (document.body.classList.contains(`theme-${theme}`)) {
+      return themePauseDurations[theme];
+    }
+  }
+  return 3000;
+}
+
+/**
+ * Returns the prompt string for the currently active theme (e.g. "===>", "$", "]").
+ * Returns ">" as a safe fallback if no theme class is found.
+ *
+ * @returns {string} The prompt prefix character(s).
+ */
+function getThemePrompt() {
+  for (const theme of Object.keys(themePrompts)) {
+    if (document.body.classList.contains(`theme-${theme}`)) {
+      return themePrompts[theme];
+    }
+  }
+  return ">";
+}
+
+// =========================================
+// QUOTE VALIDATION & LOADING
+// =========================================
+
+/**
+ * Returns true if a quote object has the minimum required fields.
+ *
+ * @param {unknown} quote - Candidate object to validate.
+ * @returns {boolean} True when quote has non-empty text and author strings.
+ */
+function isValidQuote(quote) {
+  return (
+    quote != null &&
+    typeof quote === "object" &&
+    typeof quote.text === "string" &&
+    quote.text.trim().length > 0 &&
+    typeof quote.author === "string" &&
+    quote.author.trim().length > 0
+  );
+}
+
+/**
+ * Loads quotes from the JSON file, using a 24-hour localStorage cache.
+ * On failure, displays an error message in the DOM and returns an empty array.
+ *
+ * @returns {Promise<object[]>} Resolves to the array of quote objects.
+ */
+async function loadQuotes() {
+  const cachedData = localStorage.getItem("bitcoin-quotes");
+  const cachedTimestamp = localStorage.getItem("bitcoin-quotes-timestamp");
+
+  if (
+    cachedData &&
+    cachedTimestamp &&
+    Date.now() - Number(cachedTimestamp) < CACHE_EXPIRY_MS
+  ) {
+    state.quotes = JSON.parse(cachedData);
+    return state.quotes;
+  }
+
+  try {
+    const response = await fetch("data/bitcoin_quotes.json");
+    if (!response.ok) throw new Error("Failed to fetch JSON");
+
+    state.quotes = await response.json();
+
+    if (!Array.isArray(state.quotes) || !state.quotes.every(isValidQuote)) {
+      throw new Error("Invalid JSON format");
+    }
+
+    localStorage.setItem("bitcoin-quotes", JSON.stringify(state.quotes));
+    localStorage.setItem("bitcoin-quotes-timestamp", Date.now().toString());
+
+    return state.quotes;
+  } catch (error) {
+    console.error("Error loading quotes:", error);
+    elements.errorMessage.textContent = "*** ERROR: HOUSTON WE HAVE A PROBLEM";
+    elements.errorMessage.classList.add("error-active");
+    return [];
+  }
+}
+
+// =========================================
+// QUOTE HISTORY & DEDUPLICATION
+// =========================================
+
+/**
+ * Adds a quote to the navigation history.
+ * If the user navigated back and then triggers a new quote, forward history
+ * is truncated first (mirrors browser back/forward behaviour).
+ *
+ * @param {{ text: string, author: string }} quote - The quote to record.
+ */
+function pushToHistory(quote) {
+  if (
+    state.historyPosition >= 0 &&
+    state.historyPosition < state.quoteHistory.length - 1
+  ) {
+    state.quoteHistory = state.quoteHistory.slice(0, state.historyPosition + 1);
+  }
+  state.quoteHistory.push(quote);
+  if (state.quoteHistory.length > HISTORY_SIZE * 2) {
+    state.quoteHistory = state.quoteHistory.slice(-(HISTORY_SIZE * 2));
+  }
+  state.historyPosition = state.quoteHistory.length - 1;
+}
+
+/**
+ * Steps back one position in the quote history.
+ *
+ * @returns {{ text: string, author: string } | null} The previous quote, or null if at the start.
+ */
+function goBackInHistory() {
+  if (state.historyPosition <= 0) return null;
+  state.historyPosition--;
+  return state.quoteHistory[state.historyPosition];
+}
+
+/**
+ * Picks a random quote, preferring ones not recently shown.
+ * Falls back to the full list if all quotes have been shown recently.
+ *
+ * @param {object[]} quotes - The full quote array.
+ * @returns {object | null} A randomly selected quote object, or null if the array is empty.
+ */
+function getRandomQuote(quotes) {
+  if (!quotes?.length) return null;
+
+  const recentKeys = new Set(
+    state.quoteHistory.slice(-HISTORY_SIZE).map((q) => q.text),
+  );
+
+  const pool = quotes.filter((q) => !recentKeys.has(q.text));
+  const source = pool.length > 0 ? pool : quotes;
+  return source[Math.floor(Math.random() * source.length)];
 }
 
 // =========================================
 // QUOTE UTILITIES
 // =========================================
-const QuoteUtils = {
-  // Format quote with quotation marks
+
+export const QuoteUtils = {
+  /**
+   * Wraps a quote's text in typographic quotation marks.
+   *
+   * @param {{ text?: string }} quote
+   * @returns {string} The quoted text, or a fallback string.
+   */
   getQuoteText: (quote) => `"${quote?.text?.trim() || "No quote available"}"`,
 
-  // Format quote for Twitter/X sharing (strips markdown links)
+  /**
+   * Formats a quote for sharing on Twitter/X.
+   * Strips markdown link syntax so only the visible label is included.
+   *
+   * @param {{ text: string, author: string, source?: string }} quote
+   * @returns {string} Plain-text tweet string.
+   */
   getTweetText: (quote) => {
     const author = quote.author.replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1").trim();
     const source = quote.source
@@ -162,25 +355,38 @@ const QuoteUtils = {
     return `"${quote.text}" — ${author}${source}`;
   },
 
-  // Announce action to screen readers
+  /**
+   * Creates a temporary aria-live region to announce an action to screen readers,
+   * then removes it after ANNOUNCE_REMOVE_MS.
+   *
+   * @param {string} message - The announcement text.
+   */
   announceAction: (message) => {
     const liveRegion = document.createElement("div");
     liveRegion.setAttribute("aria-live", "polite");
     liveRegion.setAttribute("class", "sr-only");
     liveRegion.textContent = message;
     document.body.appendChild(liveRegion);
-    setTimeout(() => liveRegion.remove(), 1000);
+    setTimeout(() => liveRegion.remove(), ANNOUNCE_REMOVE_MS);
   },
 
-  // ms per character at the active theme's baud rate.
-  // 8N1 serial framing = 10 bits per character; ms = 10000 / baud.
-  // Clamped to a 300ms floor so even 300-baud PET output isn't unreadable.
+  /**
+   * Returns the per-character delay (ms) at the active theme's baud rate.
+   * Uses 8N1 serial framing: 10 bits per character → ms = 10000 / baud.
+   * Clamped to MAX_BAUD_DELAY_MS so even 300-baud PET output stays readable.
+   * Returns 0 in reduced-motion / performance mode.
+   *
+   * @returns {number} Milliseconds per character.
+   */
   getMsPerChar: () => {
     if (config.performanceMode) return 0;
-    return Math.min(300, Math.round(10000 / getThemeBaudRate()));
+    return Math.min(MAX_BAUD_DELAY_MS, Math.round(10000 / getThemeBaudRate()));
   },
 
-  // Update bookmark counter badge in top-left corner
+  /**
+   * Updates the bookmark counter badge in the top-left corner.
+   * Creates the element if it doesn't exist; removes it when count reaches 0.
+   */
   updateBookmarkCounter: () => {
     let counter = document.querySelector(".bookmark-counter");
     const bookmarkCount = state.bookmarkedQuotes.length;
@@ -188,7 +394,7 @@ const QuoteUtils = {
     if (bookmarkCount === 0) {
       if (counter) {
         counter.classList.add("hidden");
-        setTimeout(() => counter.remove(), 300);
+        setTimeout(() => counter.remove(), BOOKMARK_HIDE_MS);
       }
       return;
     }
@@ -199,7 +405,7 @@ const QuoteUtils = {
       document.body.appendChild(counter);
     }
 
-    // Show count with heart indicator if current quote is bookmarked
+    // Show count with heart indicator if the current quote is bookmarked
     const isCurrentBookmarked =
       state.currentQuote && isQuoteBookmarked(state.currentQuote);
     counter.innerHTML = isCurrentBookmarked
@@ -212,8 +418,12 @@ const QuoteUtils = {
 // =========================================
 // PERFORMANCE UTILITIES
 // =========================================
-const PerformanceUtils = {
-  // Preload next quote in background for instant display
+
+export const PerformanceUtils = {
+  /**
+   * Pre-fetches and pre-renders the next random quote in the background so
+   * that navigating to it feels instant.
+   */
   preloadNextQuote: async () => {
     if (state.preloadedQuote) return;
 
@@ -223,20 +433,19 @@ const PerformanceUtils = {
     const randomQuote = getRandomQuote(quotes);
     if (!randomQuote) return;
 
-    // Pre-format author and source HTML
-    const preformattedAuthor = PerformanceUtils.formatAuthor(
-      randomQuote.author,
-    );
-    const preformattedSource = randomQuote.source
+    state.preloadedQuote = randomQuote;
+    state.preloadedAuthorHTML = PerformanceUtils.formatAuthor(randomQuote.author);
+    state.preloadedSourceHTML = randomQuote.source
       ? PerformanceUtils.formatSource(randomQuote.source)
       : null;
-
-    state.preloadedQuote = randomQuote;
-    state.preloadedAuthorHTML = preformattedAuthor;
-    state.preloadedSourceHTML = preformattedSource;
   },
 
-  // Get next quote (preloaded if available, otherwise fetch)
+  /**
+   * Returns the next quote to display, using the preloaded one if available.
+   * Triggers a background preload for the quote after that.
+   *
+   * @returns {Promise<{ quote: object, authorHTML: string, sourceHTML: string | null } | null>}
+   */
   getNextQuote: async () => {
     if (state.preloadedQuote) {
       const quote = state.preloadedQuote;
@@ -247,13 +456,10 @@ const PerformanceUtils = {
       state.preloadedAuthorHTML = null;
       state.preloadedSourceHTML = null;
 
-      // Start preloading next quote
-      setTimeout(() => PerformanceUtils.preloadNextQuote(), 100);
-
+      setTimeout(() => PerformanceUtils.preloadNextQuote(), PRELOAD_DELAY_MS);
       return { quote, authorHTML, sourceHTML };
     }
 
-    // Fallback if no preloaded quote
     const quotes = await loadQuotes();
     if (!quotes.length) return null;
 
@@ -264,18 +470,19 @@ const PerformanceUtils = {
     const sourceHTML = randomQuote.source
       ? PerformanceUtils.formatSource(randomQuote.source)
       : null;
-    setTimeout(() => PerformanceUtils.preloadNextQuote(), 100);
 
+    setTimeout(() => PerformanceUtils.preloadNextQuote(), PRELOAD_DELAY_MS);
     return { quote: randomQuote, authorHTML, sourceHTML };
   },
 
-  // Format source text with markdown links (same engine as formatAuthor)
-  formatSource: (source) => {
-    if (!source) return null;
-    return PerformanceUtils._formatLinkedText(String(source).trim());
-  },
-
-  // Shared markdown link formatter. linkHandles=true converts @handles to X links (author only).
+  /**
+   * Renders a text string as an HTML span, converting markdown links to <a> tags.
+   * When linkHandles is true, also converts @username to x.com profile links.
+   *
+   * @param {string} text - Raw text that may contain [label](url) markdown.
+   * @param {boolean} [linkHandles=false] - Whether to linkify @handles.
+   * @returns {string} Inner HTML string with links rendered.
+   */
   _formatLinkedText: (text, linkHandles = false) => {
     const span = document.createElement("span");
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
@@ -305,28 +512,57 @@ const PerformanceUtils = {
     );
   },
 
-  // Format author text with markdown links and @handles
+  /**
+   * Formats the source field as HTML, converting any markdown links to <a> tags.
+   *
+   * @param {string | null | undefined} source - Raw source string.
+   * @returns {string | null} HTML string, or null if source is falsy.
+   */
+  formatSource: (source) => {
+    if (!source) return null;
+    return PerformanceUtils._formatLinkedText(String(source).trim());
+  },
+
+  /**
+   * Formats the author field as HTML.
+   * Strips surrounding quotes, converts markdown links, and linkifies @handles.
+   *
+   * @param {string} author - Raw author string.
+   * @returns {string} HTML string ready for innerHTML.
+   */
   formatAuthor: (author) => {
     const cleanAuthor = String(author).replace(/^"|"$/g, "").trim();
     return PerformanceUtils._formatLinkedText(cleanAuthor, true);
   },
 
-  // Use requestAnimationFrame for short delays, setTimeout for longer
+  /**
+   * Schedules a callback using requestAnimationFrame for sub-16ms delays
+   * or setTimeout for longer ones. Falls back to setTimeout(0) in performance mode.
+   *
+   * @param {FrameRequestCallback | (() => void)} callback
+   * @param {number} delay - Desired delay in milliseconds.
+   * @returns {number} The timer or rAF handle.
+   */
   optimizedDelay: (callback, delay) => {
     if (config.performanceMode) {
       return setTimeout(callback, 0);
     }
-
     if (delay < 16) {
       state.animationFrameId = requestAnimationFrame(callback);
       return state.animationFrameId;
-    } else {
-      return setTimeout(callback, delay);
     }
+    return setTimeout(callback, delay);
   },
 
-  // Cancel any pending animations or timeouts
-  cancelAnimation: () => {
+  /**
+   * Cancels all active timers and animation frames related to the typing engine
+   * and quote navigation. Also begins fading out any active burn-in ghost.
+   * Call this before starting any new display operation.
+   *
+   * Note: state.statusTimer (toast) and state.longPressTimer (touch) manage
+   * their own lifecycle and are intentionally not cleared here.
+   */
+  cancelAllTimers: () => {
     if (state.animationFrameId) {
       cancelAnimationFrame(state.animationFrameId);
       state.animationFrameId = null;
@@ -339,15 +575,17 @@ const PerformanceUtils = {
       clearTimeout(state.parkTimeoutId);
       state.parkTimeoutId = null;
     }
+    if (state.wheelTimeout) {
+      clearTimeout(state.wheelTimeout);
+      state.wheelTimeout = null;
+    }
   },
 
-  // Auto-scroll quote container for long quotes.
-  // Real terminals scrolled by shifting the screen buffer up one line
-  // when output reached the bottom row. The shift was discrete — the
-  // entire display jumped up by exactly one character row, not by
-  // arbitrary pixel amounts. Snapping to line-height multiples
-  // reproduces this: the view holds steady while text fills the
-  // current line, then jumps up by one row when a new line starts.
+  /**
+   * Scrolls the quote container to keep newly typed text visible.
+   * Snaps to whole-line boundaries to mimic how real terminals scrolled —
+   * the screen buffer shifted up by exactly one character row, not by pixels.
+   */
   handleAutoScroll: () => {
     const container = elements.quoteContainer;
     const maxVisible = container.clientHeight;
@@ -356,7 +594,6 @@ const PerformanceUtils = {
     if (contentHeight > maxVisible) {
       const lineHeight = parseFloat(getComputedStyle(container).lineHeight);
       const targetScroll = contentHeight - maxVisible;
-      // Snap to nearest whole-line boundary — discrete line scroll
       const lineSnapped = Math.ceil(targetScroll / lineHeight) * lineHeight;
       container.scrollTop = lineSnapped;
     }
@@ -364,95 +601,547 @@ const PerformanceUtils = {
 };
 
 // =========================================
-// QUOTE HISTORY & DEDUPLICATION
+// BOOKMARK CHECK
 // =========================================
 
-function pushToHistory(quote) {
-  // If we navigated back and now go forward, truncate forward history
-  if (
-    state.historyPosition >= 0 &&
-    state.historyPosition < state.quoteHistory.length - 1
-  ) {
-    state.quoteHistory = state.quoteHistory.slice(0, state.historyPosition + 1);
-  }
-  state.quoteHistory.push(quote);
-  if (state.quoteHistory.length > HISTORY_SIZE * 2) {
-    state.quoteHistory = state.quoteHistory.slice(-HISTORY_SIZE * 2);
-  }
-  state.historyPosition = state.quoteHistory.length - 1;
-}
-
-function goBackInHistory() {
-  if (state.historyPosition <= 0) return null;
-  state.historyPosition--;
-  return state.quoteHistory[state.historyPosition];
-}
-
-function getRandomQuote(quotes) {
-  if (!quotes?.length) return null;
-
-  const recentKeys = new Set(
-    state.quoteHistory.slice(-HISTORY_SIZE).map((q) => q.text),
+/**
+ * Returns true if the given quote is in the user's saved bookmarks.
+ *
+ * @param {{ text: string, author: string }} quote
+ * @returns {boolean}
+ */
+function isQuoteBookmarked(quote) {
+  return state.bookmarkedQuotes.some(
+    (b) => b.text === quote.text && b.author === quote.author,
   );
-
-  const pool = quotes.filter((q) => !recentKeys.has(q.text));
-  const source = pool.length > 0 ? pool : quotes;
-  return source[Math.floor(Math.random() * source.length)];
 }
 
-// Load quotes from JSON with 24hr caching
-async function loadQuotes() {
-  const cachedData = localStorage.getItem("bitcoin-quotes");
-  const cachedTimestamp = localStorage.getItem("bitcoin-quotes-timestamp");
+// =========================================
+// TOAST (STATUS LINE)
+// =========================================
 
-  if (
-    cachedData &&
-    cachedTimestamp &&
-    Date.now() - Number(cachedTimestamp) < config.cacheExpiry
-  ) {
-    state.quotes = JSON.parse(cachedData);
-    return state.quotes;
+/**
+ * Displays a short message on the status line at the bottom of the screen.
+ * Prepends the current theme's prompt character. Auto-hides after TOAST_DURATION_MS.
+ * Resets the hide timer if called while a toast is already visible.
+ *
+ * @param {string} message - The message to display.
+ */
+export function showToast(message) {
+  if (state.statusTimer) {
+    clearTimeout(state.statusTimer);
+    state.statusTimer = null;
   }
 
-  try {
-    const response = await fetch("data/bitcoin_quotes.json");
-    if (!response.ok) throw new Error("Failed to fetch JSON");
+  let el = document.querySelector(".bq-status");
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "bq-status";
+    document.body.appendChild(el);
+  }
 
-    state.quotes = await response.json();
+  const prompt = getThemePrompt() || ">";
+  el.textContent = `${prompt} ${message}`;
+  el.classList.remove("hidden");
 
-    if (!Array.isArray(state.quotes) || !state.quotes.every(isValidQuote)) {
-      throw new Error("Invalid JSON format");
+  state.statusTimer = setTimeout(() => {
+    el.classList.add("hidden");
+    state.statusTimer = null;
+  }, TOAST_DURATION_MS);
+}
+
+// =========================================
+// TEXT CASE TOGGLE
+// =========================================
+
+/**
+ * Toggles the quote text between uppercase and normal case.
+ * Applies text-transform directly to the container and the author element.
+ */
+function toggleTextCase() {
+  state.isUppercase = !state.isUppercase;
+  const textTransform = state.isUppercase ? "uppercase" : "none";
+  elements.quoteContainer.style.textTransform = textTransform;
+  const authorElement = elements.quoteContainer.querySelector(".author");
+  if (authorElement) {
+    authorElement.style.textTransform = textTransform;
+  }
+  QuoteUtils.announceAction(
+    `Text case set to ${state.isUppercase ? "uppercase" : "lowercase"}`,
+  );
+}
+
+// =========================================
+// LIVE PROMPT UPDATE
+// =========================================
+
+/**
+ * Patches the prompt text node in the parked author line after a theme change,
+ * without re-rendering the entire quote. Only runs if a quote is currently parked.
+ *
+ * The author element structure is:
+ *   [textNode: "{prompt} "] [span.author-name] [span.source?] [span.cursor-block]
+ * or when the theme has no prompt:
+ *   [span.author-name] [span.source?] [span.cursor-block]
+ */
+export function updateLivePrompt() {
+  const author = elements.quoteContainer.querySelector(".author");
+  if (!author) return;
+
+  const newPrompt = getThemePrompt();
+  const firstNode = author.firstChild;
+  const isLeadingTextNode = firstNode && firstNode.nodeType === Node.TEXT_NODE;
+
+  if (isLeadingTextNode) {
+    firstNode.textContent = newPrompt ? `${newPrompt} ` : "";
+    if (!newPrompt) author.removeChild(firstNode);
+  } else if (newPrompt) {
+    const authorName = author.querySelector(".author-name");
+    author.insertBefore(document.createTextNode(`${newPrompt} `), authorName);
+  }
+}
+
+// =========================================
+// QUOTE DISPLAY ENGINE
+// =========================================
+
+/**
+ * Clears the quote container and starts displaying a quote.
+ * Real terminals didn't crossfade — the beam stopped writing old content and
+ * started writing new content. The character-by-character typing IS the transition.
+ *
+ * @param {{ text: string, author: string, source?: string }} quote
+ * @param {number} [startIndex=0] - Character position to start typing from.
+ * @param {boolean} [finishImmediately=false] - Skip animation and render fully.
+ * @param {string | null} [preformattedAuthor=null] - Pre-rendered author HTML.
+ * @param {boolean} [skipHistory=false] - Don't add to navigation history.
+ * @param {string | null} [preformattedSource=null] - Pre-rendered source HTML.
+ */
+function displayQuoteWithTransition(
+  quote,
+  startIndex = 0,
+  finishImmediately = false,
+  preformattedAuthor = null,
+  skipHistory = false,
+  preformattedSource = null,
+) {
+  PerformanceUtils.cancelAllTimers();
+  elements.quoteContainer.innerHTML = "";
+  displayQuote(
+    quote,
+    startIndex,
+    finishImmediately,
+    preformattedAuthor,
+    skipHistory,
+    preformattedSource,
+  );
+}
+
+/**
+ * Core typing engine. Renders a quote in three phases:
+ *   Phase 1 — Types the quote body character by character.
+ *   Phase 2 — Types the author line (plain text), with live prompt.
+ *   Phase 3 — Swaps plain author for linked HTML, parks cursor, schedules auto-advance.
+ *
+ * @param {{ text: string, author: string, source?: string }} quote
+ * @param {number} [startIndex=0]
+ * @param {boolean} [finishImmediately=false]
+ * @param {string | null} [preformattedAuthor=null]
+ * @param {boolean} [skipHistory=false]
+ * @param {string | null} [preformattedSource=null]
+ */
+function displayQuote(
+  quote,
+  startIndex = 0,
+  finishImmediately = false,
+  preformattedAuthor = null,
+  skipHistory = false,
+  preformattedSource = null,
+) {
+  if (!isValidQuote(quote)) {
+    console.warn("Tried to display invalid quote:", quote);
+    setRandomQuote();
+    return;
+  }
+
+  state.currentQuote = quote;
+  if (!skipHistory) pushToHistory(quote);
+
+  const quoteText = QuoteUtils.getQuoteText(quote);
+  state.currentIndex = startIndex;
+  state.isTyping = true;
+
+  if (isQuoteBookmarked(quote)) {
+    elements.quoteContainer.classList.add("bookmarked");
+  } else {
+    elements.quoteContainer.classList.remove("bookmarked");
+  }
+
+  QuoteUtils.updateBookmarkCounter();
+
+  const authorHTML =
+    preformattedAuthor || PerformanceUtils.formatAuthor(quote.author);
+  const sourceHTML =
+    preformattedSource !== null
+      ? preformattedSource
+      : quote.source
+        ? PerformanceUtils.formatSource(quote.source)
+        : null;
+
+  // Plain text for character-by-character author typing.
+  // Strip markdown links [text](url) → text and surrounding quotes.
+  const authorPlain = String(quote.author)
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+    .replace(/^"|"$/g, "")
+    .trim();
+
+  // Plain text for source typing — strip markdown links.
+  const sourcePlain = quote.source
+    ? String(quote.source)
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+        .trim()
+    : null;
+
+  // NOTE: prompt is intentionally NOT frozen here.
+  // Re-reading getThemePrompt() on each tick means a mid-type theme change
+  // is reflected on the very next character rather than waiting for renderParked().
+  function getAuthorTypingText() {
+    const livePrompt = getThemePrompt();
+    const sourceStr = sourcePlain ? ` — ${sourcePlain}` : "";
+    return livePrompt
+      ? `${livePrompt} ${authorPlain}${sourceStr}`
+      : `${authorPlain}${sourceStr}`;
+  }
+
+  /** Renders the fully-linked, parked state with blinking cursor. */
+  function renderParked() {
+    try {
+      const prompt = getThemePrompt();
+      const sourcePart = sourceHTML
+        ? `<span class="source"> — <span class="source-text">${sourceHTML}</span></span>`
+        : "";
+      elements.quoteContainer.innerHTML =
+        `<span class="text-selected">${quoteText}</span>` +
+        `<span class="author">${prompt ? prompt + " " : ""}<span class="author-name">${authorHTML}</span>${sourcePart} ` +
+        `<span class="cursor-block" aria-hidden="true"></span></span>`;
+      elements.quoteContainer.style.textTransform = state.isUppercase
+        ? "uppercase"
+        : "none";
+      const authorEl = elements.quoteContainer.querySelector(".author");
+      if (authorEl) {
+        authorEl.style.textTransform = state.isUppercase ? "uppercase" : "none";
+      }
+
+    } catch (e) {
+      console.error("Error rendering quote:", e, { quoteText, quote });
+      elements.quoteContainer.textContent = "Error displaying quote";
+      elements.errorMessage.classList.add("error-active");
+    }
+  }
+
+  function typeQuote() {
+    const msPerChar = QuoteUtils.getMsPerChar();
+    const finishNow = finishImmediately || msPerChar === 0 || state.isPaused;
+
+    if (finishNow) {
+      renderParked();
+      state.currentIndex = quoteText.length;
+      state.isTyping = false;
+      state.isPaused = true;
+      return;
     }
 
-    localStorage.setItem("bitcoin-quotes", JSON.stringify(state.quotes));
-    localStorage.setItem("bitcoin-quotes-timestamp", Date.now().toString());
+    // Phase 1 — type the quote body
+    if (state.currentIndex < quoteText.length) {
+      if (state.currentIndex === 0) {
+        elements.quoteContainer.innerHTML =
+          '<span class="cursor-block" aria-hidden="true"></span>';
+      }
 
-    return state.quotes;
+      const typedText = quoteText.slice(0, state.currentIndex + 1);
+      elements.quoteContainer.innerHTML =
+        `<span class="text-selected">${typedText}</span>` +
+        `<span class="cursor-block" aria-hidden="true"></span>`;
+
+      PerformanceUtils.handleAutoScroll();
+      state.currentIndex++;
+
+      const justTyped = quoteText[state.currentIndex - 1];
+      const punctuationDelay = /[.!?]/.test(justTyped)
+        ? SENTENCE_PAUSE_MS
+        : /[,;:]/.test(justTyped)
+          ? CLAUSE_PAUSE_MS
+          : 0;
+      state.timeoutId = PerformanceUtils.optimizedDelay(
+        typeQuote,
+        msPerChar + punctuationDelay,
+      );
+
+    // Phase 2 — type the author line
+    } else if (
+      state.currentIndex <
+      quoteText.length + getAuthorTypingText().length
+    ) {
+      const authorIndex = state.currentIndex - quoteText.length;
+      const authorTypingText = getAuthorTypingText();
+      const typedAuthor = authorTypingText.slice(0, authorIndex + 1);
+
+      elements.quoteContainer.innerHTML =
+        `<span class="text-selected">${quoteText}</span>` +
+        `<span class="author">${typedAuthor}<span class="cursor-block" aria-hidden="true"></span></span>`;
+
+      elements.quoteContainer.style.textTransform = state.isUppercase
+        ? "uppercase"
+        : "none";
+      PerformanceUtils.handleAutoScroll();
+      state.currentIndex++;
+
+      const justTyped = authorTypingText[authorIndex];
+      const punctuationDelay = /[.!?]/.test(justTyped)
+        ? AUTHOR_SENTENCE_PAUSE_MS
+        : /[,;:]/.test(justTyped)
+          ? AUTHOR_CLAUSE_PAUSE_MS
+          : 0;
+      state.timeoutId = PerformanceUtils.optimizedDelay(
+        typeQuote,
+        msPerChar + punctuationDelay,
+      );
+
+    // Phase 3 — park cursor, schedule auto-advance
+    } else {
+      renderParked();
+      state.isTyping = false;
+      state.isPaused = true;
+
+      state.parkTimeoutId = setTimeout(() => {
+        state.parkTimeoutId = null;
+        state.isPaused = false;
+        elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
+        setRandomQuote();
+      }, getThemePauseDuration());
+    }
+  }
+
+  typeQuote();
+}
+
+/**
+ * Fetches the next quote (preloaded or random) and starts displaying it.
+ * No-ops while paused to prevent double-advance.
+ */
+async function setRandomQuote() {
+  if (state.isPaused) return;
+
+  try {
+    const result = await PerformanceUtils.getNextQuote();
+
+    if (!result) {
+      elements.quoteContainer.textContent = "No quotes available";
+      elements.errorMessage.textContent =
+        "*** ERROR: NO VALID QUOTES AVAILABLE";
+      elements.errorMessage.classList.add("error-active");
+      return;
+    }
+
+    const { quote, authorHTML, sourceHTML } = result;
+    displayQuote(quote, 0, false, authorHTML, false, sourceHTML);
   } catch (error) {
-    console.error("Error loading quotes:", error);
-    elements.errorMessage.textContent = "*** ERROR: HOUSTON WE HAVE A PROBLEM";
+    console.error("Error loading quote:", error);
+    elements.errorMessage.textContent = "*** ERROR: FAILED TO LOAD QUOTES";
     elements.errorMessage.classList.add("error-active");
-    return [];
   }
 }
 
-// Validate quote has required text and author fields
-function isValidQuote(quote) {
-  return (
-    quote &&
-    typeof quote === "object" &&
-    typeof quote.text === "string" &&
-    quote.text.trim() &&
-    typeof quote.author === "string" &&
-    quote.author.trim()
+// =========================================
+// BOOT SEQUENCE
+// =========================================
+
+/**
+ * Types a single line of text into the quote container, character by character.
+ * Previously typed lines are shown above the current line as the line grows.
+ *
+ * @param {string} text - The line to type.
+ * @param {number} speed - Base ms per character.
+ * @param {() => void} done - Called when the line is fully typed.
+ * @param {string[]} previousLines - Lines already typed, shown above.
+ */
+function typeBootLine(text, speed, done, previousLines) {
+  let i = 0;
+  const prev =
+    previousLines && previousLines.length
+      ? previousLines
+          .map((l) => `<span class="text-selected">${l}</span>`)
+          .join("\n") + "\n"
+      : "";
+
+  function tick() {
+    elements.quoteContainer.innerHTML =
+      prev +
+      `<span class="text-selected">${text.slice(0, i + 1)}</span>` +
+      `<span class="cursor-block" aria-hidden="true"></span>`;
+    i++;
+    if (i < text.length) {
+      const justTyped = text[i - 1];
+      const pd = /[.!?]/.test(justTyped)
+        ? AUTHOR_SENTENCE_PAUSE_MS
+        : /[,;:]/.test(justTyped)
+          ? AUTHOR_CLAUSE_PAUSE_MS
+          : 0;
+      state.timeoutId = setTimeout(tick, speed + pd);
+    } else {
+      done();
+    }
+  }
+  tick();
+}
+
+/**
+ * Runs the per-terminal POST boot sequence, then calls onComplete.
+ * Skipped entirely when config.performanceMode is true.
+ * Boot messages are sourced from themeBootLines in config.js.
+ *
+ * @param {() => void} onComplete - Called after the last boot line finishes.
+ */
+function runBootSequence(onComplete) {
+  if (config.performanceMode) {
+    onComplete();
+    return;
+  }
+
+  const prompt = getThemePrompt();
+  const currentTheme = themes.find((t) =>
+    document.body.classList.contains(`theme-${t}`),
   );
+
+  const defaultLines = [
+    { text: "BLOCKQUOTES.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 28 },
+    { text: "LOADING QUOTE DATABASE.................. OK", speed: 32 },
+  ];
+
+  const bootLines = themeBootLines[currentTheme] || defaultLines;
+  const lines = [...bootLines, ...(prompt ? [{ text: prompt, speed: 0 }] : [])];
+
+  let lineIndex = 0;
+  const displayed = [];
+
+  function nextLine() {
+    if (lineIndex >= lines.length) {
+      onComplete();
+      return;
+    }
+
+    const { text, speed } = lines[lineIndex];
+    lineIndex++;
+
+    typeBootLine(
+      text,
+      speed,
+      () => {
+        displayed.push(text);
+        elements.quoteContainer.innerHTML = displayed
+          .map((l) => `<span class="text-selected">${l}</span>`)
+          .join("\n");
+        state.timeoutId = setTimeout(
+          nextLine,
+          lineIndex === lines.length ? BOOT_FINAL_PAUSE_MS : BOOT_LINE_PAUSE_MS,
+        );
+      },
+      displayed,
+    );
+  }
+
+  nextLine();
 }
 
 // =========================================
-// USER ACTIONS
+// HELP SCREEN
 // =========================================
 
-// Copy current quote to clipboard
+/**
+ * Types the keyboard shortcut reference into the quote container,
+ * using the active theme's HELP idiom as the header.
+ * Automatically resumes the quote cycle after HELP_RESUME_MS.
+ */
+function showHelp() {
+  if (state.booting) return;
+
+  PerformanceUtils.cancelAllTimers();
+  state.isTyping = false;
+  state.isPaused = true;
+
+  const currentTheme =
+    themes.find((t) => document.body.classList.contains(`theme-${t}`)) ||
+    "ibm3279-green";
+  const header = themeHelpHeaders[currentTheme] || "HELP";
+
+  const lines = [
+    header,
+    "SPACE/CLICK    finish typing / next quote",
+    "N              next quote",
+    "P              previous quote",
+    "C              copy quote",
+    "X              share on x/twitter",
+    "L              copy share link",
+    "B              bookmark quote",
+    "V              view bookmarks",
+    "E              export bookmarks",
+    "U              toggle uppercase",
+    "T              cycle theme",
+    "?              show this help",
+  ];
+
+  let lineIndex = 0;
+  const typed = [];
+
+  function nextLine() {
+    if (lineIndex >= lines.length) {
+      state.timeoutId = setTimeout(() => {
+        state.isPaused = false;
+        elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
+        setRandomQuote();
+      }, HELP_RESUME_MS);
+      return;
+    }
+
+    const text = lines[lineIndex];
+    lineIndex++;
+
+    let i = 0;
+    const typeSpeed =
+      lineIndex === 1 ? HELP_HEADER_TYPE_SPEED_MS : HELP_LINE_TYPE_SPEED_MS;
+    const linePause =
+      lineIndex === 1 ? HELP_HEADER_PAUSE_MS : HELP_LINE_PAUSE_MS;
+
+    function tick() {
+      const current = text.slice(0, i + 1);
+      elements.quoteContainer.innerHTML =
+        typed.map((l) => `<span class="text-selected">${l}</span>`).join("\n") +
+        (typed.length ? "\n" : "") +
+        `<span class="text-selected">${current}</span>` +
+        `<span class="cursor-block" aria-hidden="true"></span>`;
+      i++;
+      if (i < text.length) {
+        state.timeoutId = setTimeout(tick, typeSpeed);
+      } else {
+        typed.push(text);
+        state.timeoutId = setTimeout(nextLine, linePause);
+      }
+    }
+    tick();
+  }
+
+  elements.quoteContainer.textContent = "";
+  nextLine();
+}
+
+// =========================================
+// SHARING
+// =========================================
+
+/**
+ * Copies the current quote to the clipboard in tweet-ready format.
+ * Format: "text" — Author, Source
+ */
 function copyCurrentQuote() {
   if (!state.currentQuote) return;
   const text = QuoteUtils.getTweetText(state.currentQuote);
@@ -468,11 +1157,11 @@ function copyCurrentQuote() {
     });
 }
 
-// =========================================
-// URL SHARING
-// =========================================
-
-// Find the index of the current quote in the loaded quotes array
+/**
+ * Returns the array index of the current quote in state.quotes.
+ *
+ * @returns {number} Index, or -1 if not found.
+ */
 function getCurrentQuoteIndex() {
   if (!state.currentQuote || !state.quotes) return -1;
   return state.quotes.findIndex(
@@ -482,7 +1171,10 @@ function getCurrentQuoteIndex() {
   );
 }
 
-// Copy a shareable URL for the current quote to clipboard (?q=INDEX)
+/**
+ * Copies a shareable URL for the current quote to the clipboard.
+ * Format: https://blockquotes.sh?q=INDEX
+ */
 function copyShareableURL() {
   if (!state.currentQuote) return;
   const index = getCurrentQuoteIndex();
@@ -502,7 +1194,25 @@ function copyShareableURL() {
     });
 }
 
-// Check on load if a ?q= param is present and display that quote
+/**
+ * Opens the Twitter/X share intent for the current quote.
+ * Uses the web intent URL on all platforms — the twitter:// app URI is blocked
+ * by iOS Safari for programmatic clicks that are not direct user gestures.
+ */
+function shareQuoteOnTwitter() {
+  if (!state.currentQuote) return;
+  const tweetText = QuoteUtils.getTweetText(state.currentQuote);
+  const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+  window.open(tweetUrl, "_blank", "noopener,noreferrer");
+  QuoteUtils.announceAction("Opened share window");
+}
+
+/**
+ * Checks the URL for a ?q=INDEX parameter on load and displays that quote.
+ * Cleans the URL via history.replaceState so the param doesn't persist on refresh.
+ *
+ * @returns {boolean} True if a quote was loaded from the URL.
+ */
 function checkURLQuote() {
   const params = new URLSearchParams(location.search);
   const param = params.get("q");
@@ -520,20 +1230,90 @@ function checkURLQuote() {
   const quote = state.quotes[index];
   if (!isValidQuote(quote)) return false;
 
-  // Display immediately, fully rendered, paused
   state.isPaused = true;
   displayQuoteWithTransition(quote, 0, true);
-
-  // Clean URL without reloading
   history.replaceState(null, "", location.pathname);
   return true;
 }
 
 // =========================================
-// BOOKMARK EXPORT
+// BOOKMARK SYSTEM
 // =========================================
 
-// Export bookmarks as a downloaded JSON file
+/**
+ * Toggles the bookmark state of the current quote.
+ * Persists to localStorage and updates the counter badge.
+ */
+function toggleBookmark() {
+  if (!state.currentQuote) return;
+
+  const isCurrentlyBookmarked = isQuoteBookmarked(state.currentQuote);
+
+  if (isCurrentlyBookmarked) {
+    state.bookmarkedQuotes = state.bookmarkedQuotes.filter(
+      (b) =>
+        !(
+          b.text === state.currentQuote.text &&
+          b.author === state.currentQuote.author
+        ),
+    );
+    QuoteUtils.announceAction("Quote unbookmarked");
+    showToast("bookmark removed");
+    elements.quoteContainer.classList.remove("bookmarked");
+
+    if (state.currentBookmarkIndex >= state.bookmarkedQuotes.length) {
+      state.currentBookmarkIndex = Math.max(
+        0,
+        state.bookmarkedQuotes.length - 1,
+      );
+    }
+  } else {
+    state.bookmarkedQuotes.push({
+      text: state.currentQuote.text,
+      author: state.currentQuote.author,
+      ...(state.currentQuote.source ? { source: state.currentQuote.source } : {}),
+      bookmarkedAt: Date.now(),
+    });
+    QuoteUtils.announceAction("Quote bookmarked");
+    showToast("bookmarked *");
+    elements.quoteContainer.classList.add("bookmarked");
+  }
+
+  localStorage.setItem(
+    "bookmarked-quotes",
+    JSON.stringify(state.bookmarkedQuotes),
+  );
+  QuoteUtils.updateBookmarkCounter();
+}
+
+/**
+ * Advances to the next bookmarked quote in the saved list.
+ * Shows a toast with the current position in the list.
+ */
+function viewNextBookmarkedQuote() {
+  if (state.bookmarkedQuotes.length === 0) {
+    QuoteUtils.announceAction(
+      "No bookmarked quotes yet. Press B to bookmark the current quote.",
+    );
+    return;
+  }
+
+  const bookmarkedQuote = state.bookmarkedQuotes[state.currentBookmarkIndex];
+  state.currentBookmarkIndex =
+    (state.currentBookmarkIndex + 1) % state.bookmarkedQuotes.length;
+
+  displayQuoteWithTransition(bookmarkedQuote, 0, true);
+
+  const total = state.bookmarkedQuotes.length;
+  const position =
+    state.currentBookmarkIndex === 0 ? total : state.currentBookmarkIndex;
+  QuoteUtils.announceAction(`Viewing bookmark ${position} of ${total}`);
+}
+
+/**
+ * Exports all bookmarked quotes as a dated JSON file download.
+ * No-ops with a toast if there are no bookmarks.
+ */
 function exportBookmarksAsJSON() {
   if (state.bookmarkedQuotes.length === 0) {
     QuoteUtils.announceAction("No bookmarks to export");
@@ -568,374 +1348,10 @@ function exportBookmarksAsJSON() {
   setTimeout(() => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, 100);
+  }, EXPORT_REVOKE_MS);
 
-  QuoteUtils.announceAction(
-    `Exported ${state.bookmarkedQuotes.length} bookmarks`,
-  );
+  QuoteUtils.announceAction(`Exported ${state.bookmarkedQuotes.length} bookmarks`);
   showToast(`exported ${state.bookmarkedQuotes.length} bookmarks`);
-}
-
-// =========================================
-// STATUS LINE
-// =========================================
-
-let _statusTimer = null;
-
-function showToast(message) {
-  if (_statusTimer) {
-    clearTimeout(_statusTimer);
-    _statusTimer = null;
-  }
-
-  let el = document.querySelector(".bq-status");
-  if (!el) {
-    el = document.createElement("div");
-    el.className = "bq-status";
-    document.body.appendChild(el);
-  }
-
-  const prompt = getThemePrompt() || ">";
-  el.textContent = `${prompt} ${message}`;
-  el.classList.remove("hidden");
-
-  _statusTimer = setTimeout(() => {
-    el.classList.add("hidden");
-    _statusTimer = null;
-  }, 2200);
-}
-
-// Toggle between uppercase and lowercase text
-function toggleTextCase() {
-  state.isUppercase = !state.isUppercase;
-  const textTransform = state.isUppercase ? "uppercase" : "none";
-  elements.quoteContainer.style.textTransform = textTransform;
-  const authorElement = elements.quoteContainer.querySelector(".author");
-  if (authorElement) {
-    authorElement.style.textTransform = textTransform;
-  }
-  QuoteUtils.announceAction(
-    `Text case set to ${state.isUppercase ? "uppercase" : "lowercase"}`,
-  );
-}
-
-// =========================================
-// BOOKMARK SYSTEM
-// =========================================
-
-// Toggle bookmark for current quote
-function toggleBookmark() {
-  if (!state.currentQuote) return;
-
-  const isCurrentlyBookmarked = isQuoteBookmarked(state.currentQuote);
-
-  if (isCurrentlyBookmarked) {
-    state.bookmarkedQuotes = state.bookmarkedQuotes.filter(
-      (bookmarked) =>
-        !(
-          bookmarked.text === state.currentQuote.text &&
-          bookmarked.author === state.currentQuote.author
-        ),
-    );
-    QuoteUtils.announceAction("Quote unbookmarked");
-    showToast("bookmark removed");
-    elements.quoteContainer.classList.remove("bookmarked");
-
-    // Reset bookmark index to prevent pointing to invalid position
-    if (state.currentBookmarkIndex >= state.bookmarkedQuotes.length) {
-      state.currentBookmarkIndex = Math.max(
-        0,
-        state.bookmarkedQuotes.length - 1,
-      );
-    }
-  } else {
-    state.bookmarkedQuotes.push({
-      text: state.currentQuote.text,
-      author: state.currentQuote.author,
-      ...(state.currentQuote.source
-        ? { source: state.currentQuote.source }
-        : {}),
-      bookmarkedAt: Date.now(),
-    });
-    QuoteUtils.announceAction("Quote bookmarked");
-    showToast("bookmarked *");
-    elements.quoteContainer.classList.add("bookmarked");
-  }
-
-  localStorage.setItem(
-    "bookmarked-quotes",
-    JSON.stringify(state.bookmarkedQuotes),
-  );
-  QuoteUtils.updateBookmarkCounter();
-}
-
-// Check if quote is bookmarked
-function isQuoteBookmarked(quote) {
-  return state.bookmarkedQuotes.some(
-    (bookmarked) =>
-      bookmarked.text === quote.text && bookmarked.author === quote.author,
-  );
-}
-
-// Navigate to next bookmarked quote
-function viewNextBookmarkedQuote() {
-  if (state.bookmarkedQuotes.length === 0) {
-    QuoteUtils.announceAction(
-      "No bookmarked quotes yet. Press B to bookmark the current quote.",
-    );
-    return;
-  }
-
-  const bookmarkedQuote = state.bookmarkedQuotes[state.currentBookmarkIndex];
-
-  state.currentBookmarkIndex =
-    (state.currentBookmarkIndex + 1) % state.bookmarkedQuotes.length;
-
-  displayQuoteWithTransition(bookmarkedQuote, 0, true);
-
-  const totalBookmarks = state.bookmarkedQuotes.length;
-  const currentPosition =
-    state.currentBookmarkIndex === 0
-      ? totalBookmarks
-      : state.currentBookmarkIndex;
-  QuoteUtils.announceAction(
-    `Viewing bookmark ${currentPosition} of ${totalBookmarks}`,
-  );
-}
-
-// =========================================
-// QUOTE DISPLAY WITH TRANSITIONS
-// =========================================
-
-// Display a quote — clear immediately and let the typing engine serve as the transition.
-// Real terminals don't fade or slide; the beam simply stops writing old content
-// and starts writing new content. The character-by-character typing IS the transition.
-function displayQuoteWithTransition(
-  quote,
-  startIndex = 0,
-  finishImmediately = false,
-  preformattedAuthor = null,
-  skipHistory = false,
-  preformattedSource = null,
-) {
-  PerformanceUtils.cancelAnimation();
-  elements.quoteContainer.innerHTML = "";
-  displayQuote(
-    quote,
-    startIndex,
-    finishImmediately,
-    preformattedAuthor,
-    skipHistory,
-    preformattedSource,
-  );
-}
-
-// Core typing effect display with character-by-character animation
-function displayQuote(
-  quote,
-  startIndex = 0,
-  finishImmediately = false,
-  preformattedAuthor = null,
-  skipHistory = false,
-  preformattedSource = null,
-) {
-  if (!isValidQuote(quote)) {
-    console.warn("Tried to display invalid quote:", quote);
-    setRandomQuote();
-    return;
-  }
-
-  state.currentQuote = quote;
-  if (!skipHistory) pushToHistory(quote); // #5 track history for back-navigation
-  const quoteText = QuoteUtils.getQuoteText(quote);
-  state.currentIndex = startIndex;
-  state.isTyping = true;
-
-  // Add bookmark indicator if quote is bookmarked
-  if (isQuoteBookmarked(quote)) {
-    elements.quoteContainer.classList.add("bookmarked");
-  } else {
-    elements.quoteContainer.classList.remove("bookmarked");
-  }
-
-  // Update bookmark counter to show/hide heart
-  QuoteUtils.updateBookmarkCounter();
-
-  const authorHTML =
-    preformattedAuthor || PerformanceUtils.formatAuthor(quote.author);
-  const sourceHTML =
-    preformattedSource !== null
-      ? preformattedSource
-      : quote.source
-        ? PerformanceUtils.formatSource(quote.source)
-        : null;
-
-  // Plain text for character-by-character author typing.
-  // Strip markdown links [text](url) → text and surrounding quotes.
-  const authorPlain = String(quote.author)
-    .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
-    .replace(/^"|"$/g, "")
-    .trim();
-
-  // Plain text for source typing — strip markdown links.
-  const sourcePlain = quote.source
-    ? String(quote.source)
-        .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
-        .trim()
-    : null;
-
-  // NOTE: prompt is intentionally NOT frozen at displayQuote call time.
-  // getAuthorTypingText() re-reads getThemePrompt() on every tick so a
-  // mid-type theme change is reflected immediately — the new prompt character
-  // appears on the very next typed character rather than waiting until
-  // renderParked() fires at the end of Phase 2.
-  function getAuthorTypingText() {
-    const livePrompt = getThemePrompt();
-    // Author + optional dimmed source on the same line, separated by en-dash
-    const sourceStr = sourcePlain ? ` — ${sourcePlain}` : "";
-    return livePrompt
-      ? `${livePrompt} ${authorPlain}${sourceStr}`
-      : `${authorPlain}${sourceStr}`;
-  }
-
-  // Render the final parked state: quote body + fully-linked author + optional dimmed source + blinking cursor.
-  function renderParked() {
-    try {
-      const prompt = getThemePrompt();
-      const sourcePart = sourceHTML
-        ? `<span class="source"> — <span class="source-text">${sourceHTML}</span></span>`
-        : "";
-      elements.quoteContainer.innerHTML =
-        `<span class="text-selected">${quoteText}</span>` +
-        `<span class="author">${prompt ? prompt + " " : ""}<span class="author-name">${authorHTML}</span>${sourcePart} ` +
-        `<span class="cursor-block" aria-hidden="true"></span></span>`;
-      elements.quoteContainer.style.textTransform = state.isUppercase
-        ? "uppercase"
-        : "none";
-      const authorElement = elements.quoteContainer.querySelector(".author");
-      if (authorElement)
-        authorElement.style.textTransform = state.isUppercase
-          ? "uppercase"
-          : "none";
-    } catch (e) {
-      console.error("Error rendering quote:", e, { quoteText, quote });
-      elements.quoteContainer.textContent = "Error displaying quote";
-      elements.errorMessage.classList.add("error-active");
-    }
-  }
-
-  function typeQuote() {
-    const msPerChar = QuoteUtils.getMsPerChar();
-    const finishNow = finishImmediately || msPerChar === 0 || state.isPaused;
-
-    // Show everything immediately if skip requested or reduced motion
-    if (finishNow) {
-      renderParked();
-      state.currentIndex = quoteText.length;
-      state.isTyping = false;
-      state.isPaused = true;
-      return;
-    }
-
-    // Phase 1 — type the quote body character by character
-    if (state.currentIndex < quoteText.length) {
-      if (state.currentIndex === 0) {
-        elements.quoteContainer.innerHTML =
-          '<span class="cursor-block" aria-hidden="true"></span>';
-      }
-
-      const typedText = quoteText.slice(0, state.currentIndex + 1);
-      elements.quoteContainer.innerHTML =
-        `<span class="text-selected">${typedText}</span>` +
-        `<span class="cursor-block" aria-hidden="true"></span>`;
-
-      PerformanceUtils.handleAutoScroll();
-
-      state.currentIndex++;
-      // Punctuation pauses — presentation layer only, not a hardware property.
-      // A real terminal delivered every byte at the same interval; these pauses
-      // exist purely to give the reader's eye a beat at sentence boundaries.
-      const justTyped = quoteText[state.currentIndex - 1];
-      const punctuationDelay = /[.!?]/.test(justTyped)
-        ? 180
-        : /[,;:]/.test(justTyped)
-          ? 60
-          : 0;
-      state.timeoutId = PerformanceUtils.optimizedDelay(
-        typeQuote,
-        msPerChar + punctuationDelay,
-      );
-
-      // Phase 2 — type the author line character by character (plain text)
-    } else if (
-      state.currentIndex <
-      quoteText.length + getAuthorTypingText().length
-    ) {
-      const authorIndex = state.currentIndex - quoteText.length;
-      const authorTypingText = getAuthorTypingText();
-      const typedAuthor = authorTypingText.slice(0, authorIndex + 1);
-
-      elements.quoteContainer.innerHTML =
-        `<span class="text-selected">${quoteText}</span>` +
-        `<span class="author">${typedAuthor}<span class="cursor-block" aria-hidden="true"></span></span>`;
-
-      elements.quoteContainer.style.textTransform = state.isUppercase
-        ? "uppercase"
-        : "none";
-      PerformanceUtils.handleAutoScroll();
-
-      state.currentIndex++;
-      const justTyped = authorTypingText[authorIndex];
-      const punctuationDelay = /[.!?]/.test(justTyped)
-        ? 120
-        : /[,;:]/.test(justTyped)
-          ? 40
-          : 0;
-      state.timeoutId = PerformanceUtils.optimizedDelay(
-        typeQuote,
-        msPerChar + punctuationDelay,
-      );
-
-      // Phase 3 — author done: swap plain text for linked HTML, park cursor
-    } else {
-      renderParked();
-      state.isTyping = false;
-      state.isPaused = true;
-
-      state.parkTimeoutId = setTimeout(() => {
-        state.parkTimeoutId = null;
-        state.isPaused = false;
-        elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
-        setRandomQuote();
-      }, getThemePauseDuration());
-    }
-  }
-
-  typeQuote();
-}
-
-// Load and display a random quote
-async function setRandomQuote() {
-  if (state.isPaused) return;
-
-  try {
-    const result = await PerformanceUtils.getNextQuote();
-
-    if (!result) {
-      elements.quoteContainer.textContent = "No quotes available";
-      elements.errorMessage.textContent =
-        "*** ERROR: NO VALID QUOTES AVAILABLE";
-      elements.errorMessage.classList.add("error-active");
-      return;
-    }
-
-    const { quote, authorHTML, sourceHTML } = result;
-    displayQuote(quote, 0, false, authorHTML, false, sourceHTML);
-  } catch (error) {
-    console.error("Error loading quote:", error);
-    elements.errorMessage.textContent = "*** ERROR: FAILED TO LOAD QUOTES";
-    elements.errorMessage.classList.add("error-active");
-  }
 }
 
 // =========================================
@@ -953,20 +1369,25 @@ async function setRandomQuote() {
   with an LNURL. People who don't aren't the audience for this button.
 */
 const LightningTip = (() => {
+  /** @returns {string | null} The LNURL from the bolt link's href, uppercased. */
   function getLNURL() {
     const bolt = document.querySelector(".bolt-link");
     if (!bolt) return null;
-    // href is "lightning:LNURL1..." — strip the scheme, uppercase per convention
     return (bolt.getAttribute("href") || "")
       .replace(/^lightning:/i, "")
       .toUpperCase();
   }
 
+  /**
+   * Handles a click on the Lightning bolt icon.
+   * Attempts WebLN first, falls back by tier.
+   *
+   * @param {MouseEvent} event
+   */
   async function handleBoltClick(event) {
     const lnurl = getLNURL();
     if (!lnurl) return;
 
-    // Tier 1 — WebLN
     if (window.webln) {
       event.preventDefault();
       try {
@@ -980,10 +1401,8 @@ const LightningTip = (() => {
       return;
     }
 
-    // Tier 2 — Mobile: let the lightning: href fire natively
-    if (isMobile) return;
+    if (isMobile) return; // Let the lightning: href fire natively
 
-    // Tier 3 — Desktop: copy LNURL, confirm via toast
     event.preventDefault();
     const short = lnurl.slice(0, 18) + "…";
     navigator.clipboard
@@ -1003,13 +1422,10 @@ const LightningTip = (() => {
   Two-tier Bitcoin on-chain experience — mirrors Lightning pattern.
 
   Tier 1 — Mobile: native wallet handoff via bitcoin: URI.
-           The <a> href fires natively, opening the user's wallet app
-           with the address pre-filled. No JS intervention needed.
   Tier 2 — Desktop: copy address to clipboard, confirm via status line.
-           Desktop browsers don't have bitcoin: URI handlers by default,
-           so copying the address is the most useful action.
 */
 const BitcoinTip = (() => {
+  /** @returns {string | null} The Bitcoin address from the btc link's href. */
   function getAddress() {
     const btc = document.querySelector(".btc-link");
     if (!btc) return null;
@@ -1018,14 +1434,17 @@ const BitcoinTip = (() => {
       .split("?")[0];
   }
 
+  /**
+   * Handles a click on the Bitcoin icon.
+   *
+   * @param {MouseEvent} event
+   */
   function handleBtcClick(event) {
     const address = getAddress();
     if (!address) return;
 
-    // Tier 1 — Mobile: let the bitcoin: href fire natively
-    if (isMobile) return;
+    if (isMobile) return; // Let the bitcoin: href fire natively
 
-    // Tier 2 — Desktop: copy address, confirm via status line
     event.preventDefault();
     const short = address.slice(0, 10) + "…" + address.slice(-4);
     navigator.clipboard
@@ -1038,10 +1457,13 @@ const BitcoinTip = (() => {
 })();
 
 // =========================================
-// EVENT HANDLERS
+// SHARED NAVIGATION ACTION
 // =========================================
 
-// Shared next-quote action used by keyboard, swipe, and wheel handlers.
+/**
+ * Advances to a new random quote. Used by keyboard (N), swipe-left, and wheel-down.
+ * Shows an error toast if the quote list is unavailable.
+ */
 function advanceToNextQuote() {
   const quotes = state.quotes;
   if (!quotes?.length) {
@@ -1054,18 +1476,28 @@ function advanceToNextQuote() {
   QuoteUtils.announceAction("Next quote displayed");
 }
 
-// Handle click to pause/resume or finish typing
+// =========================================
+// EVENT HANDLERS
+// =========================================
+
+/**
+ * Handles click and touch-tap on the document body.
+ * - Lightning/Bitcoin icon clicks are intercepted and routed to their handlers.
+ * - While typing: finishes typing immediately.
+ * - While park-paused: advances to next quote.
+ * - Otherwise: toggles pause/resume.
+ *
+ * @param {MouseEvent} event
+ */
 function handleClick(event) {
   if (state.booting) return;
 
-  // Intercept bolt clicks before the generic pause handler
   if (event.target.closest(".bolt-link")) {
     LightningTip.handleBoltClick(event);
     document.activeElement?.blur();
     return;
   }
 
-  // Intercept bitcoin icon clicks — same pattern as lightning
   if (event.target.closest(".btc-link")) {
     BitcoinTip.handleBtcClick(event);
     document.activeElement?.blur();
@@ -1096,32 +1528,24 @@ function handleClick(event) {
   });
 }
 
-// Share current quote on Twitter/X
-function shareQuoteOnTwitter() {
-  if (!state.currentQuote) return;
-  // Use web intent on all platforms — the twitter:// app URI trick is blocked
-  // by iOS Safari (programmatic .click() on a created element is not a user gesture).
-  // x.com/intent/tweet works on all devices and opens the app if installed on mobile.
-  const tweetText = QuoteUtils.getTweetText(state.currentQuote);
-  const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-  window.open(tweetUrl, "_blank", "noopener,noreferrer");
-  QuoteUtils.announceAction("Opened share window");
-}
-
-// Keyboard shortcuts handler
+/**
+ * Handles keydown events for all keyboard shortcuts.
+ * Guarded actions (N, P, B, V, X, U, L, E) go through withProcessing.
+ * Unguarded actions (C, ?, R) fire immediately without debounce.
+ *
+ * @param {KeyboardEvent} event
+ */
 function handleKeyPress(event) {
   if (state.booting) return;
 
   const key = event.key.toLowerCase();
 
-  // Space: finish typing or advance — mirrors click handler
   if (event.key === " ") {
     event.preventDefault();
     handleClick(event);
     return;
   }
 
-  // Dispatch table — actions that need the isProcessing guard
   const guardedActions = {
     n: () => {
       if (!state.isPaused || state.isTyping) return;
@@ -1135,12 +1559,8 @@ function handleKeyPress(event) {
         QuoteUtils.announceAction("Previous quote");
       }
     },
-    x: () => {
-      shareQuoteOnTwitter();
-    },
-    u: () => {
-      toggleTextCase();
-    },
+    x: () => shareQuoteOnTwitter(),
+    u: () => toggleTextCase(),
     b: () => {
       if (state.currentQuote) toggleBookmark();
     },
@@ -1151,12 +1571,10 @@ function handleKeyPress(event) {
     l: () => {
       if (state.currentQuote) copyShareableURL();
     },
-    e: () => {
-      exportBookmarksAsJSON();
-    },
+    e: () => exportBookmarksAsJSON(),
   };
 
-  // Ungarded actions — no debounce needed
+  // Unguarded — no debounce needed for these
   if (key === "c" && state.currentQuote) {
     copyCurrentQuote();
     return;
@@ -1179,62 +1597,55 @@ function handleKeyPress(event) {
 // MOBILE GESTURE HANDLERS
 // =========================================
 
-// Gesture state
-let startX = 0;
-let startY = 0;
-let touchStartTime = 0;
-let longPressTimer = null;
-
-// Start tracking touch gesture
+/**
+ * Records the start position and time of a touch, and arms the long-press timer.
+ * Long press (LONG_PRESS_MS) triggers share on Twitter/X.
+ *
+ * @param {TouchEvent} event
+ */
 function handleSwipeStart(event) {
-  touchStartTime = Date.now();
+  state.touchStartTime = Date.now();
 
   if (event.touches && event.touches.length === 1) {
-    startX = event.touches[0].clientX;
-    startY = event.touches[0].clientY;
+    state.touchStartX = event.touches[0].clientX;
+    state.touchStartY = event.touches[0].clientY;
 
-    // Long press (800ms) = share on Twitter/X
-    longPressTimer = setTimeout(() => {
+    state.longPressTimer = setTimeout(() => {
       if (state.currentQuote) {
         shareQuoteOnTwitter();
         QuoteUtils.announceAction("Sharing quote on X");
       }
-    }, 800);
+    }, LONG_PRESS_MS);
   }
 }
 
-// Detect swipe direction and trigger action
+/**
+ * Resolves the swipe direction on touchend and dispatches the appropriate action.
+ * Swipe left → next quote, swipe right → previous quote (when paused).
+ * Swipe up → toggle uppercase, swipe down → copy share link.
+ * No-ops if the touch duration exceeded the long-press threshold.
+ *
+ * @param {TouchEvent} event
+ */
 function handleSwipeEnd(event) {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
+  if (state.longPressTimer) {
+    clearTimeout(state.longPressTimer);
+    state.longPressTimer = null;
   }
 
-  const touchDuration = Date.now() - touchStartTime;
-
-  if (!event.changedTouches || event.changedTouches.length !== 1) {
-    return;
-  }
-
-  // Skip if long press was triggered
-  if (touchDuration >= 800) return;
+  const touchDuration = Date.now() - state.touchStartTime;
+  if (!event.changedTouches || event.changedTouches.length !== 1) return;
+  if (touchDuration >= LONG_PRESS_MS) return;
 
   const endX = event.changedTouches[0].clientX;
   const endY = event.changedTouches[0].clientY;
-  const diffX = startX - endX;
-  const diffY = startY - endY;
+  const diffX = state.touchStartX - endX;
+  const diffY = state.touchStartY - endY;
 
-  const minSwipeDistance = 50;
-
-  // Horizontal swipe: Swipe left = next quote, Swipe right = previous quote
-  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > minSwipeDistance) {
+  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > SWIPE_MIN_PX) {
     if (diffX > 0) {
-      // Swipe left = next
-      if (state.isPaused && !state.isTyping) {
-        advanceToNextQuote();
-      }
+      if (state.isPaused && !state.isTyping) advanceToNextQuote();
     } else {
-      // Swipe right = back in history
       if (state.isPaused && !state.isTyping) {
         const prev = goBackInHistory();
         if (prev) {
@@ -1245,8 +1656,7 @@ function handleSwipeEnd(event) {
     }
   }
 
-  // Vertical swipe: Swipe up = toggle uppercase, Swipe down = bookmark
-  if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > minSwipeDistance) {
+  if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > SWIPE_MIN_PX) {
     if (diffY > 0) {
       toggleTextCase();
     } else {
@@ -1259,392 +1669,44 @@ function handleSwipeEnd(event) {
 // MOUSE WHEEL NAVIGATION
 // =========================================
 
-// Wheel state
-let wheelDelta = 0;
-let wheelTimeout = null;
-let lastWheelTime = 0;
-const WHEEL_THRESHOLD = 50; // Minimum scroll for quote change
-const WHEEL_COOLDOWN = 400; // Minimum time between changes
-
-// Navigate quotes with mouse wheel (with momentum)
+/**
+ * Navigates quotes on mouse wheel scroll with momentum accumulation.
+ * Scroll down → next quote, scroll up → back in history.
+ * Only acts when the quote is parked. Respects WHEEL_COOLDOWN_MS between changes.
+ *
+ * Passive listener (no preventDefault) — body overflow:clip already prevents
+ * page scrolling, so we don't need to block the compositor thread.
+ *
+ * @param {WheelEvent} event
+ */
 function handleWheelNavigation(event) {
-  event.preventDefault();
-
   const currentTime = Date.now();
+  if (currentTime - state.lastWheelTime < WHEEL_COOLDOWN_MS) return;
+  if (state.isTyping || state.isProcessing) return;
 
-  // Prevent rapid scrolling
-  if (currentTime - lastWheelTime < WHEEL_COOLDOWN) {
-    return;
-  }
+  state.wheelDelta += event.deltaY;
 
-  // Skip during typing
-  if (state.isTyping || state.isProcessing) {
-    return;
-  }
+  if (state.wheelTimeout) clearTimeout(state.wheelTimeout);
 
-  // Accumulate scroll delta for momentum
-  wheelDelta += event.deltaY;
-
-  if (wheelTimeout) {
-    clearTimeout(wheelTimeout);
-  }
-
-  // Process accumulated scroll after short delay
-  wheelTimeout = setTimeout(() => {
-    if (Math.abs(wheelDelta) >= WHEEL_THRESHOLD) {
-      lastWheelTime = Date.now(); // capture fresh timestamp at execution time, not at event time
+  state.wheelTimeout = setTimeout(() => {
+    state.wheelTimeout = null;
+    if (Math.abs(state.wheelDelta) >= WHEEL_THRESHOLD) {
+      state.lastWheelTime = Date.now();
 
       if (state.isPaused && !state.isTyping) {
-        if (wheelDelta < 0) {
-          // Scroll up = go back in history
+        if (state.wheelDelta < 0) {
           const prev = goBackInHistory();
           if (prev) {
             displayQuoteWithTransition(prev, 0, true, null, true);
             QuoteUtils.announceAction("Previous quote");
           }
         } else {
-          // Scroll down = next random quote
           advanceToNextQuote();
         }
       }
     }
-
-    wheelDelta = 0;
-  }, 100);
-}
-
-// =========================================
-// BOOT SEQUENCE & THEME PROMPT
-// =========================================
-
-/*
-  Each terminal had its own prompt character, sourced from hardware/OS:
-    IBM 3279       — TSO/ISPF: '===>' (the ISPF command line prefix)
-    DEC VT220      — Unix sh/bash: '$'
-    Commodore PET  — BASIC ROM: '' (blank — cursor appeared after READY.)
-    Bitcoin Orange — IBM 3279 chassis: '===>'
-    Wyse WY-50     — Unix sh/ksh (Wall Street): '$'
-    Zenith Z-19    — CP/M: 'A>' (default drive prompt)
-    ADM-3A         — Unix csh (BSD): '%' (Bill Joy's shell at UC Berkeley)
-    Kaypro II      — CP/M 2.2: 'A>' (default drive prompt)
-    DEC VT05       — early Unix: '$'
-    DEC VT100      — VAX/VMS csh: '%'
-    Apple II       — Applesoft BASIC: ']' (the iconic right-bracket)
-    Commodore 64   — BASIC V2: '' (blank — cursor after READY.)
-*/
-const themePrompts = {
-  "ibm3279-green": "===>",
-  "teletype-blue-green": "$",
-  "pet2001-green": "",
-  "ibm3279-bitcoin-orange": "===>",
-  "wyse50-amber": "$",
-  "zenith-green": "A>",
-  "adm3a-green": "%",
-  "kaypro-green": "A>",
-  white: "$",
-  "vt100-amber": "%",
-  "apple2-green": "]",
-  commodore64: "",
-};
-
-function getThemePrompt() {
-  const body = document.body;
-  for (const theme of Object.keys(themePrompts)) {
-    if (body.classList.contains(`theme-${theme}`)) {
-      return themePrompts[theme];
-    }
-  }
-  return ">";
-}
-
-/*
-  Called by colours.js after every theme swap.
-  If a quote is currently parked (cursor sitting in .author),
-  patch the prompt text node in place without re-rendering the whole quote.
-  The cursor keeps blinking — only the prompt character changes.
-*/
-function updateLivePrompt() {
-  const author = elements.quoteContainer.querySelector(".author");
-  if (!author) return;
-
-  // Structure is: [textNode: "{prompt} "] [span.author-name] [span.source?] [span.cursor-block]
-  // OR no prompt:  [span.author-name] [span.source?] [span.cursor-block]
-  // Replace or insert/remove just the leading text node — never touch author-name, source, or cursor.
-  const newPrompt = getThemePrompt();
-  const firstNode = author.firstChild;
-  const isLeadingTextNode = firstNode && firstNode.nodeType === Node.TEXT_NODE;
-
-  if (isLeadingTextNode) {
-    // Update existing prompt text node (covers prompt→prompt and prompt→blank)
-    firstNode.textContent = newPrompt ? `${newPrompt} ` : "";
-    // If now blank, remove the empty text node to keep DOM clean
-    if (!newPrompt) author.removeChild(firstNode);
-  } else if (newPrompt) {
-    // No leading text node yet (previous theme had blank prompt) — insert one
-    const authorName = author.querySelector(".author-name");
-    author.insertBefore(document.createTextNode(`${newPrompt} `), authorName);
-  }
-  // If no prompt before and no prompt now — nothing to do
-}
-
-// Type a single boot line into the container, then call done() when finished.
-// previousLines: array of already-typed strings to show above the current line.
-function typeBootLine(text, speed, done, previousLines) {
-  let i = 0;
-  const prev =
-    previousLines && previousLines.length
-      ? previousLines
-          .map((l) => `<span class="text-selected">${l}</span>`)
-          .join("\n") + "\n"
-      : "";
-
-  function tick() {
-    elements.quoteContainer.innerHTML =
-      prev +
-      `<span class="text-selected">${text.slice(0, i + 1)}</span>` +
-      `<span class="cursor-block" aria-hidden="true"></span>`;
-    i++;
-    if (i < text.length) {
-      const justTyped = text[i - 1];
-      const pd = /[.!?]/.test(justTyped)
-        ? 120
-        : /[,;:]/.test(justTyped)
-          ? 40
-          : 0;
-      state.timeoutId = setTimeout(tick, speed + pd);
-    } else {
-      done();
-    }
-  }
-  tick();
-}
-
-// Display keyboard shortcuts typed into the terminal, then resume.
-// Reuses typeBootLine for visual consistency with the boot sequence.
-// Header and command style are theme-aware — each OS had its own HELP idiom.
-function showHelp() {
-  if (state.booting) return;
-
-  PerformanceUtils.cancelAnimation();
-  state.isTyping = false;
-  state.isPaused = true;
-
-  /*
-    HELP output style sourced from each OS/ROM:
-      TSO/ISPF    — HELP command prints 'FUNCTION -' style headers, uppercase
-      Unix sh     — 'usage:' lowercase, brief
-      CP/M HELP   — uppercase, columnar
-      BASIC ROM   — no HELP command; print a READY. prompt and list instead
-      VAX/VMS     — HELP subsystem prints topic name then description
-      Applesoft   — no HELP; we fake a catalog-style listing
-  */
-  const themeHelpHeaders = {
-    "ibm3279-green": "HELP - BLOCKQUOTES ISPF FUNCTION KEYS",
-    "ibm3279-bitcoin-orange": "HELP - BLOCKQUOTES ISPF FUNCTION KEYS",
-    "teletype-blue-green": "usage: blockquotes [key]",
-    "wyse50-amber": "usage: blockquotes [key]",
-    white: "usage: blockquotes [key]",
-    "adm3a-green": "usage: blockquotes [key]",
-    "zenith-green": "BLOCKQUOTES HELP",
-    "kaypro-green": "BLOCKQUOTES HELP",
-    "vt100-amber": "BLOCKQUOTES - HELP topic",
-    "pet2001-green": "READY.",
-    commodore64: "READY.",
-    "apple2-green": "]CATALOG - BLOCKQUOTES.SH",
-  };
-
-  const currentTheme =
-    themes.find((t) => document.body.classList.contains(`theme-${t}`)) ||
-    "ibm3279-green";
-  const header = themeHelpHeaders[currentTheme] || "HELP";
-
-  const lines = [
-    header,
-    "SPACE/CLICK    finish typing / next quote",
-    "N              next quote",
-    "P              previous quote",
-    "C              copy quote",
-    "X              share on x/twitter",
-    "L              copy share link",
-    "B              bookmark quote",
-    "V              view bookmarks",
-    "E              export bookmarks",
-    "U              toggle uppercase",
-    "T              cycle theme",
-    "?              show this help",
-  ];
-
-  let lineIndex = 0;
-  // Build up displayed lines as we go
-  const typed = [];
-
-  function nextLine() {
-    if (lineIndex >= lines.length) {
-      // All lines typed — hold, then resume quote cycle
-      state.timeoutId = setTimeout(() => {
-        state.isPaused = false;
-        elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
-        setRandomQuote();
-      }, 2500);
-      return;
-    }
-
-    const text = lines[lineIndex];
-    lineIndex++;
-
-    // Type the new line, appending to already-typed lines
-    let i = 0;
-    function tick() {
-      const current = text.slice(0, i + 1);
-      elements.quoteContainer.innerHTML =
-        typed.map((l) => `<span class="text-selected">${l}</span>`).join("\n") +
-        (typed.length ? "\n" : "") +
-        `<span class="text-selected">${current}</span>` +
-        `<span class="cursor-block" aria-hidden="true"></span>`;
-      i++;
-      if (i < text.length) {
-        state.timeoutId = setTimeout(tick, lineIndex === 1 ? 40 : 22);
-      } else {
-        typed.push(text);
-        // Brief pause between lines, longer after the header
-        state.timeoutId = setTimeout(nextLine, lineIndex === 1 ? 300 : 80);
-      }
-    }
-    tick();
-  }
-
-  elements.quoteContainer.textContent = "";
-  nextLine();
-}
-
-// Run the POST boot sequence, then resolve when complete.
-// Per-terminal boot messages sourced from real firmware/ROM output.
-function runBootSequence(onComplete) {
-  if (config.performanceMode) {
-    onComplete();
-    return;
-  }
-
-  const prompt = getThemePrompt();
-
-  const themeBootLines = {
-    "ibm3279-green": [
-      { text: "IKJ56700A ENTER USERID -", speed: 22 },
-      { text: "BLOCKQUOTES  TSO/ISPF v1.0", speed: 26 },
-      { text: "LOADING QUOTE DATABASE.................. OK", speed: 30 },
-    ],
-    "ibm3279-bitcoin-orange": [
-      { text: "IKJ56700A ENTER USERID -", speed: 22 },
-      { text: "BLOCKQUOTES  TSO/ISPF v1.0", speed: 26 },
-      { text: "LOADING QUOTE DATABASE.................. OK", speed: 30 },
-    ],
-    "teletype-blue-green": [
-      { text: "VT220 OK", speed: 18 },
-      { text: "blockquotes.sh v1.0 — phosphor terminal ready", speed: 26 },
-      { text: "loading quote database.................. ok", speed: 30 },
-    ],
-    "vt100-amber": [
-      { text: "VT100 SELF TEST OK", speed: 20 },
-      { text: "blockquotes.sh v1.0 — phosphor terminal ready", speed: 26 },
-      { text: "loading quote database.................. ok", speed: 30 },
-    ],
-    white: [
-      { text: "RT-11SJ  V04.00", speed: 20 },
-      { text: ".RUN BLOCKQUOTES", speed: 26 },
-      { text: "BLOCKQUOTES.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 28 },
-      { text: "LOADING QUOTE DATABASE.................. OK", speed: 30 },
-    ],
-    "adm3a-green": [
-      { text: "4.2 BSD UNIX (ucbvax)", speed: 20 },
-      { text: "login: blockquotes", speed: 26 },
-      { text: "Last login: Sat Mar 15 03:42 on ttya", speed: 22 },
-      { text: "blockquotes.sh v1.0 — phosphor terminal ready", speed: 26 },
-      { text: "loading quote database.................. ok", speed: 30 },
-    ],
-    "zenith-green": [
-      { text: "Z-19 TERMINAL  64K CP/M VERS. 2.2", speed: 22 },
-      { text: "BLOCKQUOTES.COM v1.0 — PHOSPHOR TERMINAL READY", speed: 26 },
-      { text: "LOADING QUOTE DATABASE.................. OK", speed: 30 },
-    ],
-    "kaypro-green": [
-      { text: "KAYPRO II  64K CP/M VERS. 2.2", speed: 22 },
-      { text: "BLOCKQUOTES.COM v1.0 — PHOSPHOR TERMINAL READY", speed: 26 },
-      { text: "LOADING QUOTE DATABASE.................. OK", speed: 30 },
-    ],
-    "pet2001-green": [
-      { text: "*** COMMODORE BASIC ***", speed: 20 },
-      { text: " 31743 BYTES FREE", speed: 24 },
-      { text: 'LOAD "BLOCKQUOTES",8', speed: 28 },
-      { text: "SEARCHING FOR BLOCKQUOTES", speed: 22 },
-      { text: "LOADING", speed: 18 },
-      { text: "READY.", speed: 14 },
-      { text: "RUN", speed: 14 },
-    ],
-    "apple2-green": [
-      { text: "APPLE ][", speed: 20 },
-      { text: "]BRUN BLOCKQUOTES", speed: 26 },
-      { text: "BLOCKQUOTES.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 28 },
-      { text: "LOADING QUOTE DATABASE.................. OK", speed: 30 },
-    ],
-    commodore64: [
-      { text: "    **** COMMODORE 64 BASIC V2 ****", speed: 18 },
-      { text: " 64K RAM SYSTEM  38911 BASIC BYTES FREE", speed: 22 },
-      { text: "READY.", speed: 14 },
-      { text: 'LOAD "BLOCKQUOTES",8,1', speed: 26 },
-      { text: "SEARCHING FOR BLOCKQUOTES", speed: 22 },
-      { text: "LOADING", speed: 18 },
-      { text: "READY.", speed: 14 },
-      { text: "RUN", speed: 14 },
-    ],
-    "wyse50-amber": [
-      { text: "WYSE 50  SELF TEST OK", speed: 20 },
-      { text: "blockquotes.sh v1.0 — phosphor terminal ready", speed: 26 },
-      { text: "loading quote database.................. ok", speed: 30 },
-    ],
-  };
-
-  const defaultLines = [
-    { text: "BLOCKQUOTES.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 28 },
-    { text: "LOADING QUOTE DATABASE.................. OK", speed: 32 },
-  ];
-
-  const currentTheme = themes.find((t) =>
-    document.body.classList.contains(`theme-${t}`),
-  );
-  const bootLines = themeBootLines[currentTheme] || defaultLines;
-
-  const lines = [...bootLines, ...(prompt ? [{ text: prompt, speed: 0 }] : [])];
-
-  let lineIndex = 0;
-  const displayed = [];
-
-  function nextLine() {
-    if (lineIndex >= lines.length) {
-      onComplete();
-      return;
-    }
-
-    const { text, speed } = lines[lineIndex];
-    lineIndex++;
-
-    typeBootLine(
-      text,
-      speed,
-      () => {
-        displayed.push(text);
-        elements.quoteContainer.innerHTML = displayed
-          .map((l) => `<span class="text-selected">${l}</span>`)
-          .join("\n");
-        state.timeoutId = setTimeout(
-          nextLine,
-          lineIndex === lines.length ? 120 : 200,
-        );
-      },
-      displayed,
-    );
-  }
-
-  nextLine();
+    state.wheelDelta = 0;
+  }, WHEEL_DEBOUNCE_MS);
 }
 
 // =========================================
@@ -1652,31 +1714,27 @@ function runBootSequence(onComplete) {
 // =========================================
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Pause all CSS animations when tab is hidden — saves CPU when user is elsewhere
+  // Pause all CSS animations when the tab is hidden — saves CPU
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      document.body.classList.add("tab-hidden");
-    } else {
-      document.body.classList.remove("tab-hidden");
-    }
+    document.body.classList.toggle("tab-hidden", document.hidden);
   });
 
-  // Attach event listeners
   document.body.addEventListener("click", handleClick, { passive: false });
   document.body.addEventListener("keydown", handleKeyPress, { passive: false });
   document.body.addEventListener("touchstart", handleSwipeStart, {
     passive: true,
   });
   document.body.addEventListener("touchend", handleSwipeEnd, { passive: true });
-  document.addEventListener("wheel", handleWheelNavigation, { passive: false });
 
-  // Load quotes, run boot sequence, then start app
+  // passive: true — body overflow:clip blocks page scroll so we don't need
+  // event.preventDefault(). Passive listeners unblock the compositor thread.
+  document.addEventListener("wheel", handleWheelNavigation, { passive: true });
+
   loadQuotes().then(() => {
     const loadedFromURL = checkURLQuote();
     if (loadedFromURL) {
-      // URL quote takes priority — skip boot sequence entirely
       state.booting = false;
-      setTimeout(() => PerformanceUtils.preloadNextQuote(), 1000);
+      setTimeout(() => PerformanceUtils.preloadNextQuote(), URL_PRELOAD_DELAY_MS);
       QuoteUtils.updateBookmarkCounter();
       return;
     }
@@ -1684,7 +1742,7 @@ document.addEventListener("DOMContentLoaded", () => {
     runBootSequence(() => {
       state.booting = false;
       setRandomQuote();
-      setTimeout(() => PerformanceUtils.preloadNextQuote(), 1000);
+      setTimeout(() => PerformanceUtils.preloadNextQuote(), URL_PRELOAD_DELAY_MS);
       QuoteUtils.updateBookmarkCounter();
     });
   });

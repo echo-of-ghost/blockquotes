@@ -135,6 +135,41 @@
   }
 }
 
+/*
+   Chromatic aberration flash — fired on theme switch via the .crt-switch class.
+
+   Real behaviour differs by tube type:
+     Monochrome phosphor (P1/P3/P4/P31): no actual chromatic separation —
+       one wavelength, one gun. What exists is beam-geometry fringe from the
+       deflection coil reaching its new equilibrium. Very subtle.
+     NTSC composite (C64): genuine R/B chroma bleed from the TV's comb filter
+       as the colour burst recalibrates. Much more visible.
+
+   --chroma-offset: lateral separation in px (per theme)
+   --chroma-opacity: base opacity multiplied × 5 at peak = peak alpha
+   Animation ends at text-shadow: none so the CSS transition on #quote-container
+   smoothly blooms the normal phosphor glow back in over 0.4s.
+*/
+@keyframes crt-chroma {
+  0% {
+    text-shadow:
+      calc(-1 * var(--chroma-offset, 0.5px)) 0 2px
+        rgba(255, 60, 60, calc(var(--chroma-opacity, 0.08) * 5)),
+      calc(var(--chroma-offset, 0.5px)) 0 2px
+        rgba(60, 60, 255, calc(var(--chroma-opacity, 0.08) * 5));
+  }
+  35% {
+    text-shadow:
+      calc(-0.6 * var(--chroma-offset, 0.5px)) 0 1px
+        rgba(255, 60, 60, calc(var(--chroma-opacity, 0.08) * 2)),
+      calc(0.6 * var(--chroma-offset, 0.5px)) 0 1px
+        rgba(60, 60, 255, calc(var(--chroma-opacity, 0.08) * 2));
+  }
+  100% {
+    text-shadow: none;
+  }
+}
+
 /* =========================================
    BODY
    ========================================= */
@@ -329,6 +364,14 @@ body::after {
   --glow-intensity: 0.5;
   /* Warm-up: IBM 3279 14" tube, CE manual: ~4s to "screen ready" */
   --warmup-duration: 4s;
+  /* Barrel distortion: 14" aperture-grille IBM engineering — professionally flat */
+  --crt-perspective: 2400px;
+  --crt-tilt-x: 0.2deg;
+  /* Chromatic aberration: single P1 gun, very slight deflection-coil fringe only */
+  --chroma-offset: 0.5px;
+  --chroma-opacity: 0.08;
+  /* Burn-in: P1 ~24ms persistence — moderate long-term accumulation */
+  --burn-in-opacity: 0.04;
 }
 
 /* IBM 3279 Bitcoin Orange — custom phosphor homage.
@@ -354,6 +397,12 @@ body::after {
   --glow-intensity: 0.58;
   /* Warm-up: Same IBM 3279 chassis */
   --warmup-duration: 4s;
+  /* Same IBM 3279 chassis — identical tube geometry */
+  --crt-perspective: 2400px;
+  --crt-tilt-x: 0.2deg;
+  --chroma-offset: 0.5px;
+  --chroma-opacity: 0.08;
+  --burn-in-opacity: 0.04;
 }
 
 /* DEC VT220 — P4 white phosphor with blue-green cast, 80×24
@@ -380,6 +429,14 @@ body::after {
   --glow-intensity: 0.35;
   /* Warm-up: DEC VT220, improved PSU over VT100: ~2.5s */
   --warmup-duration: 2.5s;
+  /* Barrel distortion: DEC 14" flat-face engineering — nearly flat */
+  --crt-perspective: 2200px;
+  --crt-tilt-x: 0.25deg;
+  /* Chromatic aberration: P4 aged white — slight blue-channel ghost from phosphor shift */
+  --chroma-offset: 0.5px;
+  --chroma-opacity: 0.10;
+  /* Burn-in: P4 white burns fastest — VT220s notoriously ghosted after sustained use */
+  --burn-in-opacity: 0.055;
 }
 
 /* Zenith Z-19 — P1 green phosphor, 80×24, CP/M workhorse
@@ -404,6 +461,12 @@ body::after {
   --glow-intensity: 0.5;
   /* Warm-up: Zenith Z-19 12" tube, similar class to VT100: ~3s */
   --warmup-duration: 3s;
+  /* Barrel distortion: 12" professional tube — moderate curvature */
+  --crt-perspective: 1800px;
+  --crt-tilt-x: 0.4deg;
+  --chroma-offset: 0.6px;
+  --chroma-opacity: 0.09;
+  --burn-in-opacity: 0.04;
 }
 
 /* Lear Siegler ADM-3A — P1 green phosphor, 80×24, 1976
@@ -438,6 +501,13 @@ body::after {
   --glow-intensity: 0.53;
   /* Warm-up: ADM-3A TTL design, small 12" tube: ~2s */
   --warmup-duration: 2s;
+  /* Barrel distortion: 12" compact TTL-era tube — moderate, slightly more than Zenith */
+  --crt-perspective: 1800px;
+  --crt-tilt-x: 0.45deg;
+  /* Chromatic aberration: 1976 deflection optics — slightly older coil geometry */
+  --chroma-offset: 0.6px;
+  --chroma-opacity: 0.09;
+  --burn-in-opacity: 0.04;
 }
 
 /* Kaypro II — Toshiba P31 green phosphor, 80×24, 1982, CP/M 2.2
@@ -469,6 +539,13 @@ body::after {
   --glow-intensity: 0.68;
   /* Warm-up: Kaypro II built-in 9" Toshiba tube: ~2s */
   --warmup-duration: 2s;
+  /* Barrel distortion: 9" Toshiba tube — sharper focus but more curvature than 12-14" */
+  --crt-perspective: 1400px;
+  --crt-tilt-x: 0.6deg;
+  --chroma-offset: 0.8px;
+  --chroma-opacity: 0.10;
+  /* Burn-in: P31 very fast decay (<1ms) — minimal accumulation, most resistant of greens */
+  --burn-in-opacity: 0.03;
 }
 
 /* DEC VT05 — P4 white phosphor, 72×20, 1972 teletype-era terminal
@@ -494,6 +571,14 @@ body::after {
   --glow-intensity: 0.32;
   /* Warm-up: DEC VT05 early 1970s, no soft-start: ~2s */
   --warmup-duration: 2s;
+  /* Barrel distortion: 12" teletype-era tube — pre-flat-face era, moderate curve */
+  --crt-perspective: 1800px;
+  --crt-tilt-x: 0.4deg;
+  /* Chromatic aberration: P4 white — blue fringe from broad-spectrum phosphor scatter */
+  --chroma-offset: 0.5px;
+  --chroma-opacity: 0.10;
+  /* Burn-in: P4 white — fastest accumulation of any phosphor here */
+  --burn-in-opacity: 0.055;
 }
 
 /* Wyse WY-50 — P134 amber phosphor, 80×24, 1983 (amber variant)
@@ -528,6 +613,13 @@ body::after {
   --glow-intensity: 0.54;
   /* Warm-up: 14" tube, 45W PSU: ~2.5s */
   --warmup-duration: 2.5s;
+  /* Barrel distortion: 14" non-glare anti-reflective WY-50 — praised for flat display */
+  --crt-perspective: 2400px;
+  --crt-tilt-x: 0.2deg;
+  /* Chromatic aberration: P134 monochrome — minimal fringe, anti-glare coating diffuses it */
+  --chroma-offset: 0.5px;
+  --chroma-opacity: 0.08;
+  --burn-in-opacity: 0.04;
 }
 
 /* Commodore PET 2001 — P31 green phosphor, 40×25
@@ -554,6 +646,17 @@ body::after {
   --glow-intensity: 0.65;
   /* Warm-up: Commodore PET 2001 built-in 9" tube: ~1.8s */
   --warmup-duration: 1.8s;
+  /* Barrel distortion: 9" built-in TV-type tube — significant curvature, 1977 design */
+  --crt-perspective: 1200px;
+  --crt-tilt-x: 0.8deg;
+  /* Chromatic aberration: P31 single-gun — deflection fringe on 9" geometry */
+  --chroma-offset: 0.8px;
+  --chroma-opacity: 0.10;
+  /* Burn-in: P31 fast decay — minimal burn but heavy Commodore use left ghost screens */
+  --burn-in-opacity: 0.03;
+  /* 50Hz PAL: scanline period for beat-frequency roll animation */
+  --scanline-size: 4px;
+  --scanline-opacity: 0.040;
 }
 
 /* DEC VT100 — P3 amber phosphor, 80×24, 1978
@@ -586,6 +689,14 @@ body::after {
   --glow-intensity: 0.6;
   /* Warm-up: DEC VT100 12" tube, field service manual: ~3.5s */
   --warmup-duration: 3.5s;
+  /* Barrel distortion: 12" P3 tube — moderate professional curve, DEC quality */
+  --crt-perspective: 1800px;
+  --crt-tilt-x: 0.4deg;
+  /* Chromatic aberration: P3 amber single-gun — slight warm fringe at deflection limits */
+  --chroma-offset: 0.6px;
+  --chroma-opacity: 0.09;
+  /* Burn-in: P3 amber ~14ms persistence — second highest accumulation rate */
+  --burn-in-opacity: 0.05;
 }
 
 /* Apple II — P1 green phosphor, 40×24, 1977
@@ -612,6 +723,13 @@ body::after {
   --glow-intensity: 0.55;
   /* Warm-up: Apple II composite monitor: ~2.5s */
   --warmup-duration: 2.5s;
+  /* Barrel distortion: consumer composite monitor — curved consumer tube, more than DEC */
+  --crt-perspective: 1200px;
+  --crt-tilt-x: 0.8deg;
+  /* Chromatic aberration: NTSC composite — mild chroma separation at beam edges */
+  --chroma-offset: 1.0px;
+  --chroma-opacity: 0.14;
+  --burn-in-opacity: 0.04;
 }
 
 /* Commodore 64 — VIC-II NTSC composite output, 40×25, 1982
@@ -640,6 +758,14 @@ body::after {
   --glow-intensity: 0.42;
   /* Warm-up: C64 connected to consumer 13" CRT TV: ~4s */
   --warmup-duration: 4s;
+  /* Barrel distortion: consumer CRT television — most curved display in this set */
+  --crt-perspective: 900px;
+  --crt-tilt-x: 1.0deg;
+  /* Chromatic aberration: NTSC RF composite — real chroma bleed, comb filter recalibration */
+  --chroma-offset: 2.0px;
+  --chroma-opacity: 0.22;
+  /* Burn-in: P22 composite phosphors — consumer TVs resist burn-in better */
+  --burn-in-opacity: 0.03;
 }
 
 /* =========================================
@@ -1142,6 +1268,18 @@ a:focus-visible {
 }
 
 /* =========================================
+   CHROMATIC ABERRATION — theme switch flash
+   Applied via JS (.crt-switch class on #quote-container).
+   animation-fill-mode: forwards keeps text-shadow: none at the end,
+   so when the class is removed the CSS transition on #quote-container
+   blooms the normal phosphor glow back in over 0.4s.
+   ========================================= */
+
+#quote-container.crt-switch {
+  animation: crt-chroma 0.25s ease-out forwards;
+}
+
+/* =========================================
    BITCOIN ICON (SVG)
    ========================================= */
 
@@ -1293,6 +1431,10 @@ a:focus-visible {
   .theme-vt100-amber #quote-container,
   .theme-commodore64 #quote-container {
     filter: none !important;
+  }
+  /* No chromatic aberration flash */
+  #quote-container.crt-switch {
+    animation: none !important;
   }
 }
 
