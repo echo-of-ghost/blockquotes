@@ -1238,6 +1238,17 @@ a:focus-visible {
 }
 
 /* =========================================
+   QUOTE LIST MODE (easter egg C64 / Apple II)
+   ========================================= */
+
+/* Top-align content so the list starts at the top instead of being
+   centred — prevents the list from clipping at both ends */
+body.quote-list-mode main {
+  justify-content: flex-start;
+  padding-top: clamp(2rem, 5vh, 4rem);
+}
+
+/* =========================================
    BOOKMARK COUNTER
    ========================================= */
 

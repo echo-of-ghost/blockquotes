@@ -116,6 +116,14 @@ const state = {
   bookmarkListMode: false,
   /** Currently highlighted bookmark index in list view */
   bookmarkListIndex: 0,
+  /** True when an easter egg quote list view (C64 / Apple II) is active */
+  quoteListMode: false,
+  /** Style of the active quote list: 'c64' | 'appleii' */
+  quoteListStyle: null,
+  /** Currently highlighted quote index in the easter egg list view */
+  quoteListIndex: 0,
+  /** Index of the first visible row in the easter egg list viewport */
+  quoteListOffset: 0,
   /** Accumulated wheel delta between debounce ticks */
   wheelDelta: 0,
   /** Timestamp of the last wheel-triggered navigation */
@@ -1294,7 +1302,13 @@ function exitClockMode() {
 
 /** Enters search mode — renders a live / prompt on the status line. */
 function enterSearchMode() {
-  if (state.booting || state.clockMode || state.bookmarkListMode) return;
+  if (state.booting || state.clockMode || state.bookmarkListMode || state.quoteListMode) return;
+  // Cancel any pending toast hide timer — it shares the status element and
+  // would blank the search prompt a few seconds after it appeared
+  if (state.statusTimer) {
+    clearTimeout(state.statusTimer);
+    state.statusTimer = null;
+  }
   state.searchMode = true;
   state.searchQuery = "";
   document.body.classList.add("search-mode");
@@ -1344,6 +1358,21 @@ function commitSearch() {
   const query = state.searchQuery.toLowerCase().trim();
   exitSearchMode(true);
   if (!query || !state.quotes) return;
+
+  // Easter eggs — theme-locked
+  const isC64Theme =
+    document.body.classList.contains("theme-commodore64") ||
+    document.body.classList.contains("theme-pet2001-green");
+  const isApple2Theme = document.body.classList.contains("theme-apple2-green");
+
+  if (query === 'load "$",8' && isC64Theme) {
+    showDiskDirectory();
+    return;
+  }
+  if (query === "catalog" && isApple2Theme) {
+    showCatalog();
+    return;
+  }
 
   const matches = state.quotes.filter(
     (q) =>
@@ -1470,6 +1499,195 @@ function handleBookmarkListKey(event) {
 function exitBookmarkList() {
   state.bookmarkListMode = false;
   state.isPaused = false;
+  elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
+  setRandomQuote();
+}
+
+// =========================================
+// EASTER EGG QUOTE LIST VIEWS
+// =========================================
+
+/** Enters the C64 disk directory view triggered by: LOAD "$",8 */
+function showDiskDirectory() {
+  if (!state.quotes || state.booting) return;
+  PerformanceUtils.cancelAllTimers();
+  hidePositionIndicator();
+  state.quoteListMode = true;
+  state.quoteListStyle = "c64";
+  state.quoteListIndex = 0;
+  state.quoteListOffset = 0;
+  state.isPaused = true;
+  state.isTyping = false;
+  document.body.classList.add("quote-list-mode");
+  renderQuoteList();
+  showToast("↑↓ navigate · enter select · esc close");
+}
+
+/** Enters the Apple II CATALOG view triggered by: CATALOG */
+function showCatalog() {
+  if (!state.quotes || state.booting) return;
+  PerformanceUtils.cancelAllTimers();
+  hidePositionIndicator();
+  state.quoteListMode = true;
+  state.quoteListStyle = "appleii";
+  state.quoteListIndex = 0;
+  state.quoteListOffset = 0;
+  state.isPaused = true;
+  state.isTyping = false;
+  document.body.classList.add("quote-list-mode");
+  renderQuoteList();
+  showToast("↑↓ navigate · enter select · esc close");
+}
+
+/** Renders the active easter egg quote list. */
+function renderQuoteList() {
+  if (state.quoteListStyle === "c64") {
+    renderC64Directory();
+  } else {
+    renderAppleIICatalog();
+  }
+}
+
+/**
+ * Calculates how many quote rows fit in the visible area.
+ * Uses the container's computed font size and line-height to stay accurate
+ * across all themes and zoom levels.
+ */
+function getQuoteListWindowSize() {
+  const fontSize = parseFloat(
+    getComputedStyle(elements.quoteContainer).fontSize,
+  );
+  const lineHeightPx = fontSize * 1.6;
+  // Reserve ~30% of viewport for padding, status bar, header, and indicators
+  const available = window.innerHeight * 0.7;
+  return Math.max(6, Math.floor(available / lineHeightPx) - 3);
+}
+
+/** Renders a Commodore 64–style disk directory listing. */
+function renderC64Directory() {
+  const quotes = state.quotes;
+  const selected = state.quoteListIndex;
+  const offset = state.quoteListOffset;
+  const winEnd = Math.min(offset + getQuoteListWindowSize(), quotes.length);
+  const totalBlocks = quotes.reduce(
+    (sum, q) => sum + Math.max(1, Math.ceil(q.text.length / 254)),
+    0,
+  );
+  const freeBlocks = Math.max(0, 664 - (totalBlocks % 664));
+  const header = `0 "BITCOIN QUOTES    " BQ 00 2A`;
+
+  const lines = quotes.slice(offset, winEnd).map((q, ii) => {
+    const i = ii + offset;
+    const blocks = String(Math.max(1, Math.ceil(q.text.length / 254))).padStart(
+      3,
+      " ",
+    );
+    const rawAuthor = q.author
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+      .replace(/^"|"$/g, "")
+      .trim()
+      .toUpperCase()
+      .slice(0, 16);
+    const name = `"${rawAuthor}"`.padEnd(20);
+    const line = `${blocks} ${name}   PRG`;
+    return i === selected
+      ? `<span class="text-selected">${line}<span class="cursor-block" aria-hidden="true"></span></span>`
+      : `<span>${line}</span>`;
+  });
+
+  const aboveCount = offset;
+  const belowCount = quotes.length - winEnd;
+  let content = `<span class="text-selected">${header}</span>\n\n`;
+  if (aboveCount > 0)
+    content += `<span>      ... ${aboveCount} MORE ABOVE ...</span>\n`;
+  content += lines.join("\n");
+  if (belowCount > 0)
+    content += `\n<span>      ... ${belowCount} MORE BELOW ...</span>`;
+  content += `\n\n${freeBlocks} BLOCKS FREE.`;
+  elements.quoteContainer.innerHTML = content;
+}
+
+/** Renders an Apple II–style CATALOG listing. */
+function renderAppleIICatalog() {
+  const quotes = state.quotes;
+  const selected = state.quoteListIndex;
+  const offset = state.quoteListOffset;
+  const winEnd = Math.min(offset + getQuoteListWindowSize(), quotes.length);
+  const header = `CATALOG\n\nDISK VOLUME 254`;
+
+  const lines = quotes.slice(offset, winEnd).map((q, ii) => {
+    const i = ii + offset;
+    const sectors = String(
+      Math.max(1, Math.ceil(q.text.length / 256)),
+    ).padStart(3, " ");
+    const rawAuthor = q.author
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+      .replace(/^"|"$/g, "")
+      .trim();
+    const truncAuthor =
+      rawAuthor.length > 22 ? rawAuthor.slice(0, 22) + "\u2026" : rawAuthor;
+    const line = ` T ${sectors} ${truncAuthor}`;
+    return i === selected
+      ? `<span class="text-selected">${line}<span class="cursor-block" aria-hidden="true"></span></span>`
+      : `<span>${line}</span>`;
+  });
+
+  const aboveCount = offset;
+  const belowCount = quotes.length - winEnd;
+  let content = `<span class="text-selected">${header}</span>\n\n`;
+  if (aboveCount > 0)
+    content += `<span> ... ${aboveCount} more above ...</span>\n`;
+  content += lines.join("\n");
+  if (belowCount > 0)
+    content += `\n<span> ... ${belowCount} more below ...</span>`;
+  elements.quoteContainer.innerHTML = content;
+}
+
+/**
+ * Handles keystrokes while an easter egg quote list is active.
+ *
+ * @param {KeyboardEvent} event
+ */
+function handleQuoteListKey(event) {
+  const key = event.key;
+  const total = state.quotes ? state.quotes.length : 0;
+
+  if (key === "Escape" || key.toLowerCase() === "q") {
+    exitQuoteList();
+  } else if (key === " ") {
+    event.preventDefault();
+    exitQuoteList();
+  } else if (key === "ArrowUp" || key.toLowerCase() === "p") {
+    state.quoteListIndex = Math.max(0, state.quoteListIndex - 1);
+    if (state.quoteListIndex < state.quoteListOffset) {
+      state.quoteListOffset = state.quoteListIndex;
+    }
+    renderQuoteList();
+  } else if (key === "ArrowDown" || key.toLowerCase() === "n") {
+    state.quoteListIndex = Math.min(total - 1, state.quoteListIndex + 1);
+    if (state.quoteListIndex >= state.quoteListOffset + getQuoteListWindowSize()) {
+      state.quoteListOffset = state.quoteListIndex - getQuoteListWindowSize() + 1;
+    }
+    renderQuoteList();
+  } else if (key === "Enter") {
+    event.preventDefault();
+    const selected = state.quotes[state.quoteListIndex];
+    if (selected) {
+      state.quoteListMode = false;
+      state.quoteListStyle = null;
+      state.isPaused = false;
+      document.body.classList.remove("quote-list-mode");
+      displayQuoteWithTransition(selected, 0, true);
+    }
+  }
+}
+
+/** Exits the easter egg quote list and resumes the quote cycle. */
+function exitQuoteList() {
+  state.quoteListMode = false;
+  state.quoteListStyle = null;
+  state.isPaused = false;
+  document.body.classList.remove("quote-list-mode");
   elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
   setRandomQuote();
 }
@@ -1825,6 +2043,10 @@ function handleClick(event) {
     exitBookmarkList();
     return;
   }
+  if (state.quoteListMode) {
+    exitQuoteList();
+    return;
+  }
   if (state.searchMode) {
     exitSearchMode(false);
     return;
@@ -1889,6 +2111,11 @@ function handleKeyPress(event) {
   if (state.bookmarkListMode) {
     event.preventDefault();
     handleBookmarkListKey(event);
+    return;
+  }
+  if (state.quoteListMode) {
+    event.preventDefault();
+    handleQuoteListKey(event);
     return;
   }
   if (state.clockMode) {
