@@ -1245,6 +1245,27 @@ a:focus-visible {
 }
 
 /* =========================================
+   CLOCK MODE
+   ========================================= */
+
+body.clock-mode main {
+  justify-content: center;
+  padding-bottom: 0;
+  align-items: center;
+}
+
+body.clock-mode #quote-container {
+  font-size: clamp(4rem, 12vw, 10rem);
+  line-height: 1;
+  text-align: center;
+  padding: 0;
+  letter-spacing: 0.05em;
+  text-shadow:
+    0 0 8px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.8)),
+    0 0 30px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.25));
+}
+
+/* =========================================
    QUOTE LIST MODE (easter egg C64 / Apple II)
    ========================================= */
 

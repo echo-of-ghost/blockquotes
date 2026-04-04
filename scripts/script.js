@@ -1244,39 +1244,14 @@ function enterClockMode() {
   state.isPaused = true;
   state.isTyping = false;
 
+  document.body.classList.add("clock-mode");
+
   function tick() {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, "0");
     const mm = String(now.getMinutes()).padStart(2, "0");
     const ss = String(now.getSeconds()).padStart(2, "0");
-    const days = [
-      "SUNDAY",
-      "MONDAY",
-      "TUESDAY",
-      "WEDNESDAY",
-      "THURSDAY",
-      "FRIDAY",
-      "SATURDAY",
-    ];
-    const months = [
-      "JAN",
-      "FEB",
-      "MAR",
-      "APR",
-      "MAY",
-      "JUN",
-      "JUL",
-      "AUG",
-      "SEP",
-      "OCT",
-      "NOV",
-      "DEC",
-    ];
-    const date = `${days[now.getDay()]} ${String(now.getDate()).padStart(2, "0")} ${months[now.getMonth()]} ${now.getFullYear()}`;
-    const prompt = getThemePrompt() || ">";
-    elements.quoteContainer.innerHTML =
-      `<span class="text-selected">${hh}:${mm}:${ss}</span>\n` +
-      `<span class="author">${prompt} ${date}<span class="cursor-block" aria-hidden="true"></span></span>`;
+    elements.quoteContainer.innerHTML = `${hh}:${mm}:${ss}`;
   }
 
   tick();
@@ -1292,6 +1267,7 @@ function exitClockMode() {
   }
   state.clockMode = false;
   state.isPaused = false;
+  document.body.classList.remove("clock-mode");
   elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
   setRandomQuote();
 }
