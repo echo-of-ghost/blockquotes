@@ -1,69 +1,87 @@
 /* =========================================
    RESET & BASE STYLES
    ========================================= */
- 
-*, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
- 
+
 /* =========================================
    CSS CUSTOM PROPERTIES (VARIABLES)
    ========================================= */
- 
+
 :root {
-    /* Colors */
-    --primary-color: #E0E0E0;
-    --primary-rgb: 224, 224, 224;
- 
-    /* Typography */
-    --font-family: 'IBM Plex Mono', 'Courier New', monospace;
-    --font-size: clamp(1.4rem, 2.5vw, 2.5rem);
-    --author-font-size: clamp(1.1rem, 2vw, 2rem);
-    --letter-spacing: 0.015em;
- 
-    /* Effects */
-    --glow-intensity: 0.5;
- 
-    /* Cursor blink — overridden per theme to match real hardware */
-    --cursor-blink-rate: 0.53s;
- 
-    /* Spacing */
-    --quote-padding-top: clamp(0.5rem, 0.8vw + 0.5vh, 0.8rem);
-    --quote-padding-bottom: clamp(1rem, 1.5vw + 1vh, 1.5rem);
- 
- 
-    /* Transitions */
-    --base-transition: opacity 0.3s ease, text-shadow 0.3s ease;
+  /* Colors */
+  --primary-color: #e0e0e0;
+  --primary-rgb: 224, 224, 224;
+
+  /* Typography */
+  --font-family: "IBM Plex Mono", "Courier New", monospace;
+  --font-size: clamp(1.4rem, 2.5vw, 2.5rem);
+  --author-font-size: clamp(1.1rem, 2vw, 2rem);
+  --letter-spacing: 0.015em;
+  /*
+     Three-tier type scale:
+       T1 — quote body:   clamp(1.4rem → 2.5rem)  hero
+       T2 — author line:  clamp(1.1rem → 2rem)     attribution
+       T3 — chrome:       clamp(0.72rem → 0.82rem) status / search / indicators
+       T4 — ambient:      clamp(0.65rem → 0.75rem) bookmark counter / position badge
+
+     T3 floor of 0.72rem = 11.5px comfortably clears the 11px absolute minimum
+     for secondary UI text on a high-DPI display. 0.82rem cap keeps it clearly
+     subordinate to T2 while remaining legible without squinting.
+  */
+  --chrome-font-size: clamp(0.72rem, 0.9vw + 0.15vh, 0.82rem);
+  --ambient-font-size: clamp(0.65rem, 0.8vw + 0.1vh, 0.75rem);
+
+  /* Effects */
+  --glow-intensity: 0.5;
+
+  /* Cursor blink — overridden per theme to match real hardware */
+  --cursor-blink-rate: 0.53s;
+
+  /* Spacing */
+  --quote-padding-top: clamp(0.5rem, 0.8vw + 0.5vh, 0.8rem);
+  --quote-padding-bottom: clamp(1rem, 1.5vw + 1vh, 1.5rem);
+
+  /* Transitions */
+  --base-transition: opacity 0.3s ease, text-shadow 0.3s ease;
 }
- 
+
 /* =========================================
    KEYFRAMES
    ========================================= */
- 
- 
- 
+
 /*
    Block cursor blink — step-end gives a hard digital on/off edge,
    matching real terminal hardware. No fades: phosphor doesn't fade
    between cursor blink cycles, it simply turns off.
 */
 @keyframes cursor-block-blink {
-    0%, 49%   { opacity: 1; }
-    50%, 100% { opacity: 0; }
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
 }
- 
+
 /*
    Phosphor persistence / afterglow.
  
    Real phosphor doesn't cut off instantly when the electron beam leaves —
    it decays exponentially. The rate depends on the phosphor type:
-     P4 (white) ~1ms  — barely perceptible, essentially instant
-     P3 (amber) ~14ms — warm orange corona lingers visibly
-     P1 (green) ~24ms — medium green ghost, slightly yellow at the edge
-     P31 (green) ~20ms — similar to P1, marginally faster
-     Wyse P134 (amber) ~12ms — golden amber, Wyse proprietary variant
+     P4  (white)        ~1–3ms  — barely perceptible, fast extinction
+     Amber (VT100/Wyse) ~10–14ms estimated — warm corona, type uncertain
+     P1  (green)        ~20ms   — medium green ghost, slightly yellow at edge
+     P31 (green)        <1ms    — faster than P4, essentially instant
+     Wyse P134 (amber)  ~12ms estimated — golden amber, proprietary
  
    The animation runs at the full blink period duration, delayed by half
    that period so it fires exactly when the cursor switches off. Duration
@@ -71,18 +89,27 @@
    re-firing mid-cycle, no flicker.
  
    The visible glow occupies only the first ~3% of the keyframe. At a
-   0.47s period that's ~14ms (P1 accurate). At 1.767s that's ~53ms —
-   longer than physical P3 decay but still imperceptible at that timescale.
+   0.47s period that's ~14ms (within P1's ~20ms window). At 1.767s that's
+   ~53ms — longer than any physical phosphor decay but imperceptible at
+   that timescale.
    The remaining 97% is silent (box-shadow: none), faithfully reproducing
    the hard off-state of the cursor between blinks.
 */
 @keyframes cursor-afterglow {
-    0%    { box-shadow: var(--cursor-afterglow,     0 0 6px rgba(87, 255, 140, 0.5)); }
-    1.5%  { box-shadow: var(--cursor-afterglow-mid, 0 0 4px rgba(87, 255, 140, 0.2)); }
-    3%    { box-shadow: none; }
-    100%  { box-shadow: none; }
+  0% {
+    box-shadow: var(--cursor-afterglow, 0 0 6px rgba(87, 255, 140, 0.5));
+  }
+  1.5% {
+    box-shadow: var(--cursor-afterglow-mid, 0 0 4px rgba(87, 255, 140, 0.2));
+  }
+  3% {
+    box-shadow: none;
+  }
+  100% {
+    box-shadow: none;
+  }
 }
- 
+
 /*
    CRT warm-up — simulates a phosphor tube heating from cold.
    Plays once on body load. Duration set per-theme via --warmup-duration.
@@ -93,29 +120,156 @@
    release, then steady ramp to full brightness.
 */
 @keyframes crt-warmup {
-    0%   { opacity: 0.00; }
-    8%   { opacity: 0.03; }
-    18%  { opacity: 0.18; }
-    28%  { opacity: 0.06; }  /* cathode stutter — grid suppressor release */
-    42%  { opacity: 0.40; }
-    60%  { opacity: 0.72; }
-    78%  { opacity: 0.92; }
-    92%  { opacity: 0.98; }
-    100% { opacity: 1.00; }
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.03;
+  }
+  18% {
+    opacity: 0.18;
+  }
+  28% {
+    opacity: 0.06;
+  } /* cathode stutter — grid suppressor release */
+  42% {
+    opacity: 0.4;
+  }
+  60% {
+    opacity: 0.72;
+  }
+  78% {
+    opacity: 0.92;
+  }
+  92% {
+    opacity: 0.98;
+  }
+  100% {
+    opacity: 1;
+  }
 }
- 
- 
+
+
+/*
+   Random interference flash — very rare brightness spike simulating
+   an electromagnetic interference event or deflection circuit hiccup.
+   Triggered from JS every few minutes. One frame of brightness, fast decay.
+*/
+@keyframes crt-interference {
+  0%   { filter: brightness(1); }
+  8%   { filter: brightness(2.2) contrast(1.3); }
+  22%  { filter: brightness(1.4); }
+  60%  { filter: brightness(1.05); }
+  100% { filter: brightness(1); }
+}
+
+body.crt-interference main {
+  animation: crt-interference 0.18s ease-out 1 forwards;
+}
+
+/*
+   Chromatic aberration flash — fired on theme switch via the .crt-switch class.
+
+   Real behaviour differs by tube type:
+     Monochrome phosphor (P1/P4/P31/amber): no actual chromatic separation —
+       one wavelength, one gun. What exists is beam-geometry fringe from the
+       deflection coil reaching its new equilibrium. Very subtle.
+     NTSC composite (C64): genuine R/B chroma bleed from the TV's comb filter
+       as the colour burst recalibrates. Much more visible.
+
+   --chroma-offset: lateral separation in px (per theme)
+   --chroma-opacity: base opacity multiplied × 5 at peak = peak alpha
+   Animation ends at text-shadow: none so the CSS transition on #quote-container
+   smoothly blooms the normal phosphor glow back in over 0.4s.
+*/
+@keyframes crt-chroma {
+  0% {
+    text-shadow:
+      calc(-1 * var(--chroma-offset, 0.5px)) 0 2px
+        rgba(255, 60, 60, calc(var(--chroma-opacity, 0.08) * 5)),
+      calc(var(--chroma-offset, 0.5px)) 0 2px
+        rgba(60, 60, 255, calc(var(--chroma-opacity, 0.08) * 5));
+  }
+  35% {
+    text-shadow:
+      calc(-0.6 * var(--chroma-offset, 0.5px)) 0 1px
+        rgba(255, 60, 60, calc(var(--chroma-opacity, 0.08) * 2)),
+      calc(0.6 * var(--chroma-offset, 0.5px)) 0 1px
+        rgba(60, 60, 255, calc(var(--chroma-opacity, 0.08) * 2));
+  }
+  100% {
+    text-shadow: none;
+  }
+}
+
+/*
+   50Hz mains power-supply ripple — European terminal simulation.
+   Imperfect PSU filtering on 50Hz mains produced a very faint periodic
+   brightness variation. Simulated as a ~1.5% opacity oscillation with a
+   long period — the slow "beat" character of PSU ripple bleeding through
+   the video chain. Applied to VT220 and Zenith Z-19 (both had European
+   50Hz variants in wide deployment). Suppressed at prefers-reduced-motion.
+*/
+@keyframes mains-ripple {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.985;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .theme-teletype-blue-green main,
+  .theme-zenith-green main {
+    animation: mains-ripple 8.33s ease-in-out infinite;
+  }
+}
+
+/*
+   Help icon first-load hint — a single slow phosphor swell after boot.
+   Draws the eye once without demanding it. Fires via JS adding .help-hint
+   to the element; removed on animationend so it never repeats.
+   Suppressed at prefers-reduced-motion.
+*/
+@keyframes help-hint {
+  0% {
+    color: rgba(var(--primary-rgb), 0.7);
+    text-shadow: 0 0 3px rgba(var(--primary-rgb), 0.18);
+  }
+  40% {
+    color: rgba(var(--primary-rgb), 1);
+    text-shadow:
+      0 0 6px rgba(var(--primary-rgb), 0.9),
+      0 0 18px rgba(var(--primary-rgb), 0.35);
+  }
+  100% {
+    color: rgba(var(--primary-rgb), 0.7);
+    text-shadow: 0 0 3px rgba(var(--primary-rgb), 0.18);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .help-trigger.help-hint {
+    animation: help-hint 1.8s ease-in-out 1 forwards;
+  }
+}
+
 /* =========================================
    BODY
    ========================================= */
- 
+
 body[class*="theme-"] {
-    background-color: var(--theme-background, #121212);
-    color: var(--primary-color);
-    display: flex;
-    flex-direction: column;
-    font-family: var(--font-family);
-    /* Kill all OpenType smartness — real terminal character ROMs were
+  background-color: var(--theme-background, #121212);
+  color: var(--primary-color);
+  display: flex;
+  flex-direction: column;
+  /* Barrel distortion — perspective set per-theme; rotateX applied to main below */
+  perspective: var(--crt-perspective, 2000px);
+  perspective-origin: 50% 50%;
+  font-family: var(--font-family);
+  /* Kill all OpenType smartness — real terminal character ROMs were
        strict 1:1 codepoint-to-glyph maps. No ligatures, no contextual
        alternates, no discretionary swashes. IBM Plex Mono ships with
        fi/fl/ffi ligatures enabled by default; 'liga' 0 suppresses them.
@@ -123,72 +277,79 @@ body[class*="theme-"] {
        Belt-and-suspenders: font-variant-ligatures below does the same
        via the higher-level CSS property, but font-feature-settings
        wins in specificity when both are present. */
-    font-feature-settings: 'liga' 0, 'clig' 0, 'calt' 0, 'dlig' 0;
-    font-variant-ligatures: none;
-    line-height: 1.6;
-    margin: 0;
-    height: 100vh;
-    overflow: clip;
-    /* Horizontal gutters only — vertical positioning is handled by main/flex */
-    padding: 0 clamp(1rem, 2vw, 2rem);
-    /* geometricPrecision: prioritises glyph outline accuracy over
+  font-feature-settings:
+    "liga" 0,
+    "clig" 0,
+    "calt" 0,
+    "dlig" 0,
+    "kern" 0;
+  font-variant-ligatures: none;
+  font-kerning: none;
+  line-height: 1.6;
+  margin: 0;
+  height: 100vh;
+  overflow: clip;
+  /* Horizontal gutters only — vertical positioning is handled by main/flex */
+  padding: 0 clamp(1rem, 2vw, 2rem);
+  /* geometricPrecision: prioritises glyph outline accuracy over
        readability heuristics. optimizeLegibility can silently re-enable
        kerning and ligatures at the browser level, contradicting our
        font-feature-settings. geometricPrecision is closer to how a
        bitmap ROM renders — each glyph at its precise coordinates. */
-    text-rendering: geometricPrecision;
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-    letter-spacing: var(--letter-spacing);
-    /* No transition on background-color or color — real CRTs didn't
+  text-rendering: geometricPrecision;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  letter-spacing: var(--letter-spacing);
+  /* No transition on background-color or color — real CRTs didn't
        crossfade between phosphor colours. Theme swap is handled by a
        JS-driven blackout in changeTheme(): opacity→0, swap class,
        opacity→1. The screen goes dark for ~80ms, matching the brief
        blanking when a CRT beam resets after a mode change. */
-    transition: text-shadow 0.35s ease;
-    scrollbar-color: var(--primary-color) var(--theme-background);
- 
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    animation: crt-warmup var(--warmup-duration, 3s) ease-out 1 forwards;
+  transition: text-shadow 0.35s ease;
+  scrollbar-color: var(--primary-color) var(--theme-background);
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  animation: crt-warmup var(--warmup-duration, 3s) ease-out 1 forwards;
 }
- 
+
 /* Scope phosphor decay transitions only to elements that visibly glow.
    The old body * rule hit every DOM node on theme change — expensive on
    long quotes with many text nodes. These three elements are all that need it. */
 .header-icon,
 .author,
 #quote-container {
-    transition: text-shadow 0.4s ease,
-                box-shadow 0.4s ease;
+  transition:
+    text-shadow 0.4s ease,
+    box-shadow 0.4s ease;
 }
- 
+
 /*
    CRT vignette — darkens the four corners the way a real CRT bezel and
    imperfect electron-beam deflection would. The centre is fully open.
    Pure radial gradient, GPU composited, zero paint cost.
 */
 body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 9999;
-    background: radial-gradient(
-        ellipse at 50% 50%,
-        transparent 0%,
-        transparent 42%,
-        rgba(0, 0, 0, 0.04) 55%,
-        rgba(0, 0, 0, 0.10) 65%,
-        rgba(0, 0, 0, 0.18) 75%,
-        rgba(0, 0, 0, 0.28) 85%,
-        rgba(0, 0, 0, 0.38) 93%,
-        rgba(0, 0, 0, 0.42) 100%
-    );
-    transform: translateZ(0);
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 0%,
+    transparent 42%,
+    rgba(0, 0, 0, calc(var(--vignette-opacity, 0.42) * 0.095)) 55%,
+    rgba(0, 0, 0, calc(var(--vignette-opacity, 0.42) * 0.238)) 65%,
+    rgba(0, 0, 0, calc(var(--vignette-opacity, 0.42) * 0.429)) 75%,
+    rgba(0, 0, 0, calc(var(--vignette-opacity, 0.42) * 0.667)) 85%,
+    rgba(0, 0, 0, calc(var(--vignette-opacity, 0.42) * 0.905)) 93%,
+    rgba(0, 0, 0, var(--vignette-opacity, 0.42)) 100%
+  );
+  transform: translateZ(0);
 }
- 
+
 /*
    CRT scanlines — the dark horizontal bands between electron beam passes.
  
@@ -209,55 +370,72 @@ body::before {
    GPU composited, zero reflow cost.
 */
 body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 9998;
-    /*
-       Two gradient layers — interlace shimmer atop primary scanlines:
-       Layer 1: interlace — 60Hz interlaced CRTs draw even/odd fields on
-         alternate frames, producing a subliminal alternating-line brightness
-         difference. Simulated at 6px period, offset 3px, ~40% of scanline
-         opacity. Reads as raster grain rather than visible banding.
-       Layer 2: primary scanlines — electron beam raster gap.
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  /*
+       Primary scanlines only — electron beam raster gap.
+       Interlace shimmer is added separately for composite-output terminals
+       (C64, PET 2001) which used NTSC composite video with visible interlacing.
+       Professional RGB terminals (IBM, DEC, Wyse, Zenith, ADM-3A, Kaypro) had
+       no composite encoding and should not exhibit interlace artifacts.
     */
-    background:
-        repeating-linear-gradient(
-            to bottom,
-            transparent 0px,
-            transparent 2px,
-            rgba(0, 0, 0, calc(var(--scanline-opacity, 0.030) * 0.38)) 2px,
-            rgba(0, 0, 0, calc(var(--scanline-opacity, 0.030) * 0.38)) 3px,
-            transparent 3px,
-            transparent 6px
-        ),
-        repeating-linear-gradient(
-            to bottom,
-            transparent 0px,
-            transparent calc(var(--scanline-size, 3px) - 1px),
-            rgba(0, 0, 0, var(--scanline-opacity, 0.030)) calc(var(--scanline-size, 3px) - 1px),
-            rgba(0, 0, 0, var(--scanline-opacity, 0.030)) var(--scanline-size, 3px)
-        );
-    transform: translateZ(0);
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent calc(var(--scanline-size, 3px) - 1px),
+    rgba(0, 0, 0, var(--scanline-opacity, 0.03))
+      calc(var(--scanline-size, 3px) - 1px),
+    rgba(0, 0, 0, var(--scanline-opacity, 0.03)) var(--scanline-size, 3px)
+  );
+  transform: translateZ(0);
 }
- 
- 
- 
- 
- 
+
+/* Composite-output terminals: add interlace shimmer on top of primary scanlines.
+   C64 and PET 2001 used NTSC composite video — 60Hz interlaced scan produced
+   a subliminal alternating-line brightness difference between even/odd fields.
+   Simulated at 6px period, offset 3px, ~38% of scanline opacity. */
+.theme-commodore64 body::after,
+.theme-pet2001-green body::after {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      rgba(0, 0, 0, calc(var(--scanline-opacity, 0.03) * 0.38)) 2px,
+      rgba(0, 0, 0, calc(var(--scanline-opacity, 0.03) * 0.38)) 3px,
+      transparent 3px,
+      transparent 6px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent calc(var(--scanline-size, 3px) - 1px),
+      rgba(0, 0, 0, var(--scanline-opacity, 0.03))
+        calc(var(--scanline-size, 3px) - 1px),
+      rgba(0, 0, 0, var(--scanline-opacity, 0.03)) var(--scanline-size, 3px)
+    );
+}
+
 /* =========================================
    THEME DEFINITIONS
    =========================================
-   Phosphor reference data:
-     P1  (green)  — peaks ~525 nm, medium decay ~24ms,
-                    warm yellow-green. IBM 3279, Zenith Z-19, Apple II
-     P3  (amber)  — peaks ~585 nm, shorter decay ~14ms,
-                    deep warm amber. DEC VT100
-     P4  (white)  — broad spectrum ~6500K, fast decay ~1ms.
-                    DEC VT05, VT220
-     P31 (green)  — brighter, cooler than P1. Commodore PET 2001-N
-     P134 (amber) — Wyse proprietary, ~580nm golden amber. Wyse WY-50
+   Phosphor reference data (corrected):
+     P1  (green)  — peaks ~525 nm, medium decay ~20ms,
+                    warm yellow-green. IBM 3279, Zenith Z-19, ADM-3A,
+                    Commodore PET 2001-N (green models), general CRTs.
+     P3  (amber)  — rare/poorly documented. NOT confirmed standard on VT100.
+                    May exist but exact specs unavailable.
+     P4  (white)  — broad spectrum, decay ~1–3ms.
+                    Early B&W TVs, TRS-80, Commodore PET (original white),
+                    DEC VT05, VT220.
+     P31 (green)  — brighter, cooler than P1, fast decay (<1ms).
+                    Oscilloscopes, Tektronix, Apple II (Sanyo monitor),
+                    Amdek terminals, Kaypro. NOT standard on PET 2001-N.
+     P134 (amber) — Wyse proprietary, ~580nm estimated. Exact specs
+                    not in public documentation. Wyse WY-50 and later.
  
    Cursor blink rates sourced from hardware/firmware:
      IBM 327x:    ~2.1 Hz (0.47s)  — hardware timer, mainframe documentation
@@ -270,102 +448,140 @@ body::after {
      PET 2001:    ~2.5 Hz (0.40s)  — BASIC ROM system timer
      DEC VT05:    ~1.7 Hz (0.60s)  — teletype-era, conservative estimate
  
-   Background blacks are NOT pure #000000 — real P1/P3 screens had a
+   Background blacks are NOT pure #000000 — real phosphor screens had a
    very slight tinted black from the faceplate glass and phosphor coating.
    ========================================= */
- 
+
 /* IBM 3279 — P1 green phosphor, 80×24, mainframe TSO/CMS
    P1 peaks at 525nm with slight yellow component: not neon green.
    IBM 3279 faceplate had olive-tinted glass → background #0A0F0A */
 .theme-ibm3279-green {
-    --theme-background: #0A0F0A;
-    --primary-color: #57FF8C;
-    --primary-rgb: 87, 255, 140;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 0.476s;
-    /* P1 phosphor: ~24ms decay, medium persistence, yellow-green halation.
+  --theme-background: #0a0f0a;
+  --primary-color: #57ff8c;
+  --primary-rgb: 87, 255, 140;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.476s;
+  /* P1 phosphor: ~20ms decay, medium persistence, yellow-green halation.
        Rate: 2.1Hz from IBM 3279 CE manual hardware timer = 1/2.1 = 0.476s */
-    --cursor-afterglow: 0 0 6px rgba(87, 255, 140, 0.55), 0 0 14px rgba(60, 200, 90, 0.20);
-    --cursor-afterglow-mid: 0 0 4px rgba(87, 255, 140, 0.25), 0 0 10px rgba(60, 200, 90, 0.08);
-    --cursor-decay: 0.22s;
-    /* Scanlines: P1 phosphor dot pitch ~0.31mm, IBM 3279 14" screen ≈ 480 lines */
-    --scanline-size: 3px;
-    --scanline-opacity: 0.032;
-    /* P1: standard reference glow */
-    --glow-intensity: 0.50;
-    /* Warm-up: IBM 3279 14" tube, CE manual: ~4s to "screen ready" */
-    --warmup-duration: 4.0s;
+  --cursor-afterglow:
+    0 0 6px rgba(87, 255, 140, 0.55), 0 0 14px rgba(60, 200, 90, 0.2);
+  --cursor-afterglow-mid:
+    0 0 4px rgba(87, 255, 140, 0.25), 0 0 10px rgba(60, 200, 90, 0.08);
+  --cursor-decay: 0.22s;
+  /* Scanlines: P1 phosphor dot pitch ~0.31mm, IBM 3279 14" screen ≈ 480 lines */
+  --scanline-size: 3px;
+  --scanline-opacity: 0.032;
+  /* P1: standard reference glow */
+  --glow-intensity: 0.5;
+  /* Warm-up: IBM 3279 14" tube, CE manual: ~4s to "screen ready" */
+  --warmup-duration: 4s;
+  /* Barrel distortion: 14" aperture-grille IBM engineering — professionally flat */
+  --crt-perspective: 2400px;
+  --crt-tilt-x: 0.2deg;
+  /* Chromatic aberration: single P1 gun, very slight deflection-coil fringe only */
+  --chroma-offset: 0.5px;
+  --chroma-opacity: 0.08;
+  /* Vignette: 14" flat-face professional, anti-glare — modest corner darkening */
+  --vignette-opacity: 0.38;
 }
- 
+
 /* IBM 3279 Bitcoin Orange — custom phosphor homage.
-   Bitcoin's orange (#F7931A) shifted into the P3-adjacent amber territory,
+   Bitcoin's orange (#F7931A) shifted into the warm amber territory,
    married with the 3279 form factor. Cypherpunk editorial choice. */
 .theme-ibm3279-bitcoin-orange {
-    --theme-background: #0B0800;
-    --primary-color: #FF9500;
-    --primary-rgb: 255, 149, 0;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 0.476s;
-    /* P3-adjacent: ~14ms decay but orange shift, warm amber halation.
+  --theme-background: #0b0800;
+  --primary-color: #f7931a;
+  --primary-rgb: 247, 147, 26;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.476s;
+  /* Bitcoin orange #F7931A: ~12–14ms estimated decay, warm orange halation.
        Rate: same IBM 3279 hardware timer, 0.476s */
-    --cursor-afterglow: 0 0 7px rgba(255, 149, 0, 0.60), 0 0 16px rgba(200, 80, 0, 0.22);
-    --cursor-afterglow-mid: 0 0 5px rgba(255, 149, 0, 0.28), 0 0 12px rgba(200, 80, 0, 0.09);
-    --cursor-decay: 0.16s;
-    /* Scanlines: same IBM 3279 chassis, same dot pitch */
-    --scanline-size: 3px;
-    --scanline-opacity: 0.030;
-    /* P3-adjacent orange: warm wavelength, rich halation */
-    --glow-intensity: 0.58;
-    /* Warm-up: Same IBM 3279 chassis */
-    --warmup-duration: 4.0s;
+  --cursor-afterglow:
+    0 0 7px rgba(247, 147, 26, 0.6), 0 0 16px rgba(180, 70, 0, 0.22);
+  --cursor-afterglow-mid:
+    0 0 5px rgba(247, 147, 26, 0.28), 0 0 12px rgba(180, 70, 0, 0.09);
+  --cursor-decay: 0.16s;
+  /* Scanlines: same IBM 3279 chassis, same dot pitch */
+  --scanline-size: 3px;
+  --scanline-opacity: 0.03;
+  /* Amber-adjacent orange: warm wavelength, rich halation */
+  --glow-intensity: 0.58;
+  /* Warm-up: Same IBM 3279 chassis */
+  --warmup-duration: 4s;
+  /* Same IBM 3279 chassis — identical tube geometry */
+  --crt-perspective: 2400px;
+  --crt-tilt-x: 0.2deg;
+  --chroma-offset: 0.5px;
+  --chroma-opacity: 0.08;
+  /* Vignette: same IBM 3279 chassis — identical flat-face tube */
+  --vignette-opacity: 0.38;
 }
- 
+
 /* DEC VT220 — P4 white phosphor with blue-green cast, 80×24
    The VT220 shipped with a cooler white CRT; long-use units
    developed a slight blue-green tint from phosphor aging.
    Background: very dark blue-grey from the P4 faceplate */
 .theme-teletype-blue-green {
-    --theme-background: #0C1010;
-    --primary-color: #A4C8B0;
-    --primary-rgb: 164, 200, 176;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 0.526s;
-    /* P4 white aged to blue-green: ~1ms decay, almost no persistence — barely a whisper.
+  --theme-background: #0c1010;
+  --primary-color: #a4c8b0;
+  --primary-rgb: 164, 200, 176;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.526s;
+  /* P4 white aged to blue-green: ~1ms decay, almost no persistence — barely a whisper.
        Rate: VT220 firmware default 1.9Hz = 1/1.9 = 0.526s (user-configurable) */
-    --cursor-afterglow: 0 0 4px rgba(164, 200, 176, 0.30), 0 0 8px rgba(120, 170, 150, 0.10);
-    --cursor-afterglow-mid: 0 0 2px rgba(164, 200, 176, 0.12), 0 0 5px rgba(120, 170, 150, 0.04);
-    --cursor-decay: 0.05s;
-    /* Scanlines: VT220 14" tube, ~480 physical lines, tight pitch */
-    --scanline-size: 3px;
-    --scanline-opacity: 0.025;
-    /* P4 aged: ~1ms decay, diffuse spectrum, lowest perceived glow */
-    --glow-intensity: 0.35;
-    /* Warm-up: DEC VT220, improved PSU over VT100: ~2.5s */
-    --warmup-duration: 2.5s;
+  --cursor-afterglow:
+    0 0 4px rgba(164, 200, 176, 0.3), 0 0 8px rgba(120, 170, 150, 0.1);
+  --cursor-afterglow-mid:
+    0 0 2px rgba(164, 200, 176, 0.12), 0 0 5px rgba(120, 170, 150, 0.04);
+  --cursor-decay: 0.05s;
+  /* Scanlines: VT220 14" tube, ~480 physical lines, tight pitch */
+  --scanline-size: 3px;
+  --scanline-opacity: 0.025;
+  /* P4 aged: ~1ms decay, diffuse spectrum, lowest perceived glow */
+  --glow-intensity: 0.35;
+  /* Warm-up: DEC VT220, improved PSU over VT100: ~2.5s */
+  --warmup-duration: 2.5s;
+  /* Barrel distortion: DEC 14" flat-face engineering — nearly flat */
+  --crt-perspective: 2200px;
+  --crt-tilt-x: 0.25deg;
+  /* Chromatic aberration: P4 aged white — slight blue-channel ghost from phosphor shift */
+  --chroma-offset: 0.5px;
+  --chroma-opacity: 0.1;
+  /* Vignette: DEC 14" flat-face professional — very even illumination */
+  --vignette-opacity: 0.32;
 }
- 
+
 /* Zenith Z-19 — P1 green phosphor, 80×24, CP/M workhorse
    Zenith used a purer P1 than IBM — cooler, more saturated green.
    Very slightly brighter background from the Z-19's non-tinted faceplate */
 .theme-zenith-green {
-    --theme-background: #0B100B;
-    --primary-color: #7FFF7F;
-    --primary-rgb: 127, 255, 127;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 0.50s;
-    /* P1 purer variant: same ~24ms class but slightly cooler, less yellow halation */
-    --cursor-afterglow: 0 0 6px rgba(127, 255, 127, 0.50), 0 0 13px rgba(80, 210, 80, 0.18);
-    --cursor-afterglow-mid: 0 0 4px rgba(127, 255, 127, 0.22), 0 0 9px rgba(80, 210, 80, 0.07);
-    --cursor-decay: 0.22s;
-    /* Scanlines: Z-19 12" tube, slightly finer than IBM */
-    --scanline-size: 3px;
-    --scanline-opacity: 0.028;
-    /* P1 pure variant: saturated, slightly cooler than IBM */
-    --glow-intensity: 0.50;
-    /* Warm-up: Zenith Z-19 12" tube, similar class to VT100: ~3s */
-    --warmup-duration: 3.0s;
+  --theme-background: #0b100b;
+  --primary-color: #7fff7f;
+  --primary-rgb: 127, 255, 127;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.5s;
+  /* P1 purer variant: same ~20ms class but slightly cooler, less yellow halation */
+  --cursor-afterglow:
+    0 0 6px rgba(127, 255, 127, 0.5), 0 0 13px rgba(80, 210, 80, 0.18);
+  --cursor-afterglow-mid:
+    0 0 4px rgba(127, 255, 127, 0.22), 0 0 9px rgba(80, 210, 80, 0.07);
+  --cursor-decay: 0.22s;
+  /* Scanlines: Z-19 12" tube, slightly finer than IBM */
+  --scanline-size: 3px;
+  --scanline-opacity: 0.028;
+  /* P1 pure variant: saturated, slightly cooler than IBM */
+  --glow-intensity: 0.5;
+  /* Warm-up: Zenith Z-19 12" tube, similar class to VT100: ~3s */
+  --warmup-duration: 3s;
+  /* Barrel distortion: 12" professional tube — moderate curvature */
+  --crt-perspective: 1800px;
+  --crt-tilt-x: 0.4deg;
+  --chroma-offset: 0.6px;
+  --chroma-opacity: 0.09;
+  /* Vignette: 12" professional tube — moderate corner falloff */
+  --vignette-opacity: 0.40;
 }
- 
+
 /* Lear Siegler ADM-3A — P1 green phosphor, 80×24, 1976
    The terminal Bill Joy used at UC Berkeley to write vi.
    The hjkl arrow keys exist because the ADM-3A had arrows
@@ -379,25 +595,35 @@ body::after {
    Period: 1/1.875 = 0.533s — not rounded, that's the actual rate.
    12" compact tube, scanlines slightly more visible than 14" IBM units. */
 .theme-adm3a-green {
-    --theme-background: #070B07;
-    --primary-color: #A8FF60;
-    --primary-rgb: 168, 255, 96;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 0.533s;
-    /* Lear Siegler P1 warm variant: ~22ms decay, yellow-shifted halation.
+  --theme-background: #070b07;
+  --primary-color: #a8ff60;
+  --primary-rgb: 168, 255, 96;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.533s;
+  /* Lear Siegler P1 warm variant: ~20ms decay, yellow-shifted halation.
        Two-layer shadow: tight yellow-green core + wider cooler corona */
-    --cursor-afterglow: 0 0 6px rgba(168, 255, 96, 0.52), 0 0 14px rgba(120, 220, 60, 0.18);
-    --cursor-afterglow-mid: 0 0 4px rgba(168, 255, 96, 0.23), 0 0 9px rgba(120, 220, 60, 0.07);
-    --cursor-decay: 0.22s;
-    /* Scanlines: 12" compact tube, pitch slightly coarser than 14" IBM */
-    --scanline-size: 3px;
-    --scanline-opacity: 0.033;
-    /* P1 warm: yellow-shifted, marginally richer halation than IBM's cooler variant */
-    --glow-intensity: 0.53;
-    /* Warm-up: ADM-3A TTL design, small 12" tube: ~2s */
-    --warmup-duration: 2.0s;
+  --cursor-afterglow:
+    0 0 6px rgba(168, 255, 96, 0.52), 0 0 14px rgba(120, 220, 60, 0.18);
+  --cursor-afterglow-mid:
+    0 0 4px rgba(168, 255, 96, 0.23), 0 0 9px rgba(120, 220, 60, 0.07);
+  --cursor-decay: 0.22s;
+  /* Scanlines: 12" compact tube, pitch slightly coarser than 14" IBM */
+  --scanline-size: 3px;
+  --scanline-opacity: 0.033;
+  /* P1 warm: yellow-shifted, marginally richer halation than IBM's cooler variant */
+  --glow-intensity: 0.53;
+  /* Warm-up: ADM-3A TTL design, small 12" tube: ~2s */
+  --warmup-duration: 2s;
+  /* Barrel distortion: 12" compact TTL-era tube — moderate, slightly more than Zenith */
+  --crt-perspective: 1800px;
+  --crt-tilt-x: 0.45deg;
+  /* Chromatic aberration: 1976 deflection optics — slightly older coil geometry */
+  --chroma-offset: 0.6px;
+  --chroma-opacity: 0.09;
+  /* Vignette: 12" compact TTL-era tube — slightly more corner falloff than 14" */
+  --vignette-opacity: 0.42;
 }
- 
+
 /* Kaypro II — Toshiba P31 green phosphor, 80×24, 1982, CP/M 2.2
    P31 is brighter than P1 and carries a faint blue shift — closer
    to 520nm than P1's 525nm. Short persistence (<1ms), essentially
@@ -405,161 +631,227 @@ body::after {
    had unusually sharp focus for its era — praised in every review.
    Background: same near-black as ADM-3A, slightly cooler */
 .theme-kaypro-green {
-    --theme-background: #060A06;
-    --primary-color: #76FF76;
-    --primary-rgb: 118, 255, 118;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 0.533s;
-    /* P31 phosphor: <1ms decay, even faster than P4 white.
+  --theme-background: #060a06;
+  --primary-color: #76ff76;
+  --primary-rgb: 118, 255, 118;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.533s;
+  /* P31 phosphor: <1ms decay, even faster than P4 white.
        Nearly zero afterglow — hard on/off character.
        Rate: Kaypro CP/M BIOS counted vertical interrupts at 60Hz.
        0.533s = 16 VBLs/toggle (same as ADM-3A coincidentally).
        Some sources cite 8 VBLs = 0.267s. BIOS source unconfirmed. */
-    --cursor-afterglow: 0 0 4px rgba(118, 255, 118, 0.22), 0 0 8px rgba(80, 220, 80, 0.07);
-    --cursor-afterglow-mid: 0 0 2px rgba(118, 255, 118, 0.08), 0 0 5px rgba(80, 220, 80, 0.02);
-    --cursor-decay: 0.04s;
-    /* Scanlines: 9" Toshiba tube, compact and sharp */
-    --scanline-size: 3px;
-    --scanline-opacity: 0.030;
-    /* P31: highest quantum efficiency of any phosphor here — brightest glow */
-    --glow-intensity: 0.68;
-    /* Warm-up: Kaypro II built-in 9" Toshiba tube: ~2s */
-    --warmup-duration: 2.0s;
+  --cursor-afterglow:
+    0 0 4px rgba(118, 255, 118, 0.22), 0 0 8px rgba(80, 220, 80, 0.07);
+  --cursor-afterglow-mid:
+    0 0 2px rgba(118, 255, 118, 0.08), 0 0 5px rgba(80, 220, 80, 0.02);
+  --cursor-decay: 0.04s;
+  /* Scanlines: 9" Toshiba tube, compact and sharp */
+  --scanline-size: 3px;
+  --scanline-opacity: 0.03;
+  /* P31: highest quantum efficiency of any phosphor here — brightest glow */
+  --glow-intensity: 0.68;
+  /* Warm-up: Kaypro II built-in 9" Toshiba tube: ~2s */
+  --warmup-duration: 2s;
+  /* Barrel distortion: 9" Toshiba tube — sharper focus but more curvature than 12-14" */
+  --crt-perspective: 1400px;
+  --crt-tilt-x: 0.6deg;
+  --chroma-offset: 0.8px;
+  --chroma-opacity: 0.1;
+  /* Vignette: 9" Toshiba tube — compact, more curvature than 12-14" */
+  --vignette-opacity: 0.48;
 }
- 
-/* DEC VT05 — P4 white phosphor, 72×20, 1972 teletype-era terminal
+
+/* DEC VT05 — P4 white phosphor, 72×20, 1970 teletype-era terminal
    P4 is a blue-white daylight phosphor. At lower brightness the
    slight warm cast from the glass envelope tints it towards cream.
    Background: very dark, almost black with blue hint */
-.theme-white {
-    --theme-background: #0E0E0F;
-    --primary-color: #D6D6C6;
-    --primary-rgb: 214, 214, 198;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 0.60s;
-    /* P4 white: ~1ms decay, fastest phosphor, essentially no afterglow — near-instant extinction */
-    --cursor-afterglow: 0 0 3px rgba(214, 214, 198, 0.18), 0 0 6px rgba(200, 200, 185, 0.07);
-    --cursor-afterglow-mid: 0 0 2px rgba(214, 214, 198, 0.07), 0 0 4px rgba(200, 200, 185, 0.03);
-    --cursor-decay: 0.03s;
-    /* Scanlines: VT05 was a 72-col terminal with smaller 12" tube, slightly finer lines */
-    --scanline-size: 2px;
-    --scanline-opacity: 0.022;
-    /* P4 white: ~1ms decay, essentially no persistence — faintest glow */
-    --glow-intensity: 0.32;
-    /* Warm-up: DEC VT05 early 1970s, no soft-start: ~2s */
-    --warmup-duration: 2.0s;
+.theme-vt05-white {
+  --theme-background: #0e0e0f;
+  --primary-color: #d6d6c6;
+  --primary-rgb: 214, 214, 198;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.6s;
+  /* P4 white: ~1ms decay, fastest phosphor, essentially no afterglow — near-instant extinction */
+  --cursor-afterglow:
+    0 0 3px rgba(214, 214, 198, 0.18), 0 0 6px rgba(200, 200, 185, 0.07);
+  --cursor-afterglow-mid:
+    0 0 2px rgba(214, 214, 198, 0.07), 0 0 4px rgba(200, 200, 185, 0.03);
+  --cursor-decay: 0.03s;
+  /* Scanlines: VT05 was a 72-col terminal with smaller 12" tube, slightly finer lines */
+  --scanline-size: 2px;
+  --scanline-opacity: 0.022;
+  /* P4 white: ~1ms decay, essentially no persistence — faintest glow */
+  --glow-intensity: 0.32;
+  /* Warm-up: DEC VT05 early 1970s, no soft-start: ~2s */
+  --warmup-duration: 2s;
+  /* Barrel distortion: 12" teletype-era tube — pre-flat-face era, moderate curve */
+  --crt-perspective: 1800px;
+  --crt-tilt-x: 0.4deg;
+  /* Chromatic aberration: P4 white — blue fringe from broad-spectrum phosphor scatter */
+  --chroma-offset: 0.5px;
+  --chroma-opacity: 0.1;
+  /* Vignette: 12" early DEC teletype-era tube — pre-flat-face, moderate */
+  --vignette-opacity: 0.40;
 }
- 
-/* Wyse WY-50 — P134 amber phosphor, 80×24, 1983 (amber variant)
+
+/* Wyse WY-50 — P134 amber phosphor, 80×24, 1985 (amber variant)
    The terminal Wall Street ran on. Introduced at $695, half the price
    of the competition, it became Wyse's best-seller and the default
    screen on trading floors, bank back-offices, and brokerage houses
    throughout the 1980s. The amber variant was preferred by traders
-   for all-day readability — warmer and more golden than DEC's P3.
-   P134 is Wyse's proprietary amber: ~580nm, slightly faster decay
-   than standard P3 (~12ms vs 14ms), more golden, less orange.
+   for all-day readability — warmer and more golden than VT100's amber.
+   P134 is Wyse's proprietary amber: ~580nm estimated, exact specs undocumented.
+   Estimated ~12ms decay, more golden and less orange than VT100.
    14" non-glare tube, 8031 microcontroller at 11MHz, 800×338.
    Cursor blink: ADM-31 clone, 60Hz÷32 = 0.533s period. */
 .theme-wyse50-amber {
-    --theme-background: #0A0700;
-    --primary-color: #FFBE00;
-    --primary-rgb: 255, 190, 0;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 0.533s;
-    /* P134 amber: ~12ms decay, slightly faster than standard P3.
-       Warm golden halation — less orange than VT100's P3, more honey.
+  --theme-background: #0a0700;
+  --primary-color: #ffbe00;
+  --primary-rgb: 255, 190, 0;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.533s;
+  /* P134 amber: ~12ms estimated decay, Wyse proprietary.
+       Warm golden halation — less orange than VT100's amber, more honey.
        Tighter corona than VT100 due to WY-50's praised non-glare tube. */
-    --cursor-afterglow: 0 0 7px rgba(255, 190, 0, 0.58), 0 0 16px rgba(200, 120, 0, 0.22);
-    --cursor-afterglow-mid: 0 0 5px rgba(255, 190, 0, 0.26), 0 0 11px rgba(200, 120, 0, 0.08);
-    --cursor-decay: 0.12s;
-    /* Scanlines: 14" tube, 800×338, same pitch class as IBM 3279 */
-    --scanline-size: 3px;
-    --scanline-opacity: 0.028;
-    /* P134 amber: warm wavelength, moderate scatter — slightly less
-       than VT100's P3 due to the WY-50's anti-glare treatment */
-    --glow-intensity: 0.54;
-    /* Warm-up: 14" tube, 45W PSU: ~2.5s */
-    --warmup-duration: 2.5s;
+  --cursor-afterglow:
+    0 0 7px rgba(255, 190, 0, 0.58), 0 0 16px rgba(200, 120, 0, 0.22);
+  --cursor-afterglow-mid:
+    0 0 5px rgba(255, 190, 0, 0.26), 0 0 11px rgba(200, 120, 0, 0.08);
+  --cursor-decay: 0.12s;
+  /* Scanlines: 14" tube, 800×338, same pitch class as IBM 3279 */
+  --scanline-size: 3px;
+  --scanline-opacity: 0.028;
+  /* P134 amber: warm wavelength, moderate scatter — slightly less
+       than VT100's amber due to the WY-50's anti-glare treatment */
+  --glow-intensity: 0.54;
+  /* Warm-up: 14" tube, 45W PSU: ~2.5s */
+  --warmup-duration: 2.5s;
+  /* Barrel distortion: 14" non-glare anti-reflective WY-50 — praised for flat display */
+  --crt-perspective: 2400px;
+  --crt-tilt-x: 0.2deg;
+  /* Chromatic aberration: P134 monochrome — minimal fringe, anti-glare coating diffuses it */
+  --chroma-offset: 0.5px;
+  --chroma-opacity: 0.08;
+  /* Vignette: 14" non-glare Wyse — praised for flat even illumination */
+  --vignette-opacity: 0.30;
 }
- 
-/* Commodore PET 2001 — P31 green phosphor, 40×25
-   The original 1977 PET shipped with a white phosphor monitor,
-   but the 2001-N (1979) and most remembered units used P31 green:
-   brighter and slightly cooler/more saturated than P1.
+
+/* Commodore PET 2001 — P1 green phosphor, 40×25
+   The original 1977 PET shipped with a white P4 phosphor monitor.
+   The 2001-N (1979) green-screen models used standard P1, not P31 —
+   P31 is not documented as standard in Commodore PET hardware.
    PET BASIC ROM drove a fast ~2.5Hz blink via system timer. */
 .theme-pet2001-green {
-    --theme-background: #060A06;
-    --primary-color: #00FF44;
-    --primary-rgb: 0, 255, 68;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 0.40s;
-    /* P31: brighter, cooler P1 variant, similar ~20ms decay, very saturated green halation */
-    --cursor-afterglow: 0 0 7px rgba(0, 255, 68, 0.58), 0 0 15px rgba(0, 200, 50, 0.22);
-    --cursor-afterglow-mid: 0 0 5px rgba(0, 255, 68, 0.26), 0 0 10px rgba(0, 200, 50, 0.09);
-    --cursor-decay: 0.20s;
-    /* Scanlines: PET 2001 9" green tube, distinctly visible line structure */
-    --scanline-size: 3px;
-    --scanline-opacity: 0.038;
-    /* P31: brighter, higher efficiency than P1 — vivid saturated glow */
-    --glow-intensity: 0.65;
-    /* Warm-up: Commodore PET 2001 built-in 9" tube: ~1.8s */
-    --warmup-duration: 1.8s;
+  --theme-background: #060a06;
+  --primary-color: #00ff44;
+  --primary-rgb: 0, 255, 68;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.4s;
+  /* P1 phosphor: ~20ms decay, medium persistence, saturated yellow-green halation.
+       9" tube drives harder than larger screens → vivid core, standard P1 corona. */
+  --cursor-afterglow:
+    0 0 6px rgba(0, 255, 68, 0.52), 0 0 14px rgba(0, 200, 50, 0.18);
+  --cursor-afterglow-mid:
+    0 0 4px rgba(0, 255, 68, 0.22), 0 0 9px rgba(0, 200, 50, 0.07);
+  --cursor-decay: 0.2s;
+  /* Scanlines: PET 2001 9" green tube, distinctly visible line structure */
+  --scanline-size: 3px;
+  --scanline-opacity: 0.038;
+  /* P1: standard green efficiency, small 9" tube drives slightly above baseline */
+  --glow-intensity: 0.5;
+  /* Warm-up: Commodore PET 2001 built-in 9" tube: ~1.8s */
+  --warmup-duration: 1.8s;
+  /* Barrel distortion: 9" built-in TV-type tube — significant curvature, 1977 design */
+  --crt-perspective: 1200px;
+  --crt-tilt-x: 0.8deg;
+  /* Chromatic aberration: P1 single-gun — deflection fringe on 9" geometry */
+  --chroma-offset: 0.8px;
+  --chroma-opacity: 0.1;
+  /* 50Hz PAL: scanline period for beat-frequency roll animation */
+  --scanline-size: 4px;
+  --scanline-opacity: 0.04;
+  /* Vignette: consumer 9" built-in TV-type tube — significant corner falloff */
+  --vignette-opacity: 0.52;
 }
- 
-/* DEC VT100 — P3 amber phosphor, 80×24, 1978
-   The canonical terminal. P3 peaks ~585nm: true amber, not yellow.
-   Longer persistence than P1 = slightly softer character edges.
-   Background: near-black with very slight warm brown from P3 faceplate.
+
+/* DEC VT100 — amber phosphor, 80×24, 1978
+   The canonical terminal. The amber phosphor type is uncertain: P3 is
+   rare and poorly documented; the VT100 likely used a proprietary DEC
+   amber phosphor or a filtered variant. Visual result: warm ~585nm amber.
+   Background: near-black with very slight warm brown from the faceplate.
    Blink: derived from annotated VT100 ROM disassembly. The 8080 firmware
    counts down blink_timer from 0x35 (53) on each 60Hz vertical frame
    interrupt, then toggles the blink flip-flop. Each state (on or off)
    lasts 53 frames: 53 ÷ 60Hz = 0.883s. Full period = 1.767s (~0.566Hz).
    Much slower than commonly assumed — the amber VT100 blinks languidly. */
 .theme-vt100-amber {
-    --theme-background: #0C0800;
-    --primary-color: #FFB000;
-    --primary-rgb: 255, 176, 0;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 1.767s;
-    /* P3 amber: ~14ms physical decay, but at a 1.767s blink period this is
-       utterly imperceptible — less than 1% of the cycle. Cursor turns off hard.
-       Afterglow kept near-zero so it doesn't produce a visible fade. */
-    --cursor-afterglow: 0 0 8px rgba(255, 176, 0, 0.65), 0 0 20px rgba(180, 100, 0, 0.28);
-    --cursor-afterglow-mid: 0 0 6px rgba(255, 176, 0, 0.30), 0 0 15px rgba(180, 100, 0, 0.11);
-    --cursor-decay: 0.02s;
-    /* Scanlines: VT100 12" tube, ~480 lines, the canonical reference */
-    --scanline-size: 3px;
-    --scanline-opacity: 0.030;
-    /* P3 amber: ~14ms decay, longest persistence here, warmest wavelength — richest glow */
-    --glow-intensity: 0.60;
-    /* Warm-up: DEC VT100 12" tube, field service manual: ~3.5s */
-    --warmup-duration: 3.5s;
+  --theme-background: #0c0800;
+  --primary-color: #ffb000;
+  --primary-rgb: 255, 176, 0;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 1.767s;
+  /* Amber phosphor: exact type uncertain, decay ~10–14ms estimated.
+       At a 1.767s blink period this is utterly imperceptible — less than 1%
+       of the cycle. Cursor turns off hard; afterglow near-zero. */
+  --cursor-afterglow:
+    0 0 8px rgba(255, 176, 0, 0.65), 0 0 20px rgba(180, 100, 0, 0.28);
+  --cursor-afterglow-mid:
+    0 0 6px rgba(255, 176, 0, 0.3), 0 0 15px rgba(180, 100, 0, 0.11);
+  --cursor-decay: 0.02s;
+  /* Scanlines: VT100 12" tube, ~480 lines, the canonical reference */
+  --scanline-size: 3px;
+  --scanline-opacity: 0.03;
+  /* Amber phosphor: warmest wavelength in set, richest glow regardless of exact type */
+  --glow-intensity: 0.6;
+  /* Warm-up: DEC VT100 12" tube, field service manual: ~3.5s */
+  --warmup-duration: 3.5s;
+  /* Barrel distortion: 12" amber tube — moderate professional curve, DEC quality */
+  --crt-perspective: 1800px;
+  --crt-tilt-x: 0.4deg;
+  /* Chromatic aberration: amber single-gun — slight warm fringe at deflection limits */
+  --chroma-offset: 0.6px;
+  --chroma-opacity: 0.09;
+  /* Vignette: 12" amber DEC professional — moderate, standard for its era */
+  --vignette-opacity: 0.40;
 }
- 
-/* Apple II — P1 green phosphor, 40×24, 1977
-   Apple used a P1 variant with higher brightness than IBM's version.
-   The RGB monitor used in the II+ onward was distinctly sharp and vivid.
+
+/* Apple II — P31 green phosphor, 40×24, 1977
+   The Apple II (and Sanyo monitors used with it) used P31 phosphor,
+   not P1. P31 has higher quantum efficiency and sub-millisecond decay —
+   sharper, brighter, almost no afterglow. Same class as Kaypro/Tektronix.
    Blink: hardware 555 timer circuit on the video board, not software.
    The 555 was wired for ~2Hz → 0.5s full period per hardware schematics. */
 .theme-apple2-green {
-    --theme-background: #000000;
-    --primary-color: #24FF52;
-    --primary-rgb: 36, 255, 82;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 0.50s;
-    /* Apple II P1 variant: high-brightness, sharp — similar ~24ms decay but more vivid */
-    --cursor-afterglow: 0 0 6px rgba(36, 255, 82, 0.55), 0 0 14px rgba(20, 190, 55, 0.20);
-    --cursor-afterglow-mid: 0 0 4px rgba(36, 255, 82, 0.25), 0 0 9px rgba(20, 190, 55, 0.08);
-    --cursor-decay: 0.22s;
-    /* Scanlines: Apple II composite monitor, slightly looser NTSC line structure */
-    --scanline-size: 3px;
-    --scanline-opacity: 0.034;
-    /* P1 high-brightness variant: Apple sourced vivid tubes, slightly above IBM standard */
-    --glow-intensity: 0.55;
-    /* Warm-up: Apple II composite monitor: ~2.5s */
-    --warmup-duration: 2.5s;
+  --theme-background: #000000;
+  --primary-color: #24ff52;
+  --primary-rgb: 36, 255, 82;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.5s;
+  /* P31 phosphor: <1ms decay — essentially instant extinction, no visible afterglow.
+       High quantum efficiency → bright but hard-edged. Same class as Kaypro Toshiba. */
+  --cursor-afterglow:
+    0 0 4px rgba(36, 255, 82, 0.22), 0 0 8px rgba(20, 190, 55, 0.07);
+  --cursor-afterglow-mid:
+    0 0 2px rgba(36, 255, 82, 0.08), 0 0 5px rgba(20, 190, 55, 0.02);
+  --cursor-decay: 0.04s;
+  /* Scanlines: Apple II composite monitor, slightly looser NTSC line structure */
+  --scanline-size: 3px;
+  --scanline-opacity: 0.034;
+  /* P31: highest quantum efficiency of any phosphor here — very bright, tight glow */
+  --glow-intensity: 0.65;
+  /* Warm-up: Apple II composite monitor: ~2.5s */
+  --warmup-duration: 2.5s;
+  /* Barrel distortion: consumer composite monitor — curved consumer tube, more than DEC */
+  --crt-perspective: 1200px;
+  --crt-tilt-x: 0.8deg;
+  /* Chromatic aberration: P31 single-gun — deflection fringe at beam edges */
+  --chroma-offset: 0.7px;
+  --chroma-opacity: 0.1;
+  /* Vignette: consumer composite monitor, curved tube — notable corner falloff */
+  --vignette-opacity: 0.55;
 }
- 
+
 /* Commodore 64 — VIC-II NTSC composite output, 40×25, 1982
    Actual C64 NTSC measured colour values from hardware capture:
    background: #2C2391, text: #7469BA (VIC-II register colour 14 = light blue)
@@ -567,78 +859,138 @@ body::after {
    Blink: CIA 8520 timer fires at 60Hz; the KERNAL counts 20 interrupts before
    toggling the cursor. 20 ÷ 60Hz = 0.333s per state → full period 0.667s (~1.5Hz). */
 .theme-commodore64 {
-    --theme-background: #2B2290;
-    --primary-color: #7469C8;
-    --primary-rgb: 116, 105, 200;
-    --author-hover-decoration: underline;
-    --cursor-blink-rate: 0.667s;
-    /* C64 composite: TV phosphor decay ~8ms, but chroma blur smears the afterglow horizontally.
+  --theme-background: #2b2290;
+  --primary-color: #7469c8;
+  --primary-rgb: 116, 105, 200;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.667s;
+  /* C64 composite: TV phosphor decay ~8ms, but chroma blur smears the afterglow horizontally.
        The glow has a purple-blue cast from the NTSC chroma bleed */
-    --cursor-afterglow: 0 0 6px rgba(116, 105, 200, 0.55), 0 0 14px rgba(80, 70, 180, 0.22);
-    --cursor-afterglow-mid: 0 0 4px rgba(116, 105, 200, 0.24), 0 0 10px rgba(80, 70, 180, 0.09);
-    --cursor-decay: 0.10s;
-    /* Scanlines: NTSC TV composite, 525 lines/60Hz interlaced — wider, more visible */
-    --scanline-size: 4px;
-    --scanline-opacity: 0.044;
-    /* P22 composite: chroma blur spreads glow horizontally — lower effective intensity */
-    --glow-intensity: 0.42;
-    /* Warm-up: C64 connected to consumer 13" CRT TV: ~4s */
-    --warmup-duration: 4.0s;
+  --cursor-afterglow:
+    0 0 6px rgba(116, 105, 200, 0.55), 0 0 14px rgba(80, 70, 180, 0.22);
+  --cursor-afterglow-mid:
+    0 0 4px rgba(116, 105, 200, 0.24), 0 0 10px rgba(80, 70, 180, 0.09);
+  --cursor-decay: 0.1s;
+  /* Scanlines: NTSC TV composite, 525 lines/60Hz interlaced — wider, more visible */
+  --scanline-size: 4px;
+  --scanline-opacity: 0.044;
+  /* P22 composite: chroma blur spreads glow horizontally — lower effective intensity */
+  --glow-intensity: 0.42;
+  /* Warm-up: C64 connected to consumer 13" CRT TV: ~4s */
+  --warmup-duration: 4s;
+  /* Barrel distortion: consumer CRT television — most curved display in this set */
+  --crt-perspective: 900px;
+  --crt-tilt-x: 1deg;
+  /* Chromatic aberration: NTSC RF composite — real chroma bleed, comb filter recalibration */
+  --chroma-offset: 2px;
+  --chroma-opacity: 0.22;
+  /* Vignette: consumer CRT TV — most curved display in this set, deep corner falloff */
+  --vignette-opacity: 0.60;
 }
- 
+
+/* NeXTSTEP Terminal — NeXT MegaPixel Display, 17" grayscale CRT, 1120×832, 92 dpi
+   The machine Tim Berners-Lee wrote the first web server on. The machine Hal Finney,
+   Nick Szabo, and most of the original cypherpunks ran. NeXTSTEP 3.3, 1995.
+   The MegaPixel Display was a 4-bit grayscale CRT — 16 shades, no colour.
+   Phosphor: P4 white, high-grade, tight dot pitch for the era.
+   Background: near-black with a very slight warm-grey cast from the enclosure finish.
+   Prompt: % (default csh on NeXTSTEP)
+   Baud: local PTY, no serial — simulated at 38400 for immediate feel. */
+.theme-nextstep {
+  --theme-background: #111111;
+  --primary-color: #e2e2d8;
+  --primary-rgb: 226, 226, 216;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.53s;
+  /* P4 white high-grade: ~1–2ms decay, barely perceptible afterglow.
+       Slight warm cast from the enclosure — cream-white, not blue-white */
+  --cursor-afterglow:
+    0 0 4px rgba(226, 226, 216, 0.28), 0 0 8px rgba(200, 200, 190, 0.08);
+  --cursor-afterglow-mid:
+    0 0 2px rgba(226, 226, 216, 0.1), 0 0 5px rgba(200, 200, 190, 0.03);
+  --cursor-decay: 0.06s;
+  /* Scanlines: 1120×832 high-res CRT — tightest pitch in this set, barely visible */
+  --scanline-size: 2px;
+  --scanline-opacity: 0.018;
+  /* P4 high-grade: low persistence, clean decay, minimal halation */
+  --glow-intensity: 0.28;
+  /* Warm-up: NeXT MegaPixel Display 17" — professional tube: ~3s */
+  --warmup-duration: 3s;
+  /* Barrel distortion: 17" professional flat-face tube — extremely flat */
+  --crt-perspective: 2800px;
+  --crt-tilt-x: 0.15deg;
+  /* Chromatic aberration: single P4 gun, high-grade optics — minimal fringe */
+  --chroma-offset: 0.4px;
+  --chroma-opacity: 0.06;
+  /* Vignette: 17" professional flat-face — very even illumination */
+  --vignette-opacity: 0.28;
+}
+
+.theme-nextstep #quote-container {
+  color: rgba(226, 226, 216, 0.94);
+  text-shadow:
+    0 0 3px rgba(226, 226, 216, 0.18),
+    0 0 10px rgba(200, 200, 190, 0.05);
+}
+
 /* =========================================
    HEADER
    ========================================= */
- 
+
 #header {
-    position: fixed;
-    top: 0;
-    right: 0;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    /* env() fallback: safe-area-inset-* is 0 on non-notched devices,
+  position: fixed;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  /* env() fallback: safe-area-inset-* is 0 on non-notched devices,
        so this is a no-op everywhere except iPhone notch / Dynamic Island */
-    padding: max(0.5rem, env(safe-area-inset-top)) max(clamp(0.35rem, 1.5vw, 0.5rem), env(safe-area-inset-right)) 0.5rem clamp(0.35rem, 1.5vw, 0.5rem);
-    z-index: 10000;
-    min-height: 2rem;
-    transition: opacity 0.3s ease;
-    gap: 0;
-    contain: layout style paint;
+  padding: max(0.5rem, env(safe-area-inset-top))
+    max(clamp(0.35rem, 1.5vw, 0.5rem), env(safe-area-inset-right)) 0.5rem
+    clamp(0.35rem, 1.5vw, 0.5rem);
+  z-index: 10000;
+  min-height: 2rem;
+  transition: opacity 0.3s ease;
+  gap: 0;
+  contain: layout style paint;
 }
- 
+
 #header a {
-    display: block;
-    margin-bottom: 0;
+  display: block;
+  margin-bottom: 0;
 }
- 
+
 .header-icon {
-    color: rgba(var(--primary-rgb), 0.7);
-    text-decoration: none;
-    font-size: clamp(0.75rem, 0.8vw + 0.4vh, 0.875rem);
-    transition: color 0.3s ease, text-shadow 0.3s ease, transform 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.3rem;
-    min-width: 44px;
-    min-height: 44px;
-    border-radius: 4px;
-    /* Persistent phosphor ambient — icons on a CRT screen have faint
+  color: rgba(var(--primary-rgb), 0.7);
+  text-decoration: none;
+  font-size: clamp(0.75rem, 0.8vw + 0.4vh, 0.875rem);
+  transition:
+    color 0.3s ease,
+    text-shadow 0.3s ease,
+    transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 4px;
+  /* Persistent phosphor ambient — icons on a CRT screen have faint
        halation even at rest, not just on hover. */
-    text-shadow: 0 0 3px rgba(var(--primary-rgb), 0.18);
-    contain: layout style paint;
+  text-shadow: 0 0 3px rgba(var(--primary-rgb), 0.18);
+  contain: layout style paint;
 }
- 
+
 .header-icon:hover,
 .header-icon:focus-visible {
-    color: rgba(var(--primary-rgb), 1);
-    text-shadow: 0 0 4px rgba(var(--primary-rgb), 0.7);
-    /* Suppress browser default focus ring — terminals had no OS-level
+  color: rgba(var(--primary-rgb), 1);
+  text-shadow: 0 0 4px rgba(var(--primary-rgb), 0.7);
+  /* Suppress browser default focus ring — terminals had no OS-level
        focus indicators. The phosphor glow brightening IS the focus state. */
-    outline: none;
+  outline: none;
 }
- 
+
 /*
    :active gives a brief phosphor flash on press — immediate feedback,
    releases the moment the finger/mouse lifts. Transition is instant in,
@@ -646,147 +998,185 @@ body::after {
    leave the icon lit after release.
 */
 .header-icon:active {
-    color: rgba(var(--primary-rgb), 1);
-    text-shadow: 0 0 8px rgba(var(--primary-rgb), 0.9),
-                 0 0 16px rgba(var(--primary-rgb), 0.4);
-    transition: color 0s, text-shadow 0s;
+  color: rgba(var(--primary-rgb), 1);
+  text-shadow:
+    0 0 8px rgba(var(--primary-rgb), 0.9),
+    0 0 16px rgba(var(--primary-rgb), 0.4);
+  transition:
+    color 0s,
+    text-shadow 0s;
 }
- 
+
 /* =========================================
    MAIN CONTENT AREA
    ========================================= */
- 
+
 main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding-left: clamp(0.5rem, 1vw, 1rem);
-    padding-right: clamp(0.5rem, 1vw, 1rem);
-    /* Nudge centre of mass slightly above geometric centre — optical balance.
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: clamp(0.5rem, 1vw, 1rem);
+  padding-right: clamp(0.5rem, 1vw, 1rem);
+  /* Nudge centre of mass slightly above geometric centre — optical balance.
        True 50% centre feels low. ~42vh gives the quote a grounded-but-open feel. */
-    padding-bottom: 8vh;
-    max-width: 100%;
-    overflow: clip;
+  padding-bottom: 8vh;
+  max-width: 100%;
+  overflow: clip;
+  /* Barrel distortion — slight rotateX within body's perspective context.
+     Small angle (0.2–0.8deg) gives depth without obvious distortion.
+     Professional terminals (IBM, DEC): nearly flat. Consumer (C64, Apple II): noticeable. */
+  transform: rotateX(var(--crt-tilt-x, 0.3deg));
+  transform-origin: center center;
+  transform-style: preserve-3d;
 }
- 
+
+
 /*
    QUOTE CONTAINER
    No border-left (anachronistic modern UI convention).
    No ::before prompt — JS types the > character as part of the content.
 */
 #quote-container {
-    color: rgba(var(--primary-rgb), 0.9);
-    margin: 0;
-    font-size: var(--font-size);
-    font-weight: 400;
-    padding: var(--quote-padding-top) 0.25rem var(--quote-padding-bottom) clamp(0.5rem, 1vw, 1rem);
-    text-align: left;
-    width: 100%;
-    position: relative;
-    transition: var(--base-transition),
-                opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    line-height: 1.6;
-    text-shadow: 0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7));
-    contain: layout style paint;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-    text-rendering: geometricPrecision;
-    /* Grayscale AA only — no sub-pixel LCD geometry.
+  color: rgba(var(--primary-rgb), 0.9);
+  margin: 0;
+  font-size: var(--font-size);
+  font-weight: 400;
+  padding: var(--quote-padding-top) 0.25rem var(--quote-padding-bottom)
+    clamp(0.5rem, 1vw, 1rem);
+  text-align: left;
+  width: 100%;
+  position: relative;
+  transition:
+    var(--base-transition),
+    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1.6;
+  text-shadow: 0 0 4px
+    rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7));
+  contain: layout style paint;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  text-rendering: geometricPrecision;
+  /* Grayscale AA only — no sub-pixel LCD geometry.
        Real CRT character edges were hard bitmap boundaries softened by
        phosphor halation, not by LCD sub-pixel smoothing. Grayscale mode
        removes the RGB fringing that marks modern LCD rendering. */
-    -webkit-font-smoothing: grayscale;
-    -moz-osx-font-smoothing: grayscale;
-    font-variant-ligatures: none;
-    letter-spacing: 0.02em;
+  -webkit-font-smoothing: grayscale;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-ligatures: none;
+  letter-spacing: 0.02em;
 }
- 
+
 /* IBM 3279 P1: olive-tinted tube, yellow-green core + cooler outer corona */
 .theme-ibm3279-green #quote-container {
-    /* P1 standard — slightly above default */
-    color: rgba(87, 255, 140, 0.93);
-    text-shadow: 0 0 4px rgba(87, 255, 140, 0.32), 0 0 14px rgba(60, 200, 90, 0.09),
-               0.4px 0 3px rgba(87, 255, 140, 0.05), -0.4px 0 3px rgba(87, 255, 140, 0.05);
+  /* P1 standard — slightly above default */
+  color: rgba(87, 255, 140, 0.93);
+  text-shadow:
+    0 0 4px rgba(87, 255, 140, 0.32),
+    0 0 14px rgba(60, 200, 90, 0.09),
+    0.4px 0 3px rgba(87, 255, 140, 0.05),
+    -0.4px 0 3px rgba(87, 255, 140, 0.05);
 }
-/* Bitcoin orange: P3-adjacent warm amber — deep orange outer corona.
-   Corona at 16px: P3 amber wavelength scatters ~10-15% more than P1 green
-   in soda-lime glass, so wider than P1's 14px but not drastically so. */
+/* Bitcoin orange: warm amber — deep orange outer corona.
+   Amber wavelengths scatter ~10-15% more than P1 green in soda-lime glass,
+   so the corona is wider than P1's 14px but not drastically so. */
 .theme-ibm3279-bitcoin-orange #quote-container {
-    text-shadow: 0 0 4px rgba(255, 149, 0, 0.38), 0 0 16px rgba(200, 80, 0, 0.10),
-               0.4px 0 3px rgba(255, 149, 0, 0.06), -0.4px 0 3px rgba(255, 149, 0, 0.06);
+  text-shadow:
+    0 0 4px rgba(255, 149, 0, 0.38),
+    0 0 16px rgba(200, 80, 0, 0.1),
+    0.4px 0 3px rgba(255, 149, 0, 0.06),
+    -0.4px 0 3px rgba(255, 149, 0, 0.06);
 }
 /* VT220 P4 aged: minimal — barely-there core, ghost corona */
 .theme-teletype-blue-green #quote-container {
-    text-shadow: 0 0 3px rgba(164, 200, 176, 0.22), 0 0 10px rgba(120, 170, 150, 0.06);
+  text-shadow:
+    0 0 3px rgba(164, 200, 176, 0.22),
+    0 0 10px rgba(120, 170, 150, 0.06);
 }
-/* PET P31: bright saturated core, fast-decay corona.
-   P31 phosphor decays in <1ms — same class as P4 white, not P1 green.
-   Bloom structure matches Kaypro (also P31) but with a hotter core:
-   the PET's 9" tube drove the phosphor harder → brighter halation core,
-   but the corona still falls off fast because persistence is sub-millisecond.
-   No horizontal spread pair — P31's narrow emission band doesn't produce
-   the beam astigmatism artefact visible in slower P1/P3 phosphors. */
+/* PET P1: medium persistence, saturated yellow-green core + wider corona.
+   P1 ~20ms decay — same class as IBM 3279, Zenith Z-19.
+   Horizontal spread pair present: P1's beam astigmatism produces the
+   subtle lateral halo visible on slower phosphors. 9" tube drives harder
+   than larger screens so core opacity slightly above IBM's 0.32. */
 .theme-pet2001-green #quote-container {
-    color: rgba(0, 255, 68, 0.96);
-    text-shadow: 0 0 4px rgba(0, 255, 68, 0.36), 0 0 10px rgba(0, 200, 50, 0.07);
-    /* PET 2001-N: 40×25 display, 8×8 pixel character cells with zero
+  color: rgba(0, 255, 68, 0.96);
+  text-shadow:
+    0 0 4px rgba(0, 255, 68, 0.34),
+    0 0 14px rgba(0, 200, 50, 0.08),
+    0.4px 0 3px rgba(0, 255, 68, 0.05),
+    -0.4px 0 3px rgba(0, 255, 68, 0.05);
+  /* PET 2001-N: 40×25 display, 8×8 pixel character cells with zero
        inter-character gap — same tight grid as C64. */
-    letter-spacing: 0;
+  letter-spacing: 0;
 }
 .theme-pet2001-green .author {
-    letter-spacing: 0;
+  letter-spacing: 0;
 }
 /* Wyse WY-50 P134 amber: golden core + warm corona, tighter than VT100.
    No blur filter — WY-50 praised for "crisper screen display" vs competition.
-   The P134's slightly faster decay (~12ms vs P3's 14ms) means less bloom spread. */
+   P134 estimated ~12ms decay — tighter bloom than VT100's amber. */
 .theme-wyse50-amber #quote-container {
-    color: rgba(255, 190, 0, 0.92);
-    text-shadow: 0 0 4px rgba(255, 190, 0, 0.36), 0 0 14px rgba(200, 120, 0, 0.09),
-               0.4px 0 3px rgba(255, 190, 0, 0.06), -0.4px 0 3px rgba(255, 190, 0, 0.06);
+  color: rgba(255, 190, 0, 0.92);
+  text-shadow:
+    0 0 4px rgba(255, 190, 0, 0.36),
+    0 0 14px rgba(200, 120, 0, 0.09),
+    0.4px 0 3px rgba(255, 190, 0, 0.06),
+    -0.4px 0 3px rgba(255, 190, 0, 0.06);
 }
 .theme-zenith-green #quote-container {
-    /* P1 Zenith: cooler green core + wide pale corona */
-    text-shadow: 0 0 4px rgba(127, 255, 127, 0.30), 0 0 14px rgba(80, 210, 80, 0.08),
-               0.4px 0 3px rgba(127, 255, 127, 0.05), -0.4px 0 3px rgba(127, 255, 127, 0.05);
-    /* P1, Zenith Z-19 12" tube */
+  /* P1 Zenith: cooler green core + wide pale corona */
+  text-shadow:
+    0 0 4px rgba(127, 255, 127, 0.3),
+    0 0 14px rgba(80, 210, 80, 0.08),
+    0.4px 0 3px rgba(127, 255, 127, 0.05),
+    -0.4px 0 3px rgba(127, 255, 127, 0.05);
+  /* P1, Zenith Z-19 12" tube */
 }
 /* ADM-3A P1 warm: yellow-shifted halation, 12" compact tube */
 .theme-adm3a-green #quote-container {
-    /* ADM-3A P1 warm: yellow-shifted core + warm corona */
-    text-shadow: 0 0 4px rgba(168, 255, 96, 0.32), 0 0 14px rgba(120, 220, 60, 0.08),
-               0.4px 0 3px rgba(168, 255, 96, 0.05), -0.4px 0 3px rgba(168, 255, 96, 0.05);
+  /* ADM-3A P1 warm: yellow-shifted core + warm corona */
+  text-shadow:
+    0 0 4px rgba(168, 255, 96, 0.32),
+    0 0 14px rgba(120, 220, 60, 0.08),
+    0.4px 0 3px rgba(168, 255, 96, 0.05),
+    -0.4px 0 3px rgba(168, 255, 96, 0.05);
 }
 .theme-kaypro-green #quote-container {
-    /* Toshiba P31 — very high QE, near-full drive */
-    color: rgba(118, 255, 118, 0.95);
-    /* Kaypro P31: minimal core, tightest corona of all P31 tubes */
-    text-shadow: 0 0 3px rgba(118, 255, 118, 0.24), 0 0 10px rgba(80, 220, 80, 0.06);
+  /* Toshiba P31 — very high QE, near-full drive */
+  color: rgba(118, 255, 118, 0.95);
+  /* Kaypro P31: minimal core, tightest corona of all P31 tubes */
+  text-shadow:
+    0 0 3px rgba(118, 255, 118, 0.24),
+    0 0 10px rgba(80, 220, 80, 0.06);
 }
-.theme-white #quote-container {
-    /* P4 white — lower perceived brightness than green/amber */
-    color: rgba(214, 214, 198, 0.86);
-    /* VT05 P4: faintest of all — barely perceptible warm-white halo */
-    text-shadow: 0 0 3px rgba(214, 214, 198, 0.18), 0 0 8px rgba(200, 200, 185, 0.05);
+.theme-vt05-white #quote-container {
+  /* P4 white — lower perceived brightness than green/amber */
+  color: rgba(214, 214, 198, 0.86);
+  /* VT05 P4: faintest of all — barely perceptible warm-white halo */
+  text-shadow:
+    0 0 3px rgba(214, 214, 198, 0.18),
+    0 0 8px rgba(200, 200, 185, 0.05);
 }
-/* VT100 P3 amber: 80ms decay, longest persistence of any here —
-   warmest wavelength scatters most in soda-lime glass, richest bloom */
+/* VT100 amber: phosphor type uncertain, ~10–14ms estimated decay.
+   Warmest wavelength in set — scatters most in soda-lime glass, richest bloom. */
 .theme-vt100-amber #quote-container {
-    /* P3 amber — warm, rich drive */
-    color: rgba(255, 176, 0, 0.93);
-    text-shadow: 0 0 5px rgba(255, 176, 0, 0.40), 0 0 16px rgba(190, 110, 0, 0.10),
-               0.5px 0 4px rgba(255, 176, 0, 0.07), -0.5px 0 4px rgba(255, 176, 0, 0.07);
-    filter: blur(0.2px) saturate(0.90);
+  /* Amber phosphor — warm, rich drive */
+  color: rgba(255, 176, 0, 0.93);
+  text-shadow:
+    0 0 5px rgba(255, 176, 0, 0.4),
+    0 0 16px rgba(190, 110, 0, 0.1),
+    0.5px 0 4px rgba(255, 176, 0, 0.07),
+    -0.5px 0 4px rgba(255, 176, 0, 0.07);
+  filter: blur(0.2px) saturate(0.9);
 }
-/* Apple II P1: 12" consumer monitor, high-brightness P1 variant.
-   Core at 0.34 — brightest P1 in the set (IBM=0.32, Zenith=0.30,
-   ADM-3A=0.32) but below P3 amber (VT100=0.40). Apple sourced brighter
-   tubes but P1 persistence (~24ms) is the same — the bloom spread doesn't
-   change, only the core intensity. */
+/* Apple II P31: <1ms decay — minimal corona, hard-edged like Kaypro.
+   No horizontal spread pair — P31's fast extinction means no beam
+   astigmatism artefact. High QE → bright core, tight falloff. */
 .theme-apple2-green #quote-container {
-    text-shadow: 0 0 4px rgba(36, 255, 82, 0.34), 0 0 14px rgba(20, 190, 55, 0.10),
-               0.4px 0 3px rgba(36, 255, 82, 0.06), -0.4px 0 3px rgba(36, 255, 82, 0.06);
+  text-shadow:
+    0 0 3px rgba(36, 255, 82, 0.26),
+    0 0 10px rgba(20, 190, 55, 0.06);
 }
 /* C64: VIC-II RF composite — NTSC TV phosphor (~P22 tricolour), chroma blur.
    The C64's most distinctive artefact is horizontal chroma bleed: NTSC composite
@@ -797,18 +1187,21 @@ main {
    The P22 tricolour phosphor itself has moderate ~8ms decay, but the composite
    signal path adds its own softness on top via the blur filter. */
 .theme-commodore64 #quote-container {
-    text-shadow: 0 0 4px rgba(116, 105, 200, 0.36), 0 0 14px rgba(80, 70, 180, 0.10),
-               1px 0 5px rgba(116, 105, 200, 0.08), -1px 0 5px rgba(116, 105, 200, 0.08);
-    filter: blur(0.15px);
-    /* VIC-II character generator: strict 8×8 pixel cell grid, zero gap
+  text-shadow:
+    0 0 4px rgba(116, 105, 200, 0.36),
+    0 0 14px rgba(80, 70, 180, 0.1),
+    1px 0 5px rgba(116, 105, 200, 0.08),
+    -1px 0 5px rgba(116, 105, 200, 0.08);
+  filter: blur(0.15px);
+  /* VIC-II character generator: strict 8×8 pixel cell grid, zero gap
        between adjacent cells. Characters butted up against each other —
        no inter-character spacing existed in hardware. */
-    letter-spacing: 0;
+  letter-spacing: 0;
 }
 .theme-commodore64 .author {
-    letter-spacing: 0;
+  letter-spacing: 0;
 }
- 
+
 /*
    BLOCK CURSOR — phosphor persistence edition.
  
@@ -821,270 +1214,425 @@ main {
       delay = half the blink period (cursor switches off at 50% of cycle).
       duration = --cursor-decay (per-theme phosphor persistence time).
       Animates box-shadow only — opacity is entirely owned by blink above.
-      P4 white: 0.03s (barely visible). P3 amber: 0.14s (warm corona).
-      P1 green: 0.22s (medium persistence).
+      P4/P31: 0.03–0.04s (barely visible). Amber: 0.14s (warm corona).
+      P1 green: 0.2s (medium persistence).
  
    The combination: cursor turns off hard (step-end), then its ghost glow
    decays at the phosphor's natural rate. Hyperrealistic.
 */
 .cursor-block {
-    display: inline-block;
-    width: 0.55em;
-    height: 1.05em;
-    vertical-align: text-bottom;
-    background: currentColor;
-    margin-left: 0.05em;
-    /* No rounding — real terminal cursors were pixel-perfect rectangles.
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  vertical-align: text-bottom;
+  background: currentColor;
+  margin-left: 0.05em;
+  /* No rounding — real terminal cursors were pixel-perfect rectangles.
        Bitmap character generators had no concept of sub-pixel geometry. */
-    border-radius: 0;
-    animation:
-        cursor-block-blink var(--cursor-blink-rate) step-end infinite,
-        cursor-afterglow var(--cursor-blink-rate) calc(var(--cursor-blink-rate) * 0.5) ease-out infinite;
-    will-change: opacity, box-shadow;
+  border-radius: 0;
+  animation:
+    cursor-block-blink var(--cursor-blink-rate) step-end infinite,
+    cursor-afterglow var(--cursor-blink-rate)
+      calc(var(--cursor-blink-rate) * 0.5) ease-out infinite;
+  will-change: opacity, box-shadow;
 }
- 
+
+/*
+   UNDERLINE CURSOR — DEC and Unix terminals.
+
+   DEC VT100, VT220: firmware default was an underline cursor.
+   Wyse WY-50: underline by factory default.
+   ADM-3A: underline cursor (TTL hardware-drawn, 2-scanline height).
+   NeXTSTEP Terminal.app: block cursor — left as block.
+
+   Implementation: collapse height to 2px, pin to text baseline.
+   The blink and afterglow animations are unchanged — same timing,
+   same phosphor persistence, just a different geometry.
+*/
+.theme-vt100-amber .cursor-block,
+.theme-teletype-blue-green .cursor-block,
+.theme-adm3a-green .cursor-block,
+.theme-wyse50-amber .cursor-block {
+  height: 2px;
+  width: 0.6em;
+  vertical-align: baseline;
+  margin-bottom: -1px;
+}
+
 /* =========================================
    AUTHOR
    ========================================= */
- 
+
 .author {
-    display: block;
-    color: rgba(var(--primary-rgb), 0.72);
-    font-weight: 400;
-    margin-top: clamp(1rem, 1.2vw + 0.8vh, 2rem);
-    font-size: var(--author-font-size);
-    text-align: left;
-    transition: var(--base-transition);
-    line-height: 1.6;
-    letter-spacing: 0.01em;
-    /* No font-style: italic — terminal character ROMs had a single weight
+  display: block;
+  color: rgba(var(--primary-rgb), 0.72);
+  font-weight: 400;
+  margin-top: clamp(1rem, 1.2vw + 0.8vh, 2rem);
+  font-size: var(--author-font-size);
+  text-align: left;
+  transition: var(--base-transition);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  /* No font-style: italic — terminal character ROMs had a single weight
        with no italic variant. IBM 3278/3279 supported extended characters
        but not italic. VT100 had bold (double-strike) only. C64 had
        PETSCII upper/lower but no slant. Author line is differentiated
        by reduced opacity (0.72) and smaller font size instead. */
-    font-style: normal;
-    /* Author line glows at ~40% of quote intensity — same phosphor,
+  font-style: normal;
+  /* Author line glows at ~40% of quote intensity — same phosphor,
        just lower brightness from the smaller character area. */
-    text-shadow: 0 0 6px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.28));
-    contain: layout style paint;
-    transform: translateZ(0);
+  text-shadow: 0 0 6px
+    rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.28));
+  contain: layout style paint;
+  transform: translateZ(0);
 }
- 
+
 .author a {
-    text-decoration: none;
-    color: inherit;
-    transition: var(--base-transition);
+  text-decoration: none;
+  color: inherit;
+  transition: var(--base-transition);
 }
- 
+
 .author a:hover,
 .author a:focus-visible {
-    text-decoration: var(--author-hover-decoration, none);
-    text-shadow: 0 0 4px rgba(var(--primary-rgb), 0.5);
-    outline: none;
+  text-decoration: var(--author-hover-decoration, none);
+  text-shadow: 0 0 4px rgba(var(--primary-rgb), 0.5);
+  outline: none;
 }
 
 /* Global focus suppression — no element on a CRT terminal had a
    browser-style focus ring. All focusable elements use phosphor
    glow brightening as their focus indicator via :focus-visible. */
 a:focus:not(:focus-visible) {
-    outline: none;
+  outline: none;
 }
 a:focus-visible {
-    outline: none;
-    text-shadow: 0 0 4px rgba(var(--primary-rgb), 0.5);
+  outline: none;
+  text-shadow: 0 0 4px rgba(var(--primary-rgb), 0.5);
 }
- 
+
 /* Isolates author text from the prompt text node so updateLivePrompt
    can swap the prompt character without touching the author content. */
 .author-name {
-    display: inline;
+  display: inline;
 }
- 
+
+/* Source citation — same line as author, same phosphor intensity as author.
+   Real CRT terminals had no per-character brightness control; every character
+   glowed at the same intensity. The en-dash separator provides visual
+   separation without dimming. */
+.source {
+  display: inline;
+  transition: var(--base-transition);
+}
+
+.source-text {
+  display: inline;
+}
+
+.source a {
+  text-decoration: none;
+  color: inherit;
+  transition: var(--base-transition);
+}
+
+.source a:hover,
+.source a:focus-visible {
+  opacity: 1;
+  text-decoration: var(--author-hover-decoration, none);
+  outline: none;
+}
+
 /* =========================================
    ERROR MESSAGE
    Plain terminal text — real terminals displayed errors as unformatted
    text in the same phosphor colour. No background, no border, no
    box-shadow. Just characters on the screen like everything else.
    ========================================= */
- 
+
 #error-message {
-    display: block;
-    margin-top: clamp(0.8rem, 1vw + 0.5vh, 1.2rem);
-    padding: 0;
-    color: var(--primary-color);
-    background: transparent;
-    border: none;
-    font-weight: 400;
-    box-shadow: none;
-    font-family: var(--font-family);
-    opacity: 0;
-    text-shadow: 0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7));
+  display: block;
+  margin-top: clamp(0.8rem, 1vw + 0.5vh, 1.2rem);
+  padding: 0;
+  color: var(--primary-color);
+  background: transparent;
+  border: none;
+  font-weight: 400;
+  box-shadow: none;
+  font-family: var(--font-family);
+  opacity: 0;
+  text-shadow: 0 0 4px
+    rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7));
 }
- 
+
 #error-message.error-active {
-    opacity: 1;
+  opacity: 1;
 }
- 
+
 /* =========================================
    TEXT SELECTION & HIGHLIGHTING
    ========================================= */
- 
+
 ::selection {
-    background: var(--primary-color);
-    color: var(--theme-background);
+  background: var(--primary-color);
+  color: var(--theme-background);
 }
- 
-/* Selection within reverse-video text — the quote body is already rendered
-   as light-on-dark via .text-selected. Drag-selecting it needs to flip back
-   to the terminal's normal phosphor-on-dark so the selection is visible.
-   Real terminals did the same: selecting within a reverse-video field
-   toggled the attribute back to normal video. */
-.text-selected::selection {
-    background: var(--theme-background);
-    color: var(--primary-color);
-}
-.text-selected a::selection {
-    background: var(--theme-background);
-    color: var(--primary-color);
-}
- 
+
+/* Reverse-video: quote body renders as dark-text-on-phosphor. */
 .text-selected {
-    background-color: var(--primary-color);
-    color: var(--theme-background);
-    text-shadow: none !important;
-    will-change: contents;
-    transform: translateZ(0);
-    backface-visibility: hidden;
+  background-color: var(--primary-color);
+  color: var(--theme-background);
+  text-shadow: none !important;
+  will-change: contents;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
- 
+
 .text-selected a {
-    color: var(--theme-background) !important;
-    text-shadow: none !important;
+  color: var(--theme-background) !important;
+  text-shadow: none !important;
 }
- 
+
+.text-selected::selection,
+.text-selected a::selection {
+  background: rgba(var(--primary-rgb), 0.35);
+  color: var(--theme-background);
+}
+
+/* =========================================
+   CLOCK MODE
+   ========================================= */
+
+body.clock-mode main {
+  justify-content: center;
+  padding-bottom: 0;
+  align-items: center;
+}
+
+body.clock-mode #quote-container {
+  font-size: clamp(4rem, 12vw, 10rem);
+  line-height: 1;
+  text-align: center;
+  padding: 0;
+  letter-spacing: 0.05em;
+  text-shadow:
+    0 0 8px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.8)),
+    0 0 30px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.25));
+}
+
+/* =========================================
+   QUOTE LIST MODE (easter egg C64 / Apple II)
+   ========================================= */
+
+/* Top-align content so the list starts at the top instead of being
+   centred — prevents the list from clipping at both ends */
+body.quote-list-mode main {
+  justify-content: flex-start;
+  padding-top: clamp(2rem, 5vh, 4rem);
+}
+
 /* =========================================
    BOOKMARK COUNTER
    ========================================= */
- 
-.bookmark-counter {
-    position: fixed;
-    top: clamp(0.5rem, 1.5vw, 0.65rem);
-    left: clamp(0.5rem, 1.5vw, 0.65rem);
-    background: transparent;
-    border: none;
-    font-family: var(--font-family);
-    font-size: clamp(0.55rem, 0.7vw + 0.25vh, 0.65rem);
-    font-weight: 400;
-    color: rgba(var(--primary-rgb), 0.4);
-    z-index: 10000;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    contain: layout style paint;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 0.15rem;
+
+/* Top-left UI cluster — help trigger + bookmark counter share a fixed row */
+.corner-ui {
+  position: fixed;
+  top: clamp(0.5rem, 1.5vw, 0.65rem);
+  left: clamp(0.5rem, 1.5vw, 0.65rem);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 10000;
+  contain: layout style paint;
 }
- 
-.bookmark-counter .count::before { content: '['; margin-right: 0.1rem; opacity: 0.6; }
-.bookmark-counter .count::after  { content: ']'; margin-left:  0.1rem; opacity: 0.6; }
-.bookmark-counter .heart::before { content: '['; margin-right: 0.1rem; opacity: 0.6; }
-.bookmark-counter .heart::after  { content: ']'; margin-left:  0.1rem; opacity: 0.6; }
- 
-.bookmark-counter.hidden { opacity: 0; }
- 
- 
- 
+
+.help-trigger {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: var(--ambient-font-size);
+  font-weight: 400;
+  color: rgba(var(--primary-rgb), 0.35);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition:
+    color 0.3s ease,
+    text-shadow 0.3s ease;
+  /* Match bookmark counter's ambient phosphor at rest */
+  text-shadow: 0 0 3px rgba(var(--primary-rgb), 0.12);
+  line-height: 1;
+}
+
+.help-trigger::before {
+  content: "[";
+  margin-right: 0.1rem;
+  opacity: 0.6;
+}
+
+.help-trigger::after {
+  content: "]";
+  margin-left: 0.1rem;
+  opacity: 0.6;
+}
+
+.help-trigger:hover,
+.help-trigger:focus-visible {
+  color: rgba(var(--primary-rgb), 0.7);
+  text-shadow: 0 0 5px rgba(var(--primary-rgb), 0.3);
+  outline: none;
+}
+
+.bookmark-counter {
+  background: transparent;
+  border: none;
+  font-family: var(--font-family);
+  font-size: var(--ambient-font-size);
+  font-weight: 400;
+  color: rgba(var(--primary-rgb), 0.35);
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.bookmark-counter .count::before {
+  content: "[";
+  margin-right: 0.1rem;
+  opacity: 0.6;
+}
+.bookmark-counter .count::after {
+  content: "]";
+  margin-left: 0.1rem;
+  opacity: 0.6;
+}
+.bookmark-counter .heart::before {
+  content: "[";
+  margin-right: 0.1rem;
+  opacity: 0.6;
+}
+.bookmark-counter .heart::after {
+  content: "]";
+  margin-left: 0.1rem;
+  opacity: 0.6;
+}
+
+.bookmark-counter.hidden {
+  opacity: 0;
+}
+
+/* =========================================
+   CHROMATIC ABERRATION — theme switch flash
+   Applied via JS (.crt-switch class on #quote-container).
+   animation-fill-mode: forwards keeps text-shadow: none at the end,
+   so when the class is removed the CSS transition on #quote-container
+   blooms the normal phosphor glow back in over 0.4s.
+   ========================================= */
+
+#quote-container.crt-switch {
+  animation: crt-chroma 0.25s ease-out forwards;
+}
+
 /* =========================================
    BITCOIN ICON (SVG)
    ========================================= */
- 
-.outer-circle { fill: #1a1a1a !important; }
- 
-.bitcoin-b {
-    fill: var(--primary-color) !important;
-    filter: drop-shadow(0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7))) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7))) !important;
+
+.outer-circle {
+  fill: #1a1a1a !important;
 }
- 
+
+.bitcoin-b {
+  fill: var(--primary-color) !important;
+  filter: drop-shadow(
+    0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7))
+  ) !important;
+  -webkit-filter: drop-shadow(
+    0 0 4px rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7))
+  ) !important;
+}
+
 .theme-ibm3279-green .bitcoin-b {
-    fill: #57FF8C !important;
-    filter: drop-shadow(0 0 4px rgba(87, 255, 140, 0.35)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(87, 255, 140, 0.35)) !important;
+  fill: #57ff8c !important;
+  filter: drop-shadow(0 0 4px rgba(87, 255, 140, 0.35)) !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(87, 255, 140, 0.35)) !important;
 }
 .theme-teletype-blue-green .bitcoin-b {
-    fill: #A4C8B0 !important;
-    filter: drop-shadow(0 0 4px rgba(164, 200, 176, 0.28)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(164, 200, 176, 0.28)) !important;
+  fill: #a4c8b0 !important;
+  filter: drop-shadow(0 0 4px rgba(164, 200, 176, 0.28)) !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(164, 200, 176, 0.28)) !important;
 }
 .theme-pet2001-green .bitcoin-b {
-    fill: #00FF44 !important;
-    filter: drop-shadow(0 0 4px rgba(0, 255, 68, 0.38)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(0, 255, 68, 0.38)) !important;
+  fill: #00ff44 !important;
+  filter: drop-shadow(0 0 4px rgba(0, 255, 68, 0.38)) !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(0, 255, 68, 0.38)) !important;
 }
 .theme-ibm3279-bitcoin-orange .bitcoin-b {
-    fill: #FF9500 !important;
-    filter: drop-shadow(0 0 4px rgba(255, 149, 0, 0.42)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(255, 149, 0, 0.42)) !important;
+  fill: #f7931a !important;
+  filter: drop-shadow(0 0 4px rgba(247, 147, 26, 0.42)) !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(255, 149, 0, 0.42)) !important;
 }
 .theme-wyse50-amber .bitcoin-b {
-    fill: #FFBE00 !important;
-    filter: drop-shadow(0 0 4px rgba(255, 190, 0, 0.40)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(255, 190, 0, 0.40)) !important;
+  fill: #ffbe00 !important;
+  filter: drop-shadow(0 0 4px rgba(255, 190, 0, 0.4)) !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(255, 190, 0, 0.4)) !important;
 }
 .theme-zenith-green .bitcoin-b {
-    fill: #7FFF7F !important;
-    filter: drop-shadow(0 0 4px rgba(127, 255, 127, 0.35)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(127, 255, 127, 0.35)) !important;
+  fill: #7fff7f !important;
+  filter: drop-shadow(0 0 4px rgba(127, 255, 127, 0.35)) !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(127, 255, 127, 0.35)) !important;
 }
 .theme-adm3a-green .bitcoin-b {
-    fill: #A8FF60 !important;
-    filter: drop-shadow(0 0 4px rgba(168, 255, 96, 0.38)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(168, 255, 96, 0.38)) !important;
+  fill: #a8ff60 !important;
+  filter: drop-shadow(0 0 4px rgba(168, 255, 96, 0.38)) !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(168, 255, 96, 0.38)) !important;
 }
 .theme-kaypro-green .bitcoin-b {
-    fill: #76FF76 !important;
-    filter: drop-shadow(0 0 4px rgba(118, 255, 118, 0.30)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(118, 255, 118, 0.30)) !important;
+  fill: #76ff76 !important;
+  filter: drop-shadow(0 0 4px rgba(118, 255, 118, 0.3)) !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(118, 255, 118, 0.3)) !important;
 }
-.theme-white .bitcoin-b {
-    fill: #D6D6C6 !important;
-    filter: drop-shadow(0 0 4px rgba(214, 214, 198, 0.26)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(214, 214, 198, 0.26)) !important;
+.theme-vt05-white .bitcoin-b {
+  fill: #d6d6c6 !important;
+  filter: drop-shadow(0 0 4px rgba(214, 214, 198, 0.26)) !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(214, 214, 198, 0.26)) !important;
 }
 .theme-vt100-amber .bitcoin-b {
-    fill: #FFB000 !important;
-    filter: drop-shadow(0 0 5px rgba(255, 176, 0, 0.46)) !important;
-    -webkit-filter: drop-shadow(0 0 5px rgba(255, 176, 0, 0.46)) !important;
+  fill: #ffb000 !important;
+  filter: drop-shadow(0 0 5px rgba(255, 176, 0, 0.46)) !important;
+  -webkit-filter: drop-shadow(0 0 5px rgba(255, 176, 0, 0.46)) !important;
 }
 .theme-apple2-green .bitcoin-b {
-    fill: #24FF52 !important;
-    filter: drop-shadow(0 0 4px rgba(36, 255, 82, 0.40)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(36, 255, 82, 0.40)) !important;
+  fill: #24ff52 !important;
+  filter: drop-shadow(0 0 4px rgba(36, 255, 82, 0.4)) !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(36, 255, 82, 0.4)) !important;
 }
 .theme-commodore64 .bitcoin-b {
-    fill: #7469C8 !important;
-    filter: drop-shadow(0 0 4px rgba(116, 105, 200, 0.40)) !important;
-    -webkit-filter: drop-shadow(0 0 4px rgba(116, 105, 200, 0.40)) !important;
+  fill: #7469c8 !important;
+  filter: drop-shadow(0 0 4px rgba(116, 105, 200, 0.4)) !important;
+  -webkit-filter: drop-shadow(0 0 4px rgba(116, 105, 200, 0.4)) !important;
 }
- 
+
 /* =========================================
    SCREEN READER ONLY
    ========================================= */
- 
+
 .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
- 
+
 /* =========================================
    STATUS LINE
    Terminal status line — the bottom row of the display.
@@ -1097,139 +1645,244 @@ a:focus-visible {
    no fade transitions — characters appear and disappear instantly
    just like every other write to the screen buffer.
    ========================================= */
- 
+
 .bq-status {
-    position: fixed;
-    bottom: max(clamp(1rem, 2.5vh, 1.5rem), env(safe-area-inset-bottom));
-    left: clamp(0.75rem, 2vw, 2rem);
-    right: clamp(0.75rem, 2vw, 2rem);
-    background: transparent;
-    color: rgba(var(--primary-rgb), 0.40);
-    font-family: var(--font-family);
-    font-size: clamp(0.45rem, 0.55vw + 0.25vh, 0.55rem);
-    letter-spacing: 0.08em;
-    text-transform: lowercase;
-    padding: 0;
-    pointer-events: none;
-    z-index: 20000;
-    white-space: nowrap;
-    contain: layout style paint;
+  position: fixed;
+  bottom: max(clamp(1rem, 2.5vh, 1.5rem), env(safe-area-inset-bottom));
+  left: clamp(0.75rem, 2vw, 2rem);
+  /* No right anchor — allows search queries to extend naturally without clipping.
+     max-width keeps very long strings from crossing the position indicator. */
+  max-width: 65ch;
+  background: transparent;
+  color: rgba(var(--primary-rgb), 0.5);
+  font-family: var(--font-family);
+  font-size: var(--chrome-font-size);
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  padding: 0;
+  pointer-events: none;
+  z-index: 20000;
+  white-space: nowrap;
+  /* Faint ambient glow — status chrome is part of the phosphor display,
+     not a flat overlay. Matches the always-on glow of header icons. */
+  text-shadow: 0 0 6px rgba(var(--primary-rgb), 0.12);
+  contain: layout style paint;
 }
- 
+
 /* Status line hidden — instant, no transition */
 .bq-status.hidden {
-    visibility: hidden;
+  visibility: hidden;
 }
- 
+
+/* Search mode — status line becomes an active input; brighten and sharpen it
+   so the user knows they are in an input context, not just reading a passive toast. */
+body.search-mode .bq-status {
+  color: rgba(var(--primary-rgb), 0.85);
+  text-shadow: 0 0 8px rgba(var(--primary-rgb), 0.25);
+  letter-spacing: 0.03em;
+}
+
+/* =========================================
+   QUOTE POSITION INDICATOR
+   [N / TOTAL] anchored to the bottom-right,
+   mirroring the status line on the left.
+   Lower opacity than status — ambient info,
+   not an action message.
+   ========================================= */
+
+.bq-position {
+  position: fixed;
+  bottom: max(clamp(1rem, 2.5vh, 1.5rem), env(safe-area-inset-bottom));
+  right: clamp(0.75rem, 2vw, 2rem);
+  background: transparent;
+  /* Ambient info — visible but subordinate to quote text */
+  color: rgba(var(--primary-rgb), 0.45);
+  font-family: var(--font-family);
+  font-size: var(--ambient-font-size);
+  letter-spacing: 0.06em;
+  padding: 0;
+  pointer-events: none;
+  z-index: 20000;
+  white-space: nowrap;
+  contain: layout style paint;
+}
+
+.bq-position.hidden {
+  visibility: hidden;
+}
+
+/* =========================================
+   CAPS INDICATOR — corner-ui
+   Appears beside [?] when uppercase mode is active.
+   Same ambient treatment as help-trigger; hidden by default.
+   ========================================= */
+
+.caps-indicator {
+  font-family: var(--font-family);
+  font-size: var(--ambient-font-size);
+  font-weight: 400;
+  color: rgba(var(--primary-rgb), 0.35);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: 0 0 3px rgba(var(--primary-rgb), 0.12);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.caps-indicator::before {
+  content: "[";
+  margin-right: 0.1rem;
+  opacity: 0.6;
+}
+
+.caps-indicator::after {
+  content: "]";
+  margin-left: 0.1rem;
+  opacity: 0.6;
+}
+
+/* UC indicator only on terminals that had on-screen shift/caps state:
+   IBM 3270 (OIA shift column), DEC VT220/VT100 (status line), Wyse WY-50,
+   Zenith Z-19. Simpler machines (ADM-3A, Kaypro, Apple II, C64, PET, VT05)
+   had physical CAPS LOCK LEDs or keys only — no on-screen indicator. */
+body[class*="theme-"] .caps-indicator {
+  display: none;
+}
+
+body.theme-ibm3279-green .caps-indicator,
+body.theme-ibm3279-bitcoin-orange .caps-indicator,
+body.theme-teletype-blue-green .caps-indicator,
+body.theme-vt100-amber .caps-indicator,
+body.theme-wyse50-amber .caps-indicator,
+body.theme-zenith-green .caps-indicator {
+  display: inline;
+}
+
+.caps-indicator.hidden {
+  display: none !important;
+}
+
 /* =========================================
    ACCESSIBILITY — REDUCED MOTION
    All decorative animations off. Cursor still
    present but static. Filters removed.
    ========================================= */
- 
+
 @media (prefers-reduced-motion: reduce) {
-    .cursor-block {
-        animation: none !important;
-        box-shadow: none !important;
-    }
-    body[class*="theme-"] {
-        /* No warm-up animation — screen appears at full brightness instantly */
-        animation: none !important;
-        opacity: 1 !important;
-        /* No transition effects of any kind */
-        transition: none !important;
-    }
-    .theme-vt100-amber #quote-container,
-    .theme-commodore64 #quote-container {
-        filter: none !important;
-    }
+  .cursor-block {
+    animation: none !important;
+    box-shadow: none !important;
+  }
+  body[class*="theme-"] {
+    /* No warm-up animation — screen appears at full brightness instantly */
+    animation: none !important;
+    opacity: 1 !important;
+    /* No transition effects of any kind */
+    transition: none !important;
+  }
+  .theme-vt100-amber #quote-container,
+  .theme-commodore64 #quote-container {
+    filter: none !important;
+  }
+  /* No chromatic aberration flash */
+  #quote-container.crt-switch {
+    animation: none !important;
+  }
+  /* No interference flash, no barrel distortion */
+  body.crt-interference main {
+    animation: none !important;
+  }
+  main {
+    transform: none !important;
+  }
 }
- 
+
 /* =========================================
    TAB HIDDEN — JS adds .tab-hidden to body.
    Pauses all GPU animations on idle tabs
    to save power and CPU.
    ========================================= */
- 
+
 body.tab-hidden .cursor-block {
-    animation-play-state: paused !important;
-    box-shadow: none !important;
+  animation-play-state: paused !important;
+  box-shadow: none !important;
 }
- 
+
 /* =========================================
    MOBILE RESPONSIVE
    ========================================= */
- 
+
 @media (max-width: 768px) {
-    body[class*="theme-"] {
-        padding: 0 0.75rem;
-    }
- 
-    main {
-        /* Less optical offset on small screens — content fills more of the frame */
-        padding-bottom: 4vh;
-        padding-left: 0;
-        padding-right: 0;
-    }
- 
-    #header {
-        padding: 0.5rem;
-        gap: 0.05rem;
-    }
- 
-    .header-icon {
-        min-width: 40px;
-        min-height: 40px;
-        padding: 0.4rem;
-        font-size: 0.8rem;
-    }
- 
-    #quote-container {
-        /* Mobile: viewport is narrow, use a stable absolute size not a dead vw clamp */
-        font-size: clamp(1.1rem, 4.5vw, 1.6rem);
-        padding: var(--quote-padding-top) 0 var(--quote-padding-bottom) 0;
-        margin: 0;
-        text-align: left;
-    }
- 
-    .author {
-        font-size: clamp(0.9rem, 3.8vw, 1.3rem);
-        margin-top: clamp(0.8rem, 1vw + 0.6vh, 1.5rem);
-    }
+  body[class*="theme-"] {
+    padding: 0 0.75rem;
+  }
+
+  main {
+    /* Less optical offset on small screens — content fills more of the frame */
+    padding-bottom: 4vh;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  #header {
+    padding: 0.5rem;
+    gap: 0.05rem;
+  }
+
+  .header-icon {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  #quote-container {
+    /* Mobile: viewport is narrow, use a stable absolute size not a dead vw clamp */
+    font-size: clamp(1.1rem, 4.5vw, 1.6rem);
+    padding: var(--quote-padding-top) 0 var(--quote-padding-bottom) 0;
+    margin: 0;
+    text-align: left;
+  }
+
+  .author {
+    font-size: clamp(0.9rem, 3.8vw, 1.3rem);
+    margin-top: clamp(0.8rem, 1vw + 0.6vh, 1.5rem);
+  }
 }
- 
+
 /* =========================================
    SMALL PHONE — 430px and below.
    iPhone SE, older Androids, narrow viewports.
    Further tightens gutters and font floor so
    long quotes don't crowd the screen.
    ========================================= */
- 
+
 @media (max-width: 430px) {
-    body[class*="theme-"] {
-        padding: 0 0.5rem;
-    }
- 
-    #quote-container {
-        /* Tighter floor on very narrow screens — 1rem is readable at arm's length */
-        font-size: clamp(1rem, 4.8vw, 1.4rem);
-        padding-left: 0;
-        padding-right: 0;
-    }
- 
-    .author {
-        font-size: clamp(0.82rem, 4vw, 1.1rem);
-        margin-top: clamp(0.6rem, 1vw + 0.4vh, 1rem);
-    }
- 
-    #header {
-        padding: 0.4rem 0.3rem;
-        gap: 0;
-    }
- 
-    .header-icon {
-        min-width: 36px;
-        min-height: 36px;
-        padding: 0.3rem;
-    }
+  body[class*="theme-"] {
+    padding: 0 0.5rem;
+  }
+
+  #quote-container {
+    /* Tighter floor on very narrow screens — 1rem is readable at arm's length */
+    font-size: clamp(1rem, 4.8vw, 1.4rem);
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .author {
+    font-size: clamp(0.82rem, 4vw, 1.1rem);
+    margin-top: clamp(0.6rem, 1vw + 0.4vh, 1rem);
+  }
+
+  #header {
+    padding: 0.4rem 0.3rem;
+    gap: 0;
+  }
+
+  .header-icon {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0.3rem;
+  }
 }
+
