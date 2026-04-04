@@ -149,6 +149,24 @@
   }
 }
 
+
+/*
+   Random interference flash — very rare brightness spike simulating
+   an electromagnetic interference event or deflection circuit hiccup.
+   Triggered from JS every few minutes. One frame of brightness, fast decay.
+*/
+@keyframes crt-interference {
+  0%   { filter: brightness(1); }
+  8%   { filter: brightness(2.2) contrast(1.3); }
+  22%  { filter: brightness(1.4); }
+  60%  { filter: brightness(1.05); }
+  100% { filter: brightness(1); }
+}
+
+body.crt-interference main {
+  animation: crt-interference 0.18s ease-out 1 forwards;
+}
+
 /*
    Chromatic aberration flash — fired on theme switch via the .crt-switch class.
 
@@ -193,6 +211,9 @@ body[class*="theme-"] {
   color: var(--primary-color);
   display: flex;
   flex-direction: column;
+  /* Barrel distortion — perspective set per-theme; rotateX applied to main below */
+  perspective: var(--crt-perspective, 2000px);
+  perspective-origin: 50% 50%;
   font-family: var(--font-family);
   /* Kill all OpenType smartness — real terminal character ROMs were
        strict 1:1 codepoint-to-glyph maps. No ligatures, no contextual
@@ -389,8 +410,6 @@ body::after {
   /* Chromatic aberration: single P1 gun, very slight deflection-coil fringe only */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.08;
-  /* Burn-in: P1 ~20ms persistence — moderate long-term accumulation */
-  --burn-in-opacity: 0.04;
 }
 
 /* IBM 3279 Bitcoin Orange — custom phosphor homage.
@@ -421,7 +440,6 @@ body::after {
   --crt-tilt-x: 0.2deg;
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.08;
-  --burn-in-opacity: 0.04;
 }
 
 /* DEC VT220 — P4 white phosphor with blue-green cast, 80×24
@@ -454,8 +472,6 @@ body::after {
   /* Chromatic aberration: P4 aged white — slight blue-channel ghost from phosphor shift */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.1;
-  /* Burn-in: P4 white burns fastest — VT220s notoriously ghosted after sustained use */
-  --burn-in-opacity: 0.055;
 }
 
 /* Zenith Z-19 — P1 green phosphor, 80×24, CP/M workhorse
@@ -485,7 +501,6 @@ body::after {
   --crt-tilt-x: 0.4deg;
   --chroma-offset: 0.6px;
   --chroma-opacity: 0.09;
-  --burn-in-opacity: 0.04;
 }
 
 /* Lear Siegler ADM-3A — P1 green phosphor, 80×24, 1976
@@ -526,7 +541,6 @@ body::after {
   /* Chromatic aberration: 1976 deflection optics — slightly older coil geometry */
   --chroma-offset: 0.6px;
   --chroma-opacity: 0.09;
-  --burn-in-opacity: 0.04;
 }
 
 /* Kaypro II — Toshiba P31 green phosphor, 80×24, 1982, CP/M 2.2
@@ -563,8 +577,6 @@ body::after {
   --crt-tilt-x: 0.6deg;
   --chroma-offset: 0.8px;
   --chroma-opacity: 0.1;
-  /* Burn-in: P31 very fast decay (<1ms) — minimal accumulation, most resistant of greens */
-  --burn-in-opacity: 0.03;
 }
 
 /* DEC VT05 — P4 white phosphor, 72×20, 1970 teletype-era terminal
@@ -596,8 +608,6 @@ body::after {
   /* Chromatic aberration: P4 white — blue fringe from broad-spectrum phosphor scatter */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.1;
-  /* Burn-in: P4 white — fastest accumulation of any phosphor here */
-  --burn-in-opacity: 0.055;
 }
 
 /* Wyse WY-50 — P134 amber phosphor, 80×24, 1985 (amber variant)
@@ -638,7 +648,6 @@ body::after {
   /* Chromatic aberration: P134 monochrome — minimal fringe, anti-glare coating diffuses it */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.08;
-  --burn-in-opacity: 0.04;
 }
 
 /* Commodore PET 2001 — P1 green phosphor, 40×25
@@ -672,8 +681,6 @@ body::after {
   /* Chromatic aberration: P1 single-gun — deflection fringe on 9" geometry */
   --chroma-offset: 0.8px;
   --chroma-opacity: 0.1;
-  /* Burn-in: P1 ~20ms persistence — moderate accumulation with heavy use */
-  --burn-in-opacity: 0.04;
   /* 50Hz PAL: scanline period for beat-frequency roll animation */
   --scanline-size: 4px;
   --scanline-opacity: 0.04;
@@ -716,8 +723,6 @@ body::after {
   /* Chromatic aberration: amber single-gun — slight warm fringe at deflection limits */
   --chroma-offset: 0.6px;
   --chroma-opacity: 0.09;
-  /* Burn-in: amber phosphor ~10–14ms estimated — high accumulation rate */
-  --burn-in-opacity: 0.05;
 }
 
 /* Apple II — P31 green phosphor, 40×24, 1977
@@ -752,8 +757,6 @@ body::after {
   /* Chromatic aberration: P31 single-gun — deflection fringe at beam edges */
   --chroma-offset: 0.7px;
   --chroma-opacity: 0.1;
-  /* Burn-in: P31 <1ms decay — most resistant of all, minimal accumulation */
-  --burn-in-opacity: 0.03;
 }
 
 /* Commodore 64 — VIC-II NTSC composite output, 40×25, 1982
@@ -788,8 +791,6 @@ body::after {
   /* Chromatic aberration: NTSC RF composite — real chroma bleed, comb filter recalibration */
   --chroma-offset: 2px;
   --chroma-opacity: 0.22;
-  /* Burn-in: P22 composite phosphors — consumer TVs resist burn-in better */
-  --burn-in-opacity: 0.03;
 }
 
 /* =========================================
@@ -882,6 +883,12 @@ main {
   padding-bottom: 8vh;
   max-width: 100%;
   overflow: clip;
+  /* Barrel distortion — slight rotateX within body's perspective context.
+     Small angle (0.2–0.8deg) gives depth without obvious distortion.
+     Professional terminals (IBM, DEC): nearly flat. Consumer (C64, Apple II): noticeable. */
+  transform: rotateX(var(--crt-tilt-x, 0.3deg));
+  transform-origin: center center;
+  transform-style: preserve-3d;
 }
 
 /*
@@ -1509,6 +1516,13 @@ body.search-mode .bq-status {
   #quote-container.crt-switch {
     animation: none !important;
   }
+  /* No interference flash, no barrel distortion */
+  body.crt-interference main {
+    animation: none !important;
+  }
+  main {
+    transform: none !important;
+  }
 }
 
 /* =========================================
@@ -1598,4 +1612,77 @@ body.tab-hidden .cursor-block {
     min-height: 36px;
     padding: 0.3rem;
   }
+}
+
+/* =========================================
+   BITMAP FONTS — per-terminal character ROMs
+   =========================================
+   Each terminal rendered from a fixed bitmap ROM — no vector rendering,
+   no antialiasing, no hinting. The character shapes were hard-wired into
+   hardware. IBM Plex Mono is a beautiful 2017 typeface; it is completely
+   wrong for these machines.
+
+   Font files must be placed in assets/fonts/:
+     PxPlus_IBM_VGA8.woff2      — int10h.org/oldschool-pc-fonts (CC BY-SA 4.0)
+       Used by: IBM 3279 themes, VT05, VT100, VT220, Wyse WY-50, Zenith Z-19,
+                ADM-3A, Kaypro II (all 80-column professional terminals)
+     C64_Pro_Mono.woff2         — style64.org (free for non-commercial use)
+       Used by: Commodore 64, Commodore PET 2001-N
+     PrintChar21.woff2          — kreativekorp.com (free)
+       Used by: Apple II
+   ========================================= */
+
+@font-face {
+  font-family: "PxPlus IBM VGA8";
+  src: url("../assets/fonts/PxPlus_IBM_VGA8.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "C64 Pro Mono";
+  src: url("../assets/fonts/C64_Pro_Mono.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PrintChar21";
+  src: url("../assets/fonts/PrintChar21.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+   Override --font-family per theme. IBM Plex Mono remains as fallback
+   so the site stays readable until the bitmap font file is present.
+   font-size overrides needed: bitmap fonts have fixed cell sizes, so
+   clamp() ranges are adjusted to keep them visually proportional.
+*/
+
+/* IBM 3279, Bitcoin Orange, VT05, VT100, VT220, Wyse, Zenith, ADM-3A, Kaypro */
+.theme-ibm3279-green,
+.theme-ibm3279-bitcoin-orange,
+.theme-vt05-white,
+.theme-vt100-amber,
+.theme-teletype-blue-green,
+.theme-wyse50-amber,
+.theme-zenith-green,
+.theme-adm3a-green,
+.theme-kaypro-green {
+  --font-family: "PxPlus IBM VGA8", "IBM Plex Mono", "Courier New", monospace;
+}
+
+/* Commodore 64 and PET 2001-N */
+.theme-commodore64,
+.theme-pet2001-green {
+  --font-family: "C64 Pro Mono", "IBM Plex Mono", "Courier New", monospace;
+}
+
+/* Apple II */
+.theme-apple2-green {
+  --font-family: "PrintChar21", "IBM Plex Mono", "Courier New", monospace;
 }

@@ -1996,6 +1996,35 @@ const BitcoinTip = (() => {
 })();
 
 // =========================================
+// CRT EFFECTS — power-off/on, interference
+// =========================================
+
+/**
+ * Schedules the next random interference flash.
+ * Fires every 3–7 minutes (randomised to feel organic, not mechanical).
+ */
+function scheduleInterference() {
+  const minMs = 3 * 60 * 1000;
+  const maxMs = 7 * 60 * 1000;
+  const delay = minMs + Math.random() * (maxMs - minMs);
+  setTimeout(() => {
+    if (!document.hidden) {
+      document.body.classList.add("crt-interference");
+      document.body.addEventListener(
+        "animationend",
+        () => {
+          document.body.classList.remove("crt-interference");
+          scheduleInterference();
+        },
+        { once: true },
+      );
+    } else {
+      scheduleInterference();
+    }
+  }, delay);
+}
+
+// =========================================
 // SHARED NAVIGATION ACTION
 // =========================================
 
@@ -2342,6 +2371,27 @@ document.addEventListener("DOMContentLoaded", () => {
         URL_PRELOAD_DELAY_MS,
       );
       QuoteUtils.updateBookmarkCounter();
+
+      // Chromatic aberration flash — fires once after boot, same mechanism
+      // as the theme-switch flash in colours.js. Simulates the deflection
+      // coil settling after the tube warms up and starts driving the beam.
+      if (!config.performanceMode) {
+        const container = elements.quoteContainer;
+        container.classList.remove("crt-switch");
+        void container.offsetWidth;
+        container.classList.add("crt-switch");
+        container.addEventListener(
+          "animationend",
+          () => container.classList.remove("crt-switch"),
+          { once: true },
+        );
+      }
+
+      // Random interference — a subtle brightness spike every 3–7 minutes.
+      // Simulates EMI, deflection circuit hiccup, or mains noise.
+      if (!config.performanceMode) {
+        scheduleInterference();
+      }
     });
   });
 });
