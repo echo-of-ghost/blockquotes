@@ -211,23 +211,23 @@ export const themeBootLines = {
   ],
   "teletype-blue-green": [
     { text: "VT220 OK", speed: 18 },
-    { text: "blockquotes.sh v1.0 — phosphor terminal ready", speed: 26 },
+    { text: "blockquote.sh v1.0 — phosphor terminal ready", speed: 26 },
     { text: "loading quote database.................. ok", speed: 30 },
   ],
   "vt100-amber": [
     { text: "VT100 SELF TEST OK", speed: 20 },
-    { text: "blockquotes.sh v1.0 — phosphor terminal ready", speed: 26 },
+    { text: "blockquote.sh v1.0 — phosphor terminal ready", speed: 26 },
     { text: "loading quote database.................. ok", speed: 30 },
   ],
   "vt05-white": [
     { text: "VT05", speed: 20 },
-    { text: "BLOCKQUOTES.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 28 },
+    { text: "BLOCKQUOTE.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 28 },
     { text: "LOADING QUOTE DATABASE.................. OK", speed: 30 },
   ],
   "adm3a-green": [
     { text: "login: blockquotes", speed: 26 },
     { text: "Last login: Sat Mar 15 03:42 on tty0", speed: 22 },
-    { text: "blockquotes.sh v1.0 — phosphor terminal ready", speed: 26 },
+    { text: "blockquote.sh v1.0 — phosphor terminal ready", speed: 26 },
     { text: "loading quote database.................. ok", speed: 30 },
   ],
   "zenith-green": [
@@ -252,7 +252,7 @@ export const themeBootLines = {
   "apple2-green": [
     { text: "APPLE ][", speed: 20 },
     { text: "]BRUN BLOCKQUOTES", speed: 26 },
-    { text: "BLOCKQUOTES.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 28 },
+    { text: "BLOCKQUOTE.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 28 },
     { text: "LOADING QUOTE DATABASE.................. OK", speed: 30 },
   ],
   commodore64: [
@@ -267,7 +267,7 @@ export const themeBootLines = {
   ],
   "wyse50-amber": [
     { text: "WYSE 50  SELF TEST OK", speed: 20 },
-    { text: "blockquotes.sh v1.0 — phosphor terminal ready", speed: 26 },
+    { text: "blockquote.sh v1.0 — phosphor terminal ready", speed: 26 },
     { text: "loading quote database.................. ok", speed: 30 },
   ],
 };
@@ -294,7 +294,7 @@ export const themeHelpHeaders = {
   "vt100-amber": "HELP BLOCKQUOTES",
   "pet2001-green": "READY.",
   commodore64: "READY.",
-  "apple2-green": "]CATALOG - BLOCKQUOTES.SH",
+  "apple2-green": "]CATALOG - BLOCKQUOTE.SH",
 };
 
 // =========================================

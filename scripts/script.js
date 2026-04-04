@@ -426,7 +426,8 @@ export const QuoteUtils = {
     if (!counter) {
       counter = document.createElement("div");
       counter.className = "bookmark-counter";
-      document.body.appendChild(counter);
+      const cornerUI = document.querySelector(".corner-ui");
+      (cornerUI || document.body).appendChild(counter);
     }
 
     // Show count with heart indicator if the current quote is bookmarked
@@ -697,6 +698,9 @@ function toggleTextCase() {
   if (authorElement) {
     authorElement.style.textTransform = textTransform;
   }
+  // Sync corner-ui caps badge
+  const capsEl = document.querySelector(".caps-indicator");
+  if (capsEl) capsEl.classList.toggle("hidden", !state.isUppercase);
   QuoteUtils.announceAction(
     `Text case set to ${state.isUppercase ? "uppercase" : "lowercase"}`,
   );
@@ -1046,7 +1050,7 @@ function runBootSequence(onComplete) {
   );
 
   const defaultLines = [
-    { text: "BLOCKQUOTES.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 28 },
+    { text: "BLOCKQUOTE.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 28 },
     { text: "LOADING QUOTE DATABASE.................. OK", speed: 32 },
   ];
 
@@ -1224,6 +1228,11 @@ function hidePositionIndicator() {
   if (el) el.classList.add("hidden");
 }
 
+/**
+ * Updates the terminal status bar (IBM OIA, DEC status line, Wyse, Zenith).
+ * No-ops silently for themes without a status bar.
+ * Called whenever quote, caps, or app mode changes.
+ */
 // =========================================
 // CLOCK MODE
 // =========================================
@@ -1349,6 +1358,10 @@ function commitSearch() {
     showCatalog();
     return;
   }
+  if (query === "satoshi") {
+    showGenesisBlock();
+    return;
+  }
 
   const matches = state.quotes.filter(
     (q) =>
@@ -1420,10 +1433,11 @@ function renderBookmarkList() {
       .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
       .replace(/^"|"$/g, "")
       .trim();
-    const rawText = q.text.length > 44 ? q.text.slice(0, 44) + "…" : q.text;
+    const words = q.text.split(/\s+/);
+    const rawText = words.length > 5 ? words.slice(0, 5).join(" ") + "…" : q.text;
     const line = `${num}  \u201c${rawText}\u201d \u2014 ${rawAuthor}`;
     return i === selected
-      ? `<span class="text-selected">${line}<span class="cursor-block" aria-hidden="true"></span></span>`
+      ? `<span class="text-selected">${line}</span>`
       : `<span>${line}</span>`;
   });
 
@@ -1639,12 +1653,22 @@ function handleQuoteListKey(event) {
       state.quoteListOffset = state.quoteListIndex;
     }
     renderQuoteList();
+    const upQ = state.quotes[state.quoteListIndex];
+    if (upQ)
+      QuoteUtils.announceAction(
+        `${state.quoteListIndex + 1} of ${total}: ${upQ.author}`,
+      );
   } else if (key === "ArrowDown" || key.toLowerCase() === "n") {
     state.quoteListIndex = Math.min(total - 1, state.quoteListIndex + 1);
     if (state.quoteListIndex >= state.quoteListOffset + getQuoteListWindowSize()) {
       state.quoteListOffset = state.quoteListIndex - getQuoteListWindowSize() + 1;
     }
     renderQuoteList();
+    const downQ = state.quotes[state.quoteListIndex];
+    if (downQ)
+      QuoteUtils.announceAction(
+        `${state.quoteListIndex + 1} of ${total}: ${downQ.author}`,
+      );
   } else if (key === "Enter") {
     event.preventDefault();
     const selected = state.quotes[state.quoteListIndex];
@@ -1666,6 +1690,97 @@ function exitQuoteList() {
   document.body.classList.remove("quote-list-mode");
   elements.quoteContainer.innerHTML = `<span class="cursor-block" aria-hidden="true"></span>`;
   setRandomQuote();
+}
+
+/**
+ * Shows the Bitcoin genesis block as a typed terminal sequence.
+ * Triggered by searching "satoshi" on any theme.
+ * Displays block header, the embedded coinbase message, and the block hash —
+ * all publicly verifiable data from block #0, committed 03 Jan 2009 18:15:05 UTC.
+ * Any key dismisses and resumes normal quote cycle.
+ */
+function showGenesisBlock() {
+  if (state.booting) return;
+  PerformanceUtils.cancelAllTimers();
+  hidePositionIndicator();
+  state.isPaused = true;
+  state.isTyping = false;
+  state.helpMode = true; // reuse help-mode dismissal logic
+
+  const lines = [
+    "GENESIS BLOCK #0",
+    "",
+    "TIMESTAMP  2009-01-03 18:15:05 UTC",
+    "BITS       0x1d00ffff",
+    "NONCE      2083236893",
+    "",
+    "COINBASE MESSAGE:",
+    '"The Times 03/Jan/2009',
+    ' Chancellor on brink of second',
+    ' bailout for banks"',
+    "",
+    "HASH",
+    "000000000019d6689c085ae165831e93",
+    "4ff763ae46a2a6c172b3f1b60a8ce26f",
+  ];
+
+  function renderFull() {
+    elements.quoteContainer.innerHTML =
+      lines
+        .map((l) =>
+          l === ""
+            ? `<span>&nbsp;</span>`
+            : `<span class="text-selected">${l}</span>`,
+        )
+        .join("\n") +
+      `\n<span class="cursor-block" aria-hidden="true"></span>`;
+    showToast("any key to close");
+  }
+
+  let lineIndex = 0;
+  const typed = [];
+
+  function nextLine() {
+    if (lineIndex >= lines.length) {
+      renderFull();
+      return;
+    }
+    const text = lines[lineIndex];
+    lineIndex++;
+
+    if (text === "") {
+      typed.push(`<span>&nbsp;</span>`);
+      elements.quoteContainer.innerHTML =
+        typed.join("\n") +
+        `\n<span class="cursor-block" aria-hidden="true"></span>`;
+      state.timeoutId = setTimeout(nextLine, 80);
+      return;
+    }
+
+    let i = 0;
+    const speed = lineIndex === 1 ? HELP_HEADER_TYPE_SPEED_MS : HELP_LINE_TYPE_SPEED_MS;
+    const pause = lineIndex === 1 ? HELP_HEADER_PAUSE_MS : HELP_LINE_PAUSE_MS;
+
+    function tick() {
+      if (!state.helpMode) return;
+      const current = text.slice(0, i + 1);
+      elements.quoteContainer.innerHTML =
+        typed.join("\n") +
+        (typed.length ? "\n" : "") +
+        `<span class="text-selected">${current}</span>` +
+        `\n<span class="cursor-block" aria-hidden="true"></span>`;
+      i++;
+      if (i < text.length) {
+        state.timeoutId = setTimeout(tick, speed);
+      } else {
+        typed.push(`<span class="text-selected">${text}</span>`);
+        state.timeoutId = setTimeout(nextLine, pause);
+      }
+    }
+    tick();
+  }
+
+  nextLine();
 }
 
 // =========================================
@@ -1707,7 +1822,7 @@ function getCurrentQuoteIndex() {
 
 /**
  * Copies a shareable URL for the current quote to the clipboard.
- * Format: https://blockquotes.sh?q=INDEX
+ * Format: https://blockquote.sh?q=INDEX
  */
 function copyShareableURL() {
   if (!state.currentQuote) return;
@@ -1815,10 +1930,14 @@ function toggleBookmark() {
     elements.quoteContainer.classList.add("bookmarked");
   }
 
-  localStorage.setItem(
-    "bookmarked-quotes",
-    JSON.stringify(state.bookmarkedQuotes),
-  );
+  try {
+    localStorage.setItem(
+      "bookmarked-quotes",
+      JSON.stringify(state.bookmarkedQuotes),
+    );
+  } catch (e) {
+    showToast("storage full — bookmark not saved");
+  }
   QuoteUtils.updateBookmarkCounter();
 }
 
@@ -1835,7 +1954,7 @@ function exportBookmarksAsJSON() {
 
   const data = {
     exported: new Date().toISOString(),
-    source: "blockquotes.sh",
+    source: "blockquote.sh",
     count: state.bookmarkedQuotes.length,
     quotes: state.bookmarkedQuotes.map((q) => ({
       text: q.text,
@@ -1910,8 +2029,14 @@ const LightningTip = (() => {
         await window.webln.lnurl(lnurl);
         showToast("⚡ payment sent");
       } catch (e) {
-        const cancelled = /reject|cancel/i.test(e?.message || "");
-        showToast(cancelled ? "⚡ cancelled" : "⚡ webln error");
+        const msg = (e?.message || "").toLowerCase();
+        if (/reject|cancel|user/i.test(msg)) {
+          showToast("⚡ cancelled");
+        } else if (/enable|permission|denied|locked|not.*allow/i.test(msg)) {
+          showToast("⚡ wallet locked");
+        } else {
+          showToast("⚡ payment failed");
+        }
       }
       return;
     }
@@ -2066,6 +2191,13 @@ function handleClick(event) {
   if (event.target.closest(".btc-link")) {
     BitcoinTip.handleBtcClick(event);
     document.activeElement?.blur();
+    return;
+  }
+
+  if (event.target.closest(".help-trigger")) {
+    event.preventDefault();
+    document.activeElement?.blur();
+    showHelp();
     return;
   }
 
@@ -2316,6 +2448,18 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.toggle("tab-hidden", document.hidden);
   });
 
+  // Sync bookmark counter when another tab adds/removes bookmarks
+  window.addEventListener("storage", (e) => {
+    if (e.key === "bookmarked-quotes") {
+      try {
+        state.bookmarkedQuotes = JSON.parse(e.newValue || "[]");
+      } catch (_) {
+        state.bookmarkedQuotes = [];
+      }
+      QuoteUtils.updateBookmarkCounter();
+    }
+  });
+
   document.body.addEventListener("click", handleClick, { passive: false });
   document.body.addEventListener("keydown", handleKeyPress, { passive: false });
   document.body.addEventListener("touchstart", handleSwipeStart, {
@@ -2367,6 +2511,21 @@ document.addEventListener("DOMContentLoaded", () => {
       // Simulates EMI, deflection circuit hiccup, or mains noise.
       if (!config.performanceMode) {
         scheduleInterference();
+      }
+
+
+      // Help icon hint — single phosphor swell after boot to surface discoverability.
+      // Fires once, removes itself on completion, never repeats.
+      if (!config.performanceMode) {
+        const helpTrigger = document.querySelector(".help-trigger");
+        if (helpTrigger) {
+          helpTrigger.classList.add("help-hint");
+          helpTrigger.addEventListener(
+            "animationend",
+            () => helpTrigger.classList.remove("help-hint"),
+            { once: true },
+          );
+        }
       }
     });
   });

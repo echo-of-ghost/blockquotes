@@ -202,6 +202,60 @@ body.crt-interference main {
   }
 }
 
+/*
+   50Hz mains power-supply ripple — European terminal simulation.
+   Imperfect PSU filtering on 50Hz mains produced a very faint periodic
+   brightness variation. Simulated as a ~1.5% opacity oscillation with a
+   long period — the slow "beat" character of PSU ripple bleeding through
+   the video chain. Applied to VT220 and Zenith Z-19 (both had European
+   50Hz variants in wide deployment). Suppressed at prefers-reduced-motion.
+*/
+@keyframes mains-ripple {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.985;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .theme-teletype-blue-green main,
+  .theme-zenith-green main {
+    animation: mains-ripple 8.33s ease-in-out infinite;
+  }
+}
+
+/*
+   Help icon first-load hint — a single slow phosphor swell after boot.
+   Draws the eye once without demanding it. Fires via JS adding .help-hint
+   to the element; removed on animationend so it never repeats.
+   Suppressed at prefers-reduced-motion.
+*/
+@keyframes help-hint {
+  0% {
+    color: rgba(var(--primary-rgb), 0.7);
+    text-shadow: 0 0 3px rgba(var(--primary-rgb), 0.18);
+  }
+  40% {
+    color: rgba(var(--primary-rgb), 1);
+    text-shadow:
+      0 0 6px rgba(var(--primary-rgb), 0.9),
+      0 0 18px rgba(var(--primary-rgb), 0.35);
+  }
+  100% {
+    color: rgba(var(--primary-rgb), 0.7);
+    text-shadow: 0 0 3px rgba(var(--primary-rgb), 0.18);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .help-trigger.help-hint {
+    animation: help-hint 1.8s ease-in-out 1 forwards;
+  }
+}
+
 /* =========================================
    BODY
    ========================================= */
@@ -286,12 +340,12 @@ body::before {
     ellipse at 50% 50%,
     transparent 0%,
     transparent 42%,
-    rgba(0, 0, 0, 0.04) 55%,
-    rgba(0, 0, 0, 0.1) 65%,
-    rgba(0, 0, 0, 0.18) 75%,
-    rgba(0, 0, 0, 0.28) 85%,
-    rgba(0, 0, 0, 0.38) 93%,
-    rgba(0, 0, 0, 0.42) 100%
+    rgba(0, 0, 0, calc(var(--vignette-opacity, 0.42) * 0.095)) 55%,
+    rgba(0, 0, 0, calc(var(--vignette-opacity, 0.42) * 0.238)) 65%,
+    rgba(0, 0, 0, calc(var(--vignette-opacity, 0.42) * 0.429)) 75%,
+    rgba(0, 0, 0, calc(var(--vignette-opacity, 0.42) * 0.667)) 85%,
+    rgba(0, 0, 0, calc(var(--vignette-opacity, 0.42) * 0.905)) 93%,
+    rgba(0, 0, 0, var(--vignette-opacity, 0.42)) 100%
   );
   transform: translateZ(0);
 }
@@ -322,13 +376,29 @@ body::after {
   pointer-events: none;
   z-index: 9998;
   /*
-       Two gradient layers — interlace shimmer atop primary scanlines:
-       Layer 1: interlace — 60Hz interlaced CRTs draw even/odd fields on
-         alternate frames, producing a subliminal alternating-line brightness
-         difference. Simulated at 6px period, offset 3px, ~40% of scanline
-         opacity. Reads as raster grain rather than visible banding.
-       Layer 2: primary scanlines — electron beam raster gap.
+       Primary scanlines only — electron beam raster gap.
+       Interlace shimmer is added separately for composite-output terminals
+       (C64, PET 2001) which used NTSC composite video with visible interlacing.
+       Professional RGB terminals (IBM, DEC, Wyse, Zenith, ADM-3A, Kaypro) had
+       no composite encoding and should not exhibit interlace artifacts.
     */
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent calc(var(--scanline-size, 3px) - 1px),
+    rgba(0, 0, 0, var(--scanline-opacity, 0.03))
+      calc(var(--scanline-size, 3px) - 1px),
+    rgba(0, 0, 0, var(--scanline-opacity, 0.03)) var(--scanline-size, 3px)
+  );
+  transform: translateZ(0);
+}
+
+/* Composite-output terminals: add interlace shimmer on top of primary scanlines.
+   C64 and PET 2001 used NTSC composite video — 60Hz interlaced scan produced
+   a subliminal alternating-line brightness difference between even/odd fields.
+   Simulated at 6px period, offset 3px, ~38% of scanline opacity. */
+.theme-commodore64 body::after,
+.theme-pet2001-green body::after {
   background:
     repeating-linear-gradient(
       to bottom,
@@ -347,7 +417,6 @@ body::after {
         calc(var(--scanline-size, 3px) - 1px),
       rgba(0, 0, 0, var(--scanline-opacity, 0.03)) var(--scanline-size, 3px)
     );
-  transform: translateZ(0);
 }
 
 /* =========================================
@@ -412,6 +481,8 @@ body::after {
   /* Chromatic aberration: single P1 gun, very slight deflection-coil fringe only */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.08;
+  /* Vignette: 14" flat-face professional, anti-glare — modest corner darkening */
+  --vignette-opacity: 0.38;
 }
 
 /* IBM 3279 Bitcoin Orange — custom phosphor homage.
@@ -419,16 +490,16 @@ body::after {
    married with the 3279 form factor. Cypherpunk editorial choice. */
 .theme-ibm3279-bitcoin-orange {
   --theme-background: #0b0800;
-  --primary-color: #ff9500;
-  --primary-rgb: 255, 149, 0;
+  --primary-color: #f7931a;
+  --primary-rgb: 247, 147, 26;
   --author-hover-decoration: underline;
   --cursor-blink-rate: 0.476s;
-  /* Amber-adjacent: ~12–14ms estimated decay, warm orange halation.
+  /* Bitcoin orange #F7931A: ~12–14ms estimated decay, warm orange halation.
        Rate: same IBM 3279 hardware timer, 0.476s */
   --cursor-afterglow:
-    0 0 7px rgba(255, 149, 0, 0.6), 0 0 16px rgba(200, 80, 0, 0.22);
+    0 0 7px rgba(247, 147, 26, 0.6), 0 0 16px rgba(180, 70, 0, 0.22);
   --cursor-afterglow-mid:
-    0 0 5px rgba(255, 149, 0, 0.28), 0 0 12px rgba(200, 80, 0, 0.09);
+    0 0 5px rgba(247, 147, 26, 0.28), 0 0 12px rgba(180, 70, 0, 0.09);
   --cursor-decay: 0.16s;
   /* Scanlines: same IBM 3279 chassis, same dot pitch */
   --scanline-size: 3px;
@@ -442,6 +513,8 @@ body::after {
   --crt-tilt-x: 0.2deg;
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.08;
+  /* Vignette: same IBM 3279 chassis — identical flat-face tube */
+  --vignette-opacity: 0.38;
 }
 
 /* DEC VT220 — P4 white phosphor with blue-green cast, 80×24
@@ -474,6 +547,8 @@ body::after {
   /* Chromatic aberration: P4 aged white — slight blue-channel ghost from phosphor shift */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.1;
+  /* Vignette: DEC 14" flat-face professional — very even illumination */
+  --vignette-opacity: 0.32;
 }
 
 /* Zenith Z-19 — P1 green phosphor, 80×24, CP/M workhorse
@@ -503,6 +578,8 @@ body::after {
   --crt-tilt-x: 0.4deg;
   --chroma-offset: 0.6px;
   --chroma-opacity: 0.09;
+  /* Vignette: 12" professional tube — moderate corner falloff */
+  --vignette-opacity: 0.40;
 }
 
 /* Lear Siegler ADM-3A — P1 green phosphor, 80×24, 1976
@@ -543,6 +620,8 @@ body::after {
   /* Chromatic aberration: 1976 deflection optics — slightly older coil geometry */
   --chroma-offset: 0.6px;
   --chroma-opacity: 0.09;
+  /* Vignette: 12" compact TTL-era tube — slightly more corner falloff than 14" */
+  --vignette-opacity: 0.42;
 }
 
 /* Kaypro II — Toshiba P31 green phosphor, 80×24, 1982, CP/M 2.2
@@ -579,6 +658,8 @@ body::after {
   --crt-tilt-x: 0.6deg;
   --chroma-offset: 0.8px;
   --chroma-opacity: 0.1;
+  /* Vignette: 9" Toshiba tube — compact, more curvature than 12-14" */
+  --vignette-opacity: 0.48;
 }
 
 /* DEC VT05 — P4 white phosphor, 72×20, 1970 teletype-era terminal
@@ -610,6 +691,8 @@ body::after {
   /* Chromatic aberration: P4 white — blue fringe from broad-spectrum phosphor scatter */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.1;
+  /* Vignette: 12" early DEC teletype-era tube — pre-flat-face, moderate */
+  --vignette-opacity: 0.40;
 }
 
 /* Wyse WY-50 — P134 amber phosphor, 80×24, 1985 (amber variant)
@@ -650,6 +733,8 @@ body::after {
   /* Chromatic aberration: P134 monochrome — minimal fringe, anti-glare coating diffuses it */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.08;
+  /* Vignette: 14" non-glare Wyse — praised for flat even illumination */
+  --vignette-opacity: 0.30;
 }
 
 /* Commodore PET 2001 — P1 green phosphor, 40×25
@@ -686,6 +771,8 @@ body::after {
   /* 50Hz PAL: scanline period for beat-frequency roll animation */
   --scanline-size: 4px;
   --scanline-opacity: 0.04;
+  /* Vignette: consumer 9" built-in TV-type tube — significant corner falloff */
+  --vignette-opacity: 0.52;
 }
 
 /* DEC VT100 — amber phosphor, 80×24, 1978
@@ -725,6 +812,8 @@ body::after {
   /* Chromatic aberration: amber single-gun — slight warm fringe at deflection limits */
   --chroma-offset: 0.6px;
   --chroma-opacity: 0.09;
+  /* Vignette: 12" amber DEC professional — moderate, standard for its era */
+  --vignette-opacity: 0.40;
 }
 
 /* Apple II — P31 green phosphor, 40×24, 1977
@@ -759,6 +848,8 @@ body::after {
   /* Chromatic aberration: P31 single-gun — deflection fringe at beam edges */
   --chroma-offset: 0.7px;
   --chroma-opacity: 0.1;
+  /* Vignette: consumer composite monitor, curved tube — notable corner falloff */
+  --vignette-opacity: 0.55;
 }
 
 /* Commodore 64 — VIC-II NTSC composite output, 40×25, 1982
@@ -793,6 +884,8 @@ body::after {
   /* Chromatic aberration: NTSC RF composite — real chroma bleed, comb filter recalibration */
   --chroma-offset: 2px;
   --chroma-opacity: 0.22;
+  /* Vignette: consumer CRT TV — most curved display in this set, deep corner falloff */
+  --vignette-opacity: 0.60;
 }
 
 /* =========================================
@@ -1282,20 +1375,65 @@ body.quote-list-mode main {
    BOOKMARK COUNTER
    ========================================= */
 
-.bookmark-counter {
+/* Top-left UI cluster — help trigger + bookmark counter share a fixed row */
+.corner-ui {
   position: fixed;
   top: clamp(0.5rem, 1.5vw, 0.65rem);
   left: clamp(0.5rem, 1.5vw, 0.65rem);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 10000;
+  contain: layout style paint;
+}
+
+.help-trigger {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: var(--ambient-font-size);
+  font-weight: 400;
+  color: rgba(var(--primary-rgb), 0.35);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition:
+    color 0.3s ease,
+    text-shadow 0.3s ease;
+  /* Match bookmark counter's ambient phosphor at rest */
+  text-shadow: 0 0 3px rgba(var(--primary-rgb), 0.12);
+  line-height: 1;
+}
+
+.help-trigger::before {
+  content: "[";
+  margin-right: 0.1rem;
+  opacity: 0.6;
+}
+
+.help-trigger::after {
+  content: "]";
+  margin-left: 0.1rem;
+  opacity: 0.6;
+}
+
+.help-trigger:hover,
+.help-trigger:focus-visible {
+  color: rgba(var(--primary-rgb), 0.7);
+  text-shadow: 0 0 5px rgba(var(--primary-rgb), 0.3);
+  outline: none;
+}
+
+.bookmark-counter {
   background: transparent;
   border: none;
   font-family: var(--font-family);
   font-size: var(--ambient-font-size);
   font-weight: 400;
   color: rgba(var(--primary-rgb), 0.35);
-  z-index: 10000;
   transition: opacity 0.3s ease;
   pointer-events: none;
-  contain: layout style paint;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   display: flex;
@@ -1374,8 +1512,8 @@ body.quote-list-mode main {
   -webkit-filter: drop-shadow(0 0 4px rgba(0, 255, 68, 0.38)) !important;
 }
 .theme-ibm3279-bitcoin-orange .bitcoin-b {
-  fill: #ff9500 !important;
-  filter: drop-shadow(0 0 4px rgba(255, 149, 0, 0.42)) !important;
+  fill: #f7931a !important;
+  filter: drop-shadow(0 0 4px rgba(247, 147, 26, 0.42)) !important;
   -webkit-filter: drop-shadow(0 0 4px rgba(255, 149, 0, 0.42)) !important;
 }
 .theme-wyse50-amber .bitcoin-b {
@@ -1511,6 +1649,57 @@ body.search-mode .bq-status {
 
 .bq-position.hidden {
   visibility: hidden;
+}
+
+/* =========================================
+   CAPS INDICATOR — corner-ui
+   Appears beside [?] when uppercase mode is active.
+   Same ambient treatment as help-trigger; hidden by default.
+   ========================================= */
+
+.caps-indicator {
+  font-family: var(--font-family);
+  font-size: var(--ambient-font-size);
+  font-weight: 400;
+  color: rgba(var(--primary-rgb), 0.35);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: 0 0 3px rgba(var(--primary-rgb), 0.12);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.caps-indicator::before {
+  content: "[";
+  margin-right: 0.1rem;
+  opacity: 0.6;
+}
+
+.caps-indicator::after {
+  content: "]";
+  margin-left: 0.1rem;
+  opacity: 0.6;
+}
+
+/* UC indicator only on terminals that had on-screen shift/caps state:
+   IBM 3270 (OIA shift column), DEC VT220/VT100 (status line), Wyse WY-50,
+   Zenith Z-19. Simpler machines (ADM-3A, Kaypro, Apple II, C64, PET, VT05)
+   had physical CAPS LOCK LEDs or keys only — no on-screen indicator. */
+body[class*="theme-"] .caps-indicator {
+  display: none;
+}
+
+body.theme-ibm3279-green .caps-indicator,
+body.theme-ibm3279-bitcoin-orange .caps-indicator,
+body.theme-teletype-blue-green .caps-indicator,
+body.theme-vt100-amber .caps-indicator,
+body.theme-wyse50-amber .caps-indicator,
+body.theme-zenith-green .caps-indicator {
+  display: inline;
+}
+
+.caps-indicator.hidden {
+  display: none !important;
 }
 
 /* =========================================
