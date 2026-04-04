@@ -66,6 +66,7 @@ Welcome to blockquote.sh, a growing collection of Bitcoin and Bitcoin-related qu
 - **`LOAD "$",8`** — On Commodore 64 or PET 2001 theme, shows a C64-style disk directory listing of all quotes
 - **`CATALOG`** — On Apple II theme, shows an Apple DOS CATALOG listing of all quotes
 - **`satoshi`** — On any theme, types out the Bitcoin genesis block coinbase message
+- **`stats`** — On any theme, shows quote database statistics
 
 ## 🛠️ Getting Started
 

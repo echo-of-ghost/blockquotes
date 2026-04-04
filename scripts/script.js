@@ -1098,6 +1098,168 @@ function runBootSequence(onComplete) {
  * using the active theme's HELP idiom as the header.
  * Stays on screen until the user presses any key or clicks.
  */
+/**
+ * Returns theme-authentic help lines for the active terminal.
+ * Each family formats the key list in the style of its native OS/ROM:
+ *   IBM TSO/ISPF  — PF-key style, uppercase
+ *   DEC VT/VMS    — HELP topic format
+ *   Unix (ADM/Wyse/VT05) — terse man-page style, lowercase
+ *   CP/M (Zenith/Kaypro) — uppercase columnar
+ *   BASIC (C64/PET)      — numbered LIST lines
+ *   Apple II Applesoft   — ]-prompt style
+ *
+ * @param {string} theme
+ * @returns {string[]}
+ */
+function getThemeHelpLines(theme) {
+  switch (theme) {
+    case "ibm3279-green":
+    case "ibm3279-bitcoin-orange":
+      return [
+        themeHelpHeaders[theme],
+        " ",
+        "SPACE  FINISH TYPING / NEXT QUOTE",
+        "N      NEXT QUOTE",
+        "P      PREVIOUS QUOTE",
+        "C      COPY QUOTE",
+        "X      SHARE ON X/TWITTER",
+        "L      COPY SHAREABLE LINK",
+        "B      BOOKMARK QUOTE",
+        "V      VIEW BOOKMARKS (SHIFT+V)",
+        "E      EXPORT BOOKMARKS",
+        "U      TOGGLE UPPERCASE",
+        "T      CYCLE THEME",
+        "W      CLOCK MODE",
+        "/      SEARCH QUOTES",
+        "?      THIS HELP",
+      ];
+
+    case "vt100-amber":
+      return [
+        themeHelpHeaders[theme],
+        " ",
+        "Topic: BLOCKQUOTE.SH key bindings",
+        " ",
+        "  SPACE/CLICK   finish typing or next quote",
+        "  N / P         next / previous quote",
+        "  C             copy quote to clipboard",
+        "  X             share on X/Twitter",
+        "  O             share on Nostr",
+        "  L             copy shareable URL",
+        "  B             bookmark toggle",
+        "  Shift+V       bookmark list",
+        "  E             export bookmarks as JSON",
+        "  U             toggle uppercase",
+        "  T             cycle terminal theme",
+        "  W             clock mode",
+        "  /             search quotes",
+        "  ?             this help",
+      ];
+
+    case "teletype-blue-green":
+    case "vt05-white":
+    case "adm3a-green":
+    case "wyse50-amber":
+      return [
+        themeHelpHeaders[theme],
+        " ",
+        "  space/click   finish typing, next quote",
+        "  n / p         next / previous quote",
+        "  c             copy to clipboard",
+        "  x             share on x/twitter",
+        "  l             copy link",
+        "  b             bookmark",
+        "  shift+v       bookmark list",
+        "  e             export bookmarks",
+        "  u             uppercase toggle",
+        "  t             next theme",
+        "  w             clock",
+        "  /             search",
+        "  ?             help",
+      ];
+
+    case "zenith-green":
+    case "kaypro-green":
+      return [
+        themeHelpHeaders[theme],
+        " ",
+        "KEY         ACTION",
+        "---         ------",
+        "SPACE       FINISH TYPING / NEXT QUOTE",
+        "N           NEXT QUOTE",
+        "P           PREVIOUS QUOTE",
+        "C           COPY QUOTE",
+        "X           SHARE ON X/TWITTER",
+        "L           COPY LINK",
+        "B           BOOKMARK",
+        "SHIFT+V     VIEW BOOKMARKS",
+        "E           EXPORT BOOKMARKS",
+        "U           UPPERCASE",
+        "T           CHANGE THEME",
+        "W           CLOCK",
+        "/           SEARCH",
+      ];
+
+    case "pet2001-green":
+    case "commodore64":
+      return [
+        themeHelpHeaders[theme],
+        " ",
+        "10 REM ** BLOCKQUOTE.SH KEYS **",
+        "20 REM SPACE = NEXT QUOTE",
+        "30 REM N = NEXT    P = PREV",
+        "40 REM C = COPY    B = BOOKMARK",
+        "50 REM X = SHARE X/TWITTER",
+        "70 REM L = COPY LINK",
+        "80 REM SHIFT+V = BOOKMARKS",
+        "90 REM E = EXPORT   U = UPPERCASE",
+        "100 REM T = THEME   W = CLOCK",
+        "110 REM / = SEARCH  ? = HELP",
+        " ",
+        "READY.",
+      ];
+
+    case "apple2-green":
+      return [
+        themeHelpHeaders[theme],
+        " ",
+        "]  SPACE/RET  NEXT QUOTE",
+        "]  N          NEXT",
+        "]  P          PREV",
+        "]  C          COPY",
+        "]  X          SHARE X/TWITTER",
+        "]  L          COPY LINK",
+        "]  B          BOOKMARK",
+        "]  CTRL+V     BOOKMARKS",
+        "]  E          EXPORT",
+        "]  U          UPPERCASE",
+        "]  T          THEME",
+        "]  W          CLOCK",
+        "]  /          SEARCH",
+      ];
+
+    default:
+      return [
+        themeHelpHeaders[theme] || "HELP",
+        " ",
+        "SPACE/CLICK    finish typing / next quote",
+        "N              next quote",
+        "P              previous quote",
+        "C              copy quote",
+        "X              share on x/twitter",
+        "L              copy share link",
+        "B              bookmark quote",
+        "SHIFT+V        view bookmark list",
+        "E              export bookmarks",
+        "U              toggle uppercase",
+        "T              cycle theme",
+        "W              clock mode",
+        "/              search quotes",
+        "?              show this help",
+      ];
+  }
+}
+
 function showHelp() {
   if (state.booting) return;
 
@@ -1110,24 +1272,8 @@ function showHelp() {
   const currentTheme =
     themes.find((t) => document.body.classList.contains(`theme-${t}`)) ||
     "ibm3279-green";
-  const header = themeHelpHeaders[currentTheme] || "HELP";
 
-  const lines = [
-    header,
-    "SPACE/CLICK    finish typing / next quote",
-    "N              next quote",
-    "P              previous quote",
-    "/              search quotes",
-    "C              copy quote",
-    "X              share on x/twitter",
-    "L              copy share link",
-    "B              bookmark quote",
-    "SHIFT+V        view bookmark list",
-    "E              export bookmarks",
-    "U              toggle uppercase",
-    "T              cycle theme",
-    "?              show this help",
-  ];
+  const lines = getThemeHelpLines(currentTheme);
 
   /** Renders the full help list instantly — used when user presses ? again
    *  mid-type, or when typing completes. */
@@ -1360,6 +1506,10 @@ function commitSearch() {
   }
   if (query === "satoshi") {
     showGenesisBlock();
+    return;
+  }
+  if (query === "stats") {
+    showStats();
     return;
   }
 
@@ -1785,6 +1935,101 @@ function showGenesisBlock() {
 
 
 // =========================================
+// STATS
+// =========================================
+
+/**
+ * Shows a terminal-style statistics readout.
+ * Triggered by searching "stats" on any theme. Any key dismisses.
+ */
+function showStats() {
+  if (state.booting) return;
+  PerformanceUtils.cancelAllTimers();
+  hidePositionIndicator();
+  state.isPaused = true;
+  state.isTyping = false;
+  state.helpMode = true;
+
+  const total = state.quotes ? state.quotes.length : 0;
+  const bookmarks = state.bookmarkedQuotes ? state.bookmarkedQuotes.length : 0;
+  const withSource = state.quotes
+    ? state.quotes.filter((q) => q.source).length
+    : 0;
+  const currentTheme =
+    themes.find((t) => document.body.classList.contains(`theme-${t}`)) ||
+    "ibm3279-green";
+
+  const lines = [
+    "BLOCKQUOTE.SH — SYSTEM STATS",
+    "",
+    `QUOTES         ${total}`,
+    `SOURCED        ${withSource} (${Math.round((withSource / total) * 100)}%)`,
+    `TERMINALS      12`,
+    `BOOKMARKS      ${bookmarks}`,
+    "",
+    `ACTIVE THEME   ${currentTheme}`,
+  ];
+
+  function renderFull() {
+    elements.quoteContainer.innerHTML =
+      lines
+        .map((l) =>
+          l === ""
+            ? `<span>&nbsp;</span>`
+            : `<span class="text-selected">${l}</span>`,
+        )
+        .join("\n") +
+      `\n<span class="cursor-block" aria-hidden="true"></span>`;
+    showToast("any key to close");
+  }
+
+  let lineIndex = 0;
+  const typed = [];
+
+  function nextLine() {
+    if (lineIndex >= lines.length) {
+      renderFull();
+      return;
+    }
+    const text = lines[lineIndex];
+    lineIndex++;
+
+    if (text === "") {
+      typed.push(`<span>&nbsp;</span>`);
+      elements.quoteContainer.innerHTML =
+        typed.join("\n") +
+        `\n<span class="cursor-block" aria-hidden="true"></span>`;
+      state.timeoutId = setTimeout(nextLine, 80);
+      return;
+    }
+
+    let i = 0;
+    const speed = lineIndex === 1 ? HELP_HEADER_TYPE_SPEED_MS : HELP_LINE_TYPE_SPEED_MS;
+    const pause = lineIndex === 1 ? HELP_HEADER_PAUSE_MS : HELP_LINE_PAUSE_MS;
+
+    function tick() {
+      if (!state.helpMode) return;
+      const current = text.slice(0, i + 1);
+      elements.quoteContainer.innerHTML =
+        typed.join("\n") +
+        (typed.length ? "\n" : "") +
+        `<span class="text-selected">${current}</span>` +
+        `\n<span class="cursor-block" aria-hidden="true"></span>`;
+      i++;
+      if (i < text.length) {
+        state.timeoutId = setTimeout(tick, speed);
+      } else {
+        typed.push(`<span class="text-selected">${text}</span>`);
+        state.timeoutId = setTimeout(nextLine, pause);
+      }
+    }
+    tick();
+  }
+
+  nextLine();
+}
+
+// =========================================
 // SHARING
 // =========================================
 
@@ -1856,6 +2101,7 @@ function shareQuoteOnTwitter() {
   window.open(tweetUrl, "_blank", "noopener,noreferrer");
   QuoteUtils.announceAction("Opened share window");
 }
+
 
 /**
  * Checks the URL for a ?q=INDEX parameter on load and displays that quote.

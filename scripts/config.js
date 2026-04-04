@@ -74,7 +74,7 @@ export const themeBaudRates = {
   "zenith-green": 9600,
   "adm3a-green": 9600,
   "kaypro-green": 9600,
-  "vt05-white": 300,
+  "vt05-white": 110,
   "vt100-amber": 9600,
   "apple2-green": 9600,
   commodore64: 1200,
@@ -179,7 +179,7 @@ export const themePhosphorColors = {
   "ibm3279-green": "#57FF8C",
   "teletype-blue-green": "#A4C8B0",
   "pet2001-green": "#00FF44",
-  "ibm3279-bitcoin-orange": "#FF9500",
+  "ibm3279-bitcoin-orange": "#F7931A",
   "wyse50-amber": "#FFBE00",
   "zenith-green": "#7FFF7F",
   "adm3a-green": "#A8FF60",
@@ -232,12 +232,12 @@ export const themeBootLines = {
   ],
   "zenith-green": [
     { text: "Z-19 TERMINAL  64K CP/M VERS. 2.2", speed: 22 },
-    { text: "BLOCKQUOTES.COM v1.0 — PHOSPHOR TERMINAL READY", speed: 26 },
+    { text: "BLOCKQUOTE.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 26 },
     { text: "LOADING QUOTE DATABASE.................. OK", speed: 30 },
   ],
   "kaypro-green": [
     { text: "KAYPRO II  64K CP/M VERS. 2.2", speed: 22 },
-    { text: "BLOCKQUOTES.COM v1.0 — PHOSPHOR TERMINAL READY", speed: 26 },
+    { text: "BLOCKQUOTE.SH v1.0 — PHOSPHOR TERMINAL READY", speed: 26 },
     { text: "LOADING QUOTE DATABASE.................. OK", speed: 30 },
   ],
   "pet2001-green": [
