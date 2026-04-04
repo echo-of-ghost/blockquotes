@@ -1255,7 +1255,6 @@ a:focus-visible {
    separation without dimming. */
 .source {
   display: inline;
-  font-size: 0.88em;
   transition: var(--base-transition);
 }
 
