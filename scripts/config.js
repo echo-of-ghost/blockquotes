@@ -20,6 +20,7 @@ export const themes = [
   "vt100-amber", // DEC VT100, 1978 — P3 amber phosphor, 80×24, the canonical terminal
   "apple2-green", // Apple II, 1977 — P31 green phosphor (Sanyo monitor), 40×24
   "commodore64", // Commodore 64, 1982 — VIC-II NTSC composite, 40×25
+  "nextstep", // NeXT MegaPixel Display, 1989 — P4 grayscale 17", NeXTSTEP 3.3
 ];
 
 /**
@@ -39,6 +40,7 @@ export const themeNames = {
   "vt100-amber": "DEC VT100 — P3 amber phosphor",
   "apple2-green": "Apple II — P31 green phosphor",
   commodore64: "Commodore 64 — VIC-II NTSC",
+  nextstep: "NeXT MegaPixel Display — P4 grayscale",
 };
 
 // =========================================
@@ -78,6 +80,7 @@ export const themeBaudRates = {
   "vt100-amber": 9600,
   "apple2-green": 9600,
   commodore64: 1200,
+  nextstep: 38400, // local PTY — simulated at 38400 for immediate, snappy feel
 };
 
 /*
@@ -103,6 +106,7 @@ export const themePauseDurations = {
   "vt100-amber": 4200, // VT100: languid blink, languid feel
   "apple2-green": 2800,
   commodore64: 3800, // 1200 baud — BASIC output is leisurely
+  nextstep: 2200, // fast local terminal — brief pause, workstation tempo
 };
 
 /*
@@ -134,6 +138,7 @@ export const themePrompts = {
   "vt100-amber": "$",
   "apple2-green": "]",
   commodore64: "",
+  nextstep: "%",
 };
 
 /*
@@ -168,6 +173,7 @@ export const themeBlackout = {
   "vt100-amber": 33,
   "apple2-green": 18,
   commodore64: 17,
+  nextstep: 12, // NeXTSTEP virtual console — near-instant PTY clear
 };
 
 /**
@@ -188,6 +194,7 @@ export const themePhosphorColors = {
   "vt100-amber": "#FFB000",
   "apple2-green": "#24FF52",
   commodore64: "#7469C8",
+  nextstep: "#E2E2D8",
 };
 
 /*
@@ -270,6 +277,13 @@ export const themeBootLines = {
     { text: "blockquote.sh v1.0 — phosphor terminal ready", speed: 26 },
     { text: "loading quote database.................. ok", speed: 30 },
   ],
+  nextstep: [
+    { text: "NeXTSTEP 3.3 Release", speed: 16 },
+    { text: "blockquote login: cypherpunk", speed: 22 },
+    { text: "Last login: Sat Jan  3 18:15:05 2009", speed: 18 },
+    { text: "% blockquote.sh", speed: 22 },
+    { text: "loading quote database.................. ok", speed: 26 },
+  ],
 };
 
 /*
@@ -295,6 +309,7 @@ export const themeHelpHeaders = {
   "pet2001-green": "READY.",
   commodore64: "READY.",
   "apple2-green": "]CATALOG - BLOCKQUOTE.SH",
+  nextstep: "% man blockquote.sh",
 };
 
 // =========================================

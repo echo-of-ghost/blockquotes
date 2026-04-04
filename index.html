@@ -55,6 +55,7 @@
           "vt100-amber": "#0C0800",
           "apple2-green": "#000000",
           commodore64: "#2B2290",
+          nextstep: "#111111",
         };
         // 1×1 solid-colour PNGs — one per theme, matching --primary-color in styles.css.
         // Generated from raw PNG binary; no canvas, no network request.
@@ -83,6 +84,8 @@
             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNQ+R8EAALAAXaCjZZAAAAAAElFTkSuQmCC",
           commodore64:
             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMoyTwBAAL6AaZNjKTQAAAAAElFTkSuQmCC",
+          nextstep:
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGN49OgGAAVGAp2oKjHOAAAAAElFTkSuQmCC",
         };
         var saved = localStorage.getItem("theme");
         var theme = saved && backgrounds[saved] ? saved : "ibm3279-green";

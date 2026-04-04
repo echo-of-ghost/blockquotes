@@ -41,7 +41,7 @@ Welcome to blockquote.sh, a growing collection of Bitcoin and Bitcoin-related qu
 ### Quote Display
 
 - **Typewriter Effect** — Quotes appear character by character at historically accurate baud rates per terminal
-- **12 Retro Terminal Themes** — IBM 3279 Green, DEC VT220 Blue-Green, Commodore PET 2001 Green, IBM 3279 Bitcoin Orange, Wyse WY-50 Amber, Zenith Z-19 Green, ADM-3A Green, Kaypro II Green, DEC VT05 White, DEC VT100 Amber, Apple II Green, Commodore 64
+- **13 Retro Terminal Themes** — IBM 3279 Green, DEC VT220 Blue-Green, Commodore PET 2001 Green, IBM 3279 Bitcoin Orange, Wyse WY-50 Amber, Zenith Z-19 Green, ADM-3A Green, Kaypro II Green, DEC VT05 White, DEC VT100 Amber, Apple II Green, Commodore 64, NeXT MegaPixel Display
 - **Per-theme CRT Simulation** — Phosphor glow, scanlines, vignette, cursor blink rate, and warm-up animation all calibrated to real hardware specs
 - **CRT Phosphor Resync** — Chromatic aberration flash on theme change simulates deflection coil settling
 

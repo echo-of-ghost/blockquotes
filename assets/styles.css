@@ -888,6 +888,51 @@ body::after {
   --vignette-opacity: 0.60;
 }
 
+/* NeXTSTEP Terminal — NeXT MegaPixel Display, 17" grayscale CRT, 1120×832, 92 dpi
+   The machine Tim Berners-Lee wrote the first web server on. The machine Hal Finney,
+   Nick Szabo, and most of the original cypherpunks ran. NeXTSTEP 3.3, 1995.
+   The MegaPixel Display was a 4-bit grayscale CRT — 16 shades, no colour.
+   Phosphor: P4 white, high-grade, tight dot pitch for the era.
+   Background: near-black with a very slight warm-grey cast from the enclosure finish.
+   Prompt: % (default csh on NeXTSTEP)
+   Baud: local PTY, no serial — simulated at 38400 for immediate feel. */
+.theme-nextstep {
+  --theme-background: #111111;
+  --primary-color: #e2e2d8;
+  --primary-rgb: 226, 226, 216;
+  --author-hover-decoration: underline;
+  --cursor-blink-rate: 0.53s;
+  /* P4 white high-grade: ~1–2ms decay, barely perceptible afterglow.
+       Slight warm cast from the enclosure — cream-white, not blue-white */
+  --cursor-afterglow:
+    0 0 4px rgba(226, 226, 216, 0.28), 0 0 8px rgba(200, 200, 190, 0.08);
+  --cursor-afterglow-mid:
+    0 0 2px rgba(226, 226, 216, 0.1), 0 0 5px rgba(200, 200, 190, 0.03);
+  --cursor-decay: 0.06s;
+  /* Scanlines: 1120×832 high-res CRT — tightest pitch in this set, barely visible */
+  --scanline-size: 2px;
+  --scanline-opacity: 0.018;
+  /* P4 high-grade: low persistence, clean decay, minimal halation */
+  --glow-intensity: 0.28;
+  /* Warm-up: NeXT MegaPixel Display 17" — professional tube: ~3s */
+  --warmup-duration: 3s;
+  /* Barrel distortion: 17" professional flat-face tube — extremely flat */
+  --crt-perspective: 2800px;
+  --crt-tilt-x: 0.15deg;
+  /* Chromatic aberration: single P4 gun, high-grade optics — minimal fringe */
+  --chroma-offset: 0.4px;
+  --chroma-opacity: 0.06;
+  /* Vignette: 17" professional flat-face — very even illumination */
+  --vignette-opacity: 0.28;
+}
+
+.theme-nextstep #quote-container {
+  color: rgba(226, 226, 216, 0.94);
+  text-shadow:
+    0 0 3px rgba(226, 226, 216, 0.18),
+    0 0 10px rgba(200, 200, 190, 0.05);
+}
+
 /* =========================================
    HEADER
    ========================================= */
@@ -1189,6 +1234,28 @@ main {
     cursor-afterglow var(--cursor-blink-rate)
       calc(var(--cursor-blink-rate) * 0.5) ease-out infinite;
   will-change: opacity, box-shadow;
+}
+
+/*
+   UNDERLINE CURSOR — DEC and Unix terminals.
+
+   DEC VT100, VT220: firmware default was an underline cursor.
+   Wyse WY-50: underline by factory default.
+   ADM-3A: underline cursor (TTL hardware-drawn, 2-scanline height).
+   NeXTSTEP Terminal.app: block cursor — left as block.
+
+   Implementation: collapse height to 2px, pin to text baseline.
+   The blink and afterglow animations are unchanged — same timing,
+   same phosphor persistence, just a different geometry.
+*/
+.theme-vt100-amber .cursor-block,
+.theme-teletype-blue-green .cursor-block,
+.theme-adm3a-green .cursor-block,
+.theme-wyse50-amber .cursor-block {
+  height: 2px;
+  width: 0.6em;
+  vertical-align: baseline;
+  margin-bottom: -1px;
 }
 
 /* =========================================

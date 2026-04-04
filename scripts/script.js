@@ -1160,6 +1160,7 @@ function getThemeHelpLines(theme) {
     case "vt05-white":
     case "adm3a-green":
     case "wyse50-amber":
+    case "nextstep":
       return [
         themeHelpHeaders[theme],
         " ",
