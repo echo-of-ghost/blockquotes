@@ -227,8 +227,10 @@ body[class*="theme-"] {
     "liga" 0,
     "clig" 0,
     "calt" 0,
-    "dlig" 0;
+    "dlig" 0,
+    "kern" 0;
   font-variant-ligatures: none;
+  font-kerning: none;
   line-height: 1.6;
   margin: 0;
   height: 100vh;

@@ -1567,7 +1567,7 @@ function renderC64Directory() {
     const name = `"${rawAuthor}"`.padEnd(20);
     const line = `${blocks} ${name}   PRG`;
     return i === selected
-      ? `<span class="text-selected">${line}<span class="cursor-block" aria-hidden="true"></span></span>`
+      ? `<span class="text-selected">${line}</span>`
       : `<span>${line}</span>`;
   });
 
@@ -1604,7 +1604,7 @@ function renderAppleIICatalog() {
       rawAuthor.length > 22 ? rawAuthor.slice(0, 22) + "\u2026" : rawAuthor;
     const line = ` T ${sectors} ${truncAuthor}`;
     return i === selected
-      ? `<span class="text-selected">${line}<span class="cursor-block" aria-hidden="true"></span></span>`
+      ? `<span class="text-selected">${line}</span>`
       : `<span>${line}</span>`;
   });
 
