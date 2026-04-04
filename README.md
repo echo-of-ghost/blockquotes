@@ -20,6 +20,7 @@ Welcome to blockquote.sh, a growing collection of Bitcoin and Bitcoin-related qu
 - **`Shift+V`** — View bookmark list
 - **`E`** — Export bookmarks as JSON download
 - **`/`** — Search quotes
+- **`Q`** — Quote of the day (same quote for everyone, worldwide, each UTC day)
 - **`W`** — Clock mode (full-screen HH:MM:SS)
 - **`?`** — Show keyboard shortcut help
 - **`R`** — Reload page

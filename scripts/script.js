@@ -404,7 +404,7 @@ export const QuoteUtils = {
    */
   getMsPerChar: () => {
     if (config.performanceMode) return 0;
-    return Math.min(MAX_BAUD_DELAY_MS, Math.round(10000 / getThemeBaudRate()));
+    return Math.min(MAX_BAUD_DELAY_MS, Math.max(1, Math.round(10000 / getThemeBaudRate())));
   },
 
   /**
@@ -803,6 +803,10 @@ function displayQuote(
   state.currentQuote = quote;
   if (!skipHistory) pushToHistory(quote);
 
+  // Update position indicator immediately so it reflects the new quote
+  // from the first character, not only when typing finishes.
+  updatePositionIndicator();
+
   const quoteText = QuoteUtils.getQuoteText(quote);
   state.currentIndex = startIndex;
   state.isTyping = true;
@@ -1054,7 +1058,33 @@ function runBootSequence(onComplete) {
     { text: "LOADING QUOTE DATABASE.................. OK", speed: 32 },
   ];
 
-  const bootLines = themeBootLines[currentTheme] || defaultLines;
+  let bootLines = themeBootLines[currentTheme] || defaultLines;
+
+  // NeXT last-login timestamp — dynamic.
+  // Jan 3 is Bitcoin genesis day: show the original timestamp as a nod.
+  // Every other day: show today's date in authentic ctime(3) format.
+  if (currentTheme === "nextstep") {
+    const now = new Date();
+    const isGenesisDay = now.getMonth() === 0 && now.getDate() === 3;
+    const loginLine = isGenesisDay
+      ? "Last login: Sat Jan  3 18:15:05 2009"
+      : (() => {
+          const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+          const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+          const d = days[now.getDay()];
+          const m = months[now.getMonth()];
+          const dd = String(now.getDate()).padStart(2, " ");
+          const hh = String(now.getHours()).padStart(2, "0");
+          const mm = String(now.getMinutes()).padStart(2, "0");
+          const ss = String(now.getSeconds()).padStart(2, "0");
+          const yyyy = now.getFullYear();
+          return `Last login: ${d} ${m} ${dd} ${hh}:${mm}:${ss} ${yyyy}`;
+        })();
+    bootLines = bootLines.map((l) =>
+      l.text.startsWith("Last login:") ? { ...l, text: loginLine } : l,
+    );
+  }
+
   const lines = [...bootLines, ...(prompt ? [{ text: prompt, speed: 0 }] : [])];
 
   let lineIndex = 0;
@@ -1130,6 +1160,7 @@ function getThemeHelpLines(theme) {
         "U      TOGGLE UPPERCASE",
         "T      CYCLE THEME",
         "W      CLOCK MODE",
+        "Q      QUOTE OF THE DAY",
         "/      SEARCH QUOTES",
         "?      THIS HELP",
       ];
@@ -1144,7 +1175,6 @@ function getThemeHelpLines(theme) {
         "  N / P         next / previous quote",
         "  C             copy quote to clipboard",
         "  X             share on X/Twitter",
-        "  O             share on Nostr",
         "  L             copy shareable URL",
         "  B             bookmark toggle",
         "  Shift+V       bookmark list",
@@ -1152,6 +1182,7 @@ function getThemeHelpLines(theme) {
         "  U             toggle uppercase",
         "  T             cycle terminal theme",
         "  W             clock mode",
+        "  Q             quote of the day",
         "  /             search quotes",
         "  ?             this help",
       ];
@@ -1175,6 +1206,7 @@ function getThemeHelpLines(theme) {
         "  u             uppercase toggle",
         "  t             next theme",
         "  w             clock",
+        "  q             quote of the day",
         "  /             search",
         "  ?             help",
       ];
@@ -1198,6 +1230,7 @@ function getThemeHelpLines(theme) {
         "U           UPPERCASE",
         "T           CHANGE THEME",
         "W           CLOCK",
+        "Q           QUOTE OF THE DAY",
         "/           SEARCH",
       ];
 
@@ -1211,6 +1244,7 @@ function getThemeHelpLines(theme) {
         "30 REM N = NEXT    P = PREV",
         "40 REM C = COPY    B = BOOKMARK",
         "50 REM X = SHARE X/TWITTER",
+        "60 REM Q = QUOTE OF THE DAY",
         "70 REM L = COPY LINK",
         "80 REM SHIFT+V = BOOKMARKS",
         "90 REM E = EXPORT   U = UPPERCASE",
@@ -1229,6 +1263,7 @@ function getThemeHelpLines(theme) {
         "]  P          PREV",
         "]  C          COPY",
         "]  X          SHARE X/TWITTER",
+        "]  Q          QUOTE OF THE DAY",
         "]  L          COPY LINK",
         "]  B          BOOKMARK",
         "]  CTRL+V     BOOKMARKS",
@@ -1255,6 +1290,7 @@ function getThemeHelpLines(theme) {
         "U              toggle uppercase",
         "T              cycle theme",
         "W              clock mode",
+        "Q              quote of the day",
         "/              search quotes",
         "?              show this help",
       ];
@@ -1953,9 +1989,6 @@ function showStats() {
 
   const total = state.quotes ? state.quotes.length : 0;
   const bookmarks = state.bookmarkedQuotes ? state.bookmarkedQuotes.length : 0;
-  const withSource = state.quotes
-    ? state.quotes.filter((q) => q.source).length
-    : 0;
   const currentTheme =
     themes.find((t) => document.body.classList.contains(`theme-${t}`)) ||
     "ibm3279-green";
@@ -1964,8 +1997,7 @@ function showStats() {
     "BLOCKQUOTE.SH — SYSTEM STATS",
     "",
     `QUOTES         ${total}`,
-    `SOURCED        ${withSource} (${Math.round((withSource / total) * 100)}%)`,
-    `TERMINALS      12`,
+    `TERMINALS      13`,
     `BOOKMARKS      ${bookmarks}`,
     "",
     `ACTIVE THEME   ${currentTheme}`,
@@ -2345,6 +2377,43 @@ const BitcoinTip = (() => {
 })();
 
 // =========================================
+// QUOTE OF THE DAY
+// =========================================
+
+/**
+ * Returns today's quote — deterministic for the UTC calendar day.
+ * Uses the day-number as a seed so every visitor sees the same quote
+ * on the same day, worldwide. No server needed.
+ *
+ * Algorithm: integer day index (days since Unix epoch) modulo corpus length.
+ * Simple, stable, and produces a different quote every day for ~1.84 years
+ * before the 672-quote cycle repeats — well within the window before new
+ * quotes are added.
+ *
+ * @returns {object|null} The quote for today, or null if quotes not loaded.
+ */
+function getQuoteOfTheDay() {
+  if (!state.quotes?.length) return null;
+  const dayIndex = Math.floor(Date.now() / 86400000);
+  return state.quotes[dayIndex % state.quotes.length];
+}
+
+/**
+ * Jumps to today's quote of the day, triggered by Q key.
+ * Shows a toast with today's UTC date. Pauses auto-advance.
+ */
+function showQuoteOfTheDay() {
+  const quote = getQuoteOfTheDay();
+  if (!quote) return;
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD UTC
+  state.isPaused = false;
+  displayQuoteWithTransition(quote, 0, true);
+  showToast(`quote of the day — ${dateStr}`);
+  QuoteUtils.announceAction("Quote of the day");
+}
+
+// =========================================
 // CRT EFFECTS — power-off/on, interference
 // =========================================
 
@@ -2541,6 +2610,7 @@ function handleKeyPress(event) {
       if (state.currentQuote) toggleBookmark();
     },
     w: () => enterClockMode(),
+    q: () => showQuoteOfTheDay(),
     l: () => {
       if (state.currentQuote) copyShareableURL();
     },

@@ -1031,6 +1031,7 @@ main {
   transform-style: preserve-3d;
 }
 
+
 /*
    QUOTE CONTAINER
    No border-left (anachronistic modern UI convention).
@@ -1377,20 +1378,7 @@ a:focus-visible {
   color: var(--theme-background);
 }
 
-/* Selection within reverse-video text — the quote body is already rendered
-   as light-on-dark via .text-selected. Drag-selecting it needs to flip back
-   to the terminal's normal phosphor-on-dark so the selection is visible.
-   Real terminals did the same: selecting within a reverse-video field
-   toggled the attribute back to normal video. */
-.text-selected::selection {
-  background: var(--theme-background);
-  color: var(--primary-color);
-}
-.text-selected a::selection {
-  background: var(--theme-background);
-  color: var(--primary-color);
-}
-
+/* Reverse-video: quote body renders as dark-text-on-phosphor. */
 .text-selected {
   background-color: var(--primary-color);
   color: var(--theme-background);
@@ -1403,6 +1391,12 @@ a:focus-visible {
 .text-selected a {
   color: var(--theme-background) !important;
   text-shadow: none !important;
+}
+
+.text-selected::selection,
+.text-selected a::selection {
+  background: rgba(var(--primary-rgb), 0.35);
+  color: var(--theme-background);
 }
 
 /* =========================================
