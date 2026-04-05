@@ -32,7 +32,7 @@ Welcome to blockquote.sh, a growing collection of Bitcoin and Bitcoin-related qu
 - **Tap** — Pause/resume quote display (or finish typing immediately)
 - **Swipe Left** — Next quote (when paused)
 - **Swipe Right** — Previous quote / back in history (when paused)
-- **Swipe Up** — Toggle uppercase/lowercase
+- **Swipe Up** — Show mobile gesture help
 - **Swipe Down** — Copy shareable link for current quote
 - **Long Press** — Share current quote to X/Twitter
 - **Device Shake** — Change terminal theme
