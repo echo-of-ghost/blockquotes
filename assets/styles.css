@@ -1034,6 +1034,30 @@ main {
   overflow: clip;
 }
 
+/*
+   CRT glass glare — a single soft specular highlight in the upper-left.
+   Real CRT faceplate glass was slightly reflective; ambient room light
+   produced a diffuse specular reflection, typically brighter toward one
+   corner depending on monitor angle and room lighting.
+   Modelled as a tight radial gradient: bright centre, rapid falloff.
+   At 3–4% opacity it reads as glass sheen without competing with the text.
+   White, not phosphor-coloured — reflected ambient light, not emitted phosphor.
+*/
+main::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9997;
+  background: radial-gradient(
+    ellipse 38% 28% at 18% 14%,
+    rgba(255, 255, 255, 0.035) 0%,
+    rgba(255, 255, 255, 0.012) 40%,
+    transparent 70%
+  );
+  transform: translateZ(0);
+}
+
 
 /*
    QUOTE CONTAINER
