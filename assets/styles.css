@@ -41,6 +41,13 @@
   /* Effects */
   --glow-intensity: 0.5;
 
+  /* Phosphor bloom — subtle filter applied to quote text.
+     blur() compounds adjacent character halation (line-level glow > per-char glow).
+     brightness() lifts the emitted luminance slightly, simulating beam energy at
+     full saturation. Override per theme to match phosphor + tube characteristics. */
+  --bloom-blur: 0.35px;
+  --bloom-brightness: 1.03;
+
   /* Cursor blink — overridden per theme to match real hardware */
   --cursor-blink-rate: 0.53s;
 
@@ -167,6 +174,7 @@ body.crt-interference main {
   animation: crt-interference 0.18s ease-out 1 forwards;
 }
 
+
 /*
    Chromatic aberration flash — fired on theme switch via the .crt-switch class.
 
@@ -265,9 +273,6 @@ body[class*="theme-"] {
   color: var(--primary-color);
   display: flex;
   flex-direction: column;
-  /* Barrel distortion — perspective set per-theme; rotateX applied to main below */
-  perspective: var(--crt-perspective, 2000px);
-  perspective-origin: 50% 50%;
   font-family: var(--font-family);
   /* Kill all OpenType smartness — real terminal character ROMs were
        strict 1:1 codepoint-to-glyph maps. No ligatures, no contextual
@@ -475,14 +480,16 @@ body::after {
   --glow-intensity: 0.5;
   /* Warm-up: IBM 3279 14" tube, CE manual: ~4s to "screen ready" */
   --warmup-duration: 4s;
-  /* Barrel distortion: 14" aperture-grille IBM engineering — professionally flat */
-  --crt-perspective: 2400px;
-  --crt-tilt-x: 0.2deg;
+
   /* Chromatic aberration: single P1 gun, very slight deflection-coil fringe only */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.08;
   /* Vignette: 14" flat-face professional, anti-glare — modest corner darkening */
   --vignette-opacity: 0.38;
+  /* Bloom: P1 ~20ms decay, medium halation compound — moderate blur + lift */
+  --bloom-blur: 0.35px;
+  --bloom-brightness: 1.03;
+  /* Breathe: mainframe PSU, heavy regulation, slow drift */
 }
 
 /* IBM 3279 Bitcoin Orange — custom phosphor homage.
@@ -509,12 +516,14 @@ body::after {
   /* Warm-up: Same IBM 3279 chassis */
   --warmup-duration: 4s;
   /* Same IBM 3279 chassis — identical tube geometry */
-  --crt-perspective: 2400px;
-  --crt-tilt-x: 0.2deg;
+
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.08;
   /* Vignette: same IBM 3279 chassis — identical flat-face tube */
   --vignette-opacity: 0.38;
+  /* Bloom: warm orange, amber-adjacent scatter — wider than P1 */
+  --bloom-blur: 0.4px;
+  --bloom-brightness: 1.04;
 }
 
 /* DEC VT220 — P4 white phosphor with blue-green cast, 80×24
@@ -541,14 +550,14 @@ body::after {
   --glow-intensity: 0.35;
   /* Warm-up: DEC VT220, improved PSU over VT100: ~2.5s */
   --warmup-duration: 2.5s;
-  /* Barrel distortion: DEC 14" flat-face engineering — nearly flat */
-  --crt-perspective: 2200px;
-  --crt-tilt-x: 0.25deg;
   /* Chromatic aberration: P4 aged white — slight blue-channel ghost from phosphor shift */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.1;
   /* Vignette: DEC 14" flat-face professional — very even illumination */
   --vignette-opacity: 0.32;
+  /* Bloom: P4 aged ~1ms, minimal persistence — very little compound halation */
+  --bloom-blur: 0.15px;
+  --bloom-brightness: 1.01;
 }
 
 /* Zenith Z-19 — P1 green phosphor, 80×24, CP/M workhorse
@@ -573,13 +582,13 @@ body::after {
   --glow-intensity: 0.5;
   /* Warm-up: Zenith Z-19 12" tube, similar class to VT100: ~3s */
   --warmup-duration: 3s;
-  /* Barrel distortion: 12" professional tube — moderate curvature */
-  --crt-perspective: 1800px;
-  --crt-tilt-x: 0.4deg;
   --chroma-offset: 0.6px;
   --chroma-opacity: 0.09;
   /* Vignette: 12" professional tube — moderate corner falloff */
   --vignette-opacity: 0.40;
+  /* Bloom: P1 purer variant — same class as IBM, slightly less yellow scatter */
+  --bloom-blur: 0.35px;
+  --bloom-brightness: 1.03;
 }
 
 /* Lear Siegler ADM-3A — P1 green phosphor, 80×24, 1976
@@ -614,14 +623,14 @@ body::after {
   --glow-intensity: 0.53;
   /* Warm-up: ADM-3A TTL design, small 12" tube: ~2s */
   --warmup-duration: 2s;
-  /* Barrel distortion: 12" compact TTL-era tube — moderate, slightly more than Zenith */
-  --crt-perspective: 1800px;
-  --crt-tilt-x: 0.45deg;
   /* Chromatic aberration: 1976 deflection optics — slightly older coil geometry */
   --chroma-offset: 0.6px;
   --chroma-opacity: 0.09;
   /* Vignette: 12" compact TTL-era tube — slightly more corner falloff than 14" */
   --vignette-opacity: 0.42;
+  /* Bloom: P1 warm yellow-shift — slightly richer than IBM */
+  --bloom-blur: 0.38px;
+  --bloom-brightness: 1.03;
 }
 
 /* Kaypro II — Toshiba P31 green phosphor, 80×24, 1982, CP/M 2.2
@@ -653,13 +662,13 @@ body::after {
   --glow-intensity: 0.68;
   /* Warm-up: Kaypro II built-in 9" Toshiba tube: ~2s */
   --warmup-duration: 2s;
-  /* Barrel distortion: 9" Toshiba tube — sharper focus but more curvature than 12-14" */
-  --crt-perspective: 1400px;
-  --crt-tilt-x: 0.6deg;
   --chroma-offset: 0.8px;
   --chroma-opacity: 0.1;
   /* Vignette: 9" Toshiba tube — compact, more curvature than 12-14" */
   --vignette-opacity: 0.48;
+  /* Bloom: P31 <1ms decay — sharpest phosphor, minimal compound halation */
+  --bloom-blur: 0.2px;
+  --bloom-brightness: 1.02;
 }
 
 /* DEC VT05 — P4 white phosphor, 72×20, 1970 teletype-era terminal
@@ -685,14 +694,14 @@ body::after {
   --glow-intensity: 0.32;
   /* Warm-up: DEC VT05 early 1970s, no soft-start: ~2s */
   --warmup-duration: 2s;
-  /* Barrel distortion: 12" teletype-era tube — pre-flat-face era, moderate curve */
-  --crt-perspective: 1800px;
-  --crt-tilt-x: 0.4deg;
   /* Chromatic aberration: P4 white — blue fringe from broad-spectrum phosphor scatter */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.1;
   /* Vignette: 12" early DEC teletype-era tube — pre-flat-face, moderate */
   --vignette-opacity: 0.40;
+  /* Bloom: P4 white ~1ms — minimal persistence, barely perceptible compound halation */
+  --bloom-blur: 0.15px;
+  --bloom-brightness: 1.01;
 }
 
 /* Wyse WY-50 — P134 amber phosphor, 80×24, 1985 (amber variant)
@@ -727,14 +736,15 @@ body::after {
   --glow-intensity: 0.54;
   /* Warm-up: 14" tube, 45W PSU: ~2.5s */
   --warmup-duration: 2.5s;
-  /* Barrel distortion: 14" non-glare anti-reflective WY-50 — praised for flat display */
-  --crt-perspective: 2400px;
-  --crt-tilt-x: 0.2deg;
+
   /* Chromatic aberration: P134 monochrome — minimal fringe, anti-glare coating diffuses it */
   --chroma-offset: 0.5px;
   --chroma-opacity: 0.08;
   /* Vignette: 14" non-glare Wyse — praised for flat even illumination */
   --vignette-opacity: 0.30;
+  /* Bloom: P134 amber ~12ms, tighter than VT100 due to anti-glare coating */
+  --bloom-blur: 0.3px;
+  --bloom-brightness: 1.03;
 }
 
 /* Commodore PET 2001 — P1 green phosphor, 40×25
@@ -762,9 +772,6 @@ body::after {
   --glow-intensity: 0.5;
   /* Warm-up: Commodore PET 2001 built-in 9" tube: ~1.8s */
   --warmup-duration: 1.8s;
-  /* Barrel distortion: 9" built-in TV-type tube — significant curvature, 1977 design */
-  --crt-perspective: 1200px;
-  --crt-tilt-x: 0.8deg;
   /* Chromatic aberration: P1 single-gun — deflection fringe on 9" geometry */
   --chroma-offset: 0.8px;
   --chroma-opacity: 0.1;
@@ -773,6 +780,9 @@ body::after {
   --scanline-opacity: 0.04;
   /* Vignette: consumer 9" built-in TV-type tube — significant corner falloff */
   --vignette-opacity: 0.52;
+  /* Bloom: P1 small 9" tube, driven hard — richer compound halation than 14" IBM */
+  --bloom-blur: 0.4px;
+  --bloom-brightness: 1.04;
 }
 
 /* DEC VT100 — amber phosphor, 80×24, 1978
@@ -806,14 +816,14 @@ body::after {
   --glow-intensity: 0.6;
   /* Warm-up: DEC VT100 12" tube, field service manual: ~3.5s */
   --warmup-duration: 3.5s;
-  /* Barrel distortion: 12" amber tube — moderate professional curve, DEC quality */
-  --crt-perspective: 1800px;
-  --crt-tilt-x: 0.4deg;
   /* Chromatic aberration: amber single-gun — slight warm fringe at deflection limits */
   --chroma-offset: 0.6px;
   --chroma-opacity: 0.09;
   /* Vignette: 12" amber DEC professional — moderate, standard for its era */
   --vignette-opacity: 0.40;
+  /* Bloom: amber ~10-14ms, warmest scatter — richest compound halation of all */
+  --bloom-blur: 0.4px;
+  --bloom-brightness: 1.04;
 }
 
 /* Apple II — P31 green phosphor, 40×24, 1977
@@ -842,14 +852,14 @@ body::after {
   --glow-intensity: 0.65;
   /* Warm-up: Apple II composite monitor: ~2.5s */
   --warmup-duration: 2.5s;
-  /* Barrel distortion: consumer composite monitor — curved consumer tube, more than DEC */
-  --crt-perspective: 1200px;
-  --crt-tilt-x: 0.8deg;
   /* Chromatic aberration: P31 single-gun — deflection fringe at beam edges */
   --chroma-offset: 0.7px;
   --chroma-opacity: 0.1;
   /* Vignette: consumer composite monitor, curved tube — notable corner falloff */
   --vignette-opacity: 0.55;
+  /* Bloom: P31 <1ms — tight, high-QE phosphor, minimal compound halation */
+  --bloom-blur: 0.2px;
+  --bloom-brightness: 1.02;
 }
 
 /* Commodore 64 — VIC-II NTSC composite output, 40×25, 1982
@@ -878,14 +888,14 @@ body::after {
   --glow-intensity: 0.42;
   /* Warm-up: C64 connected to consumer 13" CRT TV: ~4s */
   --warmup-duration: 4s;
-  /* Barrel distortion: consumer CRT television — most curved display in this set */
-  --crt-perspective: 900px;
-  --crt-tilt-x: 1deg;
   /* Chromatic aberration: NTSC RF composite — real chroma bleed, comb filter recalibration */
   --chroma-offset: 2px;
   --chroma-opacity: 0.22;
   /* Vignette: consumer CRT TV — most curved display in this set, deep corner falloff */
   --vignette-opacity: 0.60;
+  /* Bloom: P22 composite ~8ms, chroma blur adds extra perceived softness */
+  --bloom-blur: 0.3px;
+  --bloom-brightness: 1.03;
 }
 
 /* NeXTSTEP Terminal — NeXT MegaPixel Display, 17" grayscale CRT, 1120×832, 92 dpi
@@ -916,14 +926,14 @@ body::after {
   --glow-intensity: 0.28;
   /* Warm-up: NeXT MegaPixel Display 17" — professional tube: ~3s */
   --warmup-duration: 3s;
-  /* Barrel distortion: 17" professional flat-face tube — extremely flat */
-  --crt-perspective: 2800px;
-  --crt-tilt-x: 0.15deg;
   /* Chromatic aberration: single P4 gun, high-grade optics — minimal fringe */
   --chroma-offset: 0.4px;
   --chroma-opacity: 0.06;
   /* Vignette: 17" professional flat-face — very even illumination */
   --vignette-opacity: 0.28;
+  /* Bloom: P4 high-grade ~1-2ms — minimal, clean, barely perceptible */
+  --bloom-blur: 0.15px;
+  --bloom-brightness: 1.01;
 }
 
 .theme-nextstep #quote-container {
@@ -1016,19 +1026,61 @@ main {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-left: clamp(0.5rem, 1vw, 1rem);
   padding-right: clamp(0.5rem, 1vw, 1rem);
   /* Nudge centre of mass slightly above geometric centre — optical balance.
        True 50% centre feels low. ~42vh gives the quote a grounded-but-open feel. */
   padding-bottom: 8vh;
   max-width: 100%;
   overflow: clip;
-  /* Barrel distortion — slight rotateX within body's perspective context.
-     Small angle (0.2–0.8deg) gives depth without obvious distortion.
-     Professional terminals (IBM, DEC): nearly flat. Consumer (C64, Apple II): noticeable. */
-  transform: rotateX(var(--crt-tilt-x, 0.3deg));
-  transform-origin: center center;
-  transform-style: preserve-3d;
+}
+
+/*
+   CRT beam focus centre glow — real CRT electron beams are perfectly
+   perpendicular to the faceplate at screen centre. As the beam deflects
+   outward it strikes the phosphor at increasing angles, reducing energy
+   transfer efficiency and causing slight defocus toward the edges.
+   The result: a barely perceptible luminance lift at screen centre.
+   Modelled as a wide radial gradient of the phosphor colour at ~2% opacity,
+   covering ~55% of the screen radius before fading to transparent.
+   Uses --primary-rgb so it's phosphor-coloured (emitted light, not reflected).
+*/
+main::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9996;
+  background: radial-gradient(
+    ellipse 55% 50% at 50% 48%,
+    rgba(var(--primary-rgb), 0.022) 0%,
+    rgba(var(--primary-rgb), 0.008) 45%,
+    transparent 70%
+  );
+  transform: translateZ(0);
+}
+
+/*
+   CRT glass glare — a single soft specular highlight in the upper-left.
+   Real CRT faceplate glass was slightly reflective; ambient room light
+   produced a diffuse specular reflection, typically brighter toward one
+   corner depending on monitor angle and room lighting.
+   Modelled as a tight radial gradient: bright centre, rapid falloff.
+   At 3–4% opacity it reads as glass sheen without competing with the text.
+   White, not phosphor-coloured — reflected ambient light, not emitted phosphor.
+*/
+main::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9997;
+  background: radial-gradient(
+    ellipse 38% 28% at 18% 14%,
+    rgba(255, 255, 255, 0.035) 0%,
+    rgba(255, 255, 255, 0.012) 40%,
+    transparent 70%
+  );
+  transform: translateZ(0);
 }
 
 
@@ -1046,14 +1098,15 @@ main {
     clamp(0.5rem, 1vw, 1rem);
   text-align: left;
   width: 100%;
-  position: relative;
-  transition:
     var(--base-transition),
     opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   line-height: 1.6;
   text-shadow: 0 0 4px
     rgba(var(--primary-rgb), calc(var(--glow-intensity) * 0.7));
+  /* Phosphor bloom — blur compounds adjacent character halation at line level.
+     brightness lifts the perceived emission. Both are subtle by design. */
+  filter: blur(var(--bloom-blur, 0.35px)) brightness(var(--bloom-brightness, 1.03));
   contain: layout style paint;
   transform: translateZ(0);
   backface-visibility: hidden;
@@ -1168,7 +1221,7 @@ main {
     0 0 16px rgba(190, 110, 0, 0.1),
     0.5px 0 4px rgba(255, 176, 0, 0.07),
     -0.5px 0 4px rgba(255, 176, 0, 0.07);
-  filter: blur(0.2px) saturate(0.9);
+  filter: blur(var(--bloom-blur)) saturate(0.9) brightness(var(--bloom-brightness));
 }
 /* Apple II P31: <1ms decay — minimal corona, hard-edged like Kaypro.
    No horizontal spread pair — P31's fast extinction means no beam
@@ -1192,7 +1245,7 @@ main {
     0 0 14px rgba(80, 70, 180, 0.1),
     1px 0 5px rgba(116, 105, 200, 0.08),
     -1px 0 5px rgba(116, 105, 200, 0.08);
-  filter: blur(0.15px);
+  filter: blur(var(--bloom-blur)) brightness(var(--bloom-brightness));
   /* VIC-II character generator: strict 8×8 pixel cell grid, zero gap
        between adjacent cells. Characters butted up against each other —
        no inter-character spacing existed in hardware. */
@@ -1200,6 +1253,11 @@ main {
 }
 .theme-commodore64 .author {
   letter-spacing: 0;
+}
+
+
+  40%  { opacity: 0.2;  filter: blur(1.2px) brightness(1.1); }
+  100% { opacity: 0;    filter: blur(2px)   brightness(1); }
 }
 
 /*
@@ -1368,6 +1426,7 @@ a:focus-visible {
 #error-message.error-active {
   opacity: 1;
 }
+
 
 /* =========================================
    TEXT SELECTION & HIGHLIGHTING
@@ -1780,8 +1839,7 @@ body.theme-zenith-green .caps-indicator {
     /* No transition effects of any kind */
     transition: none !important;
   }
-  .theme-vt100-amber #quote-container,
-  .theme-commodore64 #quote-container {
+  #quote-container {
     filter: none !important;
   }
   /* No chromatic aberration flash */

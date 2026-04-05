@@ -762,7 +762,9 @@ function displayQuoteWithTransition(
 ) {
   PerformanceUtils.cancelAllTimers();
   hidePositionIndicator();
+
   elements.quoteContainer.innerHTML = "";
+
   displayQuote(
     quote,
     startIndex,
@@ -2684,7 +2686,7 @@ function handleClick(event) {
   if (event.target.closest(".help-trigger")) {
     event.preventDefault();
     document.activeElement?.blur();
-    showHelp();
+    isMobile ? showMobileHelp() : showHelp();
     return;
   }
 
