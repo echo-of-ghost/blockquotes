@@ -1035,6 +1035,31 @@ main {
 }
 
 /*
+   CRT beam focus centre glow — real CRT electron beams are perfectly
+   perpendicular to the faceplate at screen centre. As the beam deflects
+   outward it strikes the phosphor at increasing angles, reducing energy
+   transfer efficiency and causing slight defocus toward the edges.
+   The result: a barely perceptible luminance lift at screen centre.
+   Modelled as a wide radial gradient of the phosphor colour at ~2% opacity,
+   covering ~55% of the screen radius before fading to transparent.
+   Uses --primary-rgb so it's phosphor-coloured (emitted light, not reflected).
+*/
+main::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9996;
+  background: radial-gradient(
+    ellipse 55% 50% at 50% 48%,
+    rgba(var(--primary-rgb), 0.022) 0%,
+    rgba(var(--primary-rgb), 0.008) 45%,
+    transparent 70%
+  );
+  transform: translateZ(0);
+}
+
+/*
    CRT glass glare — a single soft specular highlight in the upper-left.
    Real CRT faceplate glass was slightly reflective; ambient room light
    produced a diffuse specular reflection, typically brighter toward one
