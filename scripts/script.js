@@ -1297,6 +1297,176 @@ function getThemeHelpLines(theme) {
   }
 }
 
+function getMobileHelpLines(theme) {
+  switch (theme) {
+    case "ibm3279-green":
+    case "ibm3279-bitcoin-orange":
+      return [
+        "HELP - BLOCKQUOTES MOBILE GESTURES",
+        " ",
+        "TAP        PAUSE / FINISH TYPING",
+        "SWIPE L    NEXT QUOTE",
+        "SWIPE R    PREVIOUS QUOTE",
+        "SWIPE UP   THIS HELP",
+        "SWIPE DN   COPY SHARE LINK",
+        "L.PRESS    SHARE ON X/TWITTER",
+        "SHAKE      CHANGE THEME",
+      ];
+
+    case "vt100-amber":
+      return [
+        "BLOCKQUOTES - MOBILE topic",
+        " ",
+        "Topic: Touch gesture bindings",
+        " ",
+        "  TAP           pause / finish typing",
+        "  SWIPE LEFT    next quote",
+        "  SWIPE RIGHT   previous quote",
+        "  SWIPE UP      this help",
+        "  SWIPE DOWN    copy share link",
+        "  LONG PRESS    share on X/Twitter",
+        "  SHAKE         change theme",
+      ];
+
+    case "teletype-blue-green":
+    case "vt05-white":
+    case "adm3a-green":
+    case "wyse50-amber":
+    case "nextstep":
+      return [
+        "usage: blockquotes [gesture]",
+        " ",
+        "  tap           pause / finish typing",
+        "  swipe left    next quote",
+        "  swipe right   previous quote",
+        "  swipe up      this help",
+        "  swipe down    copy share link",
+        "  long press    share on x/twitter",
+        "  shake         change theme",
+      ];
+
+    case "zenith-green":
+    case "kaypro-green":
+      return [
+        "BLOCKQUOTES MOBILE GESTURES",
+        " ",
+        "GESTURE     ACTION",
+        "---         ------",
+        "TAP         PAUSE / FINISH TYPING",
+        "SWIPE L     NEXT QUOTE",
+        "SWIPE R     PREVIOUS QUOTE",
+        "SWIPE UP    THIS HELP",
+        "SWIPE DN    COPY SHARE LINK",
+        "L.PRESS     SHARE X/TWITTER",
+        "SHAKE       CHANGE THEME",
+      ];
+
+    case "pet2001-green":
+    case "commodore64":
+      return [
+        themeHelpHeaders[theme],
+        " ",
+        "10 REM ** MOBILE GESTURES **",
+        "20 REM TAP = PAUSE / NEXT",
+        "30 REM SWIPE L = NEXT QUOTE",
+        "40 REM SWIPE R = PREV QUOTE",
+        "50 REM SWIPE UP = THIS HELP",
+        "60 REM SWIPE DN = COPY LINK",
+        "70 REM LONG PRESS = SHARE X",
+        "80 REM SHAKE = CHANGE THEME",
+        " ",
+        "READY.",
+      ];
+
+    case "apple2-green":
+      return [
+        "]CATALOG - BLOCKQUOTE.SH GESTURES",
+        " ",
+        "]  TAP         PAUSE / FINISH TYPING",
+        "]  SWIPE L     NEXT QUOTE",
+        "]  SWIPE R     PREVIOUS QUOTE",
+        "]  SWIPE UP    THIS HELP",
+        "]  SWIPE DN    COPY SHARE LINK",
+        "]  L.PRESS     SHARE X/TWITTER",
+        "]  SHAKE       CHANGE THEME",
+      ];
+
+    default:
+      return [
+        "MOBILE GESTURES",
+        " ",
+        "TAP            pause / finish typing",
+        "SWIPE LEFT     next quote",
+        "SWIPE RIGHT    previous quote",
+        "SWIPE UP       this help",
+        "SWIPE DOWN     copy share link",
+        "LONG PRESS     share on x/twitter",
+        "SHAKE          change theme",
+      ];
+  }
+}
+
+function showMobileHelp() {
+  if (state.booting) return;
+
+  PerformanceUtils.cancelAllTimers();
+  hidePositionIndicator();
+  state.isTyping = false;
+  state.isPaused = true;
+  state.helpMode = true;
+
+  const currentTheme =
+    themes.find((t) => document.body.classList.contains(`theme-${t}`)) ||
+    "ibm3279-green";
+
+  const lines = getMobileHelpLines(currentTheme);
+
+  function renderFull() {
+    elements.quoteContainer.innerHTML =
+      lines.map((l) => `<span class="text-selected">${l}</span>`).join("\n") +
+      `\n<span class="cursor-block" aria-hidden="true"></span>`;
+    showToast("tap to close");
+  }
+
+  let lineIndex = 0;
+  const typed = [];
+
+  function nextLine() {
+    if (lineIndex >= lines.length) {
+      renderFull();
+      return;
+    }
+    const text = lines[lineIndex];
+    lineIndex++;
+    let i = 0;
+    const typeSpeed =
+      lineIndex === 1 ? HELP_HEADER_TYPE_SPEED_MS : HELP_LINE_TYPE_SPEED_MS;
+    const linePause =
+      lineIndex === 1 ? HELP_HEADER_PAUSE_MS : HELP_LINE_PAUSE_MS;
+
+    function tick() {
+      if (!state.helpMode) return;
+      const current = text.slice(0, i + 1);
+      elements.quoteContainer.innerHTML =
+        typed.map((l) => `<span class="text-selected">${l}</span>`).join("\n") +
+        (typed.length ? "\n" : "") +
+        `<span class="text-selected">${current}</span>` +
+        `<span class="cursor-block" aria-hidden="true"></span>`;
+      i++;
+      if (i < text.length) {
+        state.timeoutId = setTimeout(tick, typeSpeed);
+      } else {
+        typed.push(text);
+        state.timeoutId = setTimeout(nextLine, linePause);
+      }
+    }
+    tick();
+  }
+
+  elements.quoteContainer.textContent = "";
+  nextLine();
+}
+
 function showHelp() {
   if (state.booting) return;
 
@@ -2669,7 +2839,7 @@ function handleSwipeStart(event) {
 /**
  * Resolves the swipe direction on touchend and dispatches the appropriate action.
  * Swipe left → next quote, swipe right → previous quote (when paused).
- * Swipe up → toggle uppercase, swipe down → copy share link.
+ * Swipe up → mobile gesture help, swipe down → copy share link.
  * No-ops if the touch duration exceeded the long-press threshold.
  *
  * @param {TouchEvent} event
@@ -2705,7 +2875,7 @@ function handleSwipeEnd(event) {
 
   if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > SWIPE_MIN_PX) {
     if (diffY > 0) {
-      toggleTextCase();
+      showMobileHelp();
     } else {
       if (state.currentQuote) copyShareableURL();
     }
